@@ -42,4 +42,5 @@ public static class AuditActions
     public const string InvitationResent = "invitation.resent";
     public const string InvitationRevoked = "invitation.revoked";
     public const string InvitationAccepted = "invitation.accepted";
+    public const string InvitationDeclined = "invitation.declined";
 }

@@ -28,6 +28,18 @@ public static class OrganizationErrors
     public static readonly Error InvitationForSomeoneElse = Error.Forbidden(
         "invitation.for_someone_else", "The invitation was sent to another email address.");
 
+    public static readonly Error MissingPermission = Error.Forbidden(
+        "organization.missing_permission", "Your roles in the organization do not allow this.");
+
+    /// <summary>Within an organization, members only hand out what they hold, and only manage members with no more.</summary>
+    public static readonly Error PrivilegeEscalation = Error.Forbidden(
+        "organization.privilege_escalation", "Granting organization permissions, or managing a member who holds them, requires holding them yourself.");
+
+    public static readonly Error LastAdministrator = Error.Conflict(
+        "organization.last_administrator", "Someone else has to be able to manage the members before you leave.");
+
+    public static readonly Error CreationDisabled = Error.Forbidden("organization.creation_disabled", "Users cannot create organizations here.");
+
     public static readonly Error InvalidName = Error.Validation("organization.invalid_name", "A name is required and is at most 100 characters.");
 
     public static readonly Error InvalidSlug = Error.Validation(

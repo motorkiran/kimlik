@@ -46,8 +46,17 @@ public sealed class AcceptInvitationHandler(IKimlikDbContext context, IAuditLog 
             return OrganizationErrors.InvitationClosed;
         }
 
+        return await AcceptAsync(invitation, userId, verifiesEmail: true, now, cancellationToken);
+    }
+
+    /// <summary>
+    /// Accepts the invitation for a user with the invited address. Without the link, which proves access to the
+    /// inbox, the user's address must already be verified.
+    /// </summary>
+    internal async Task<Result<Guid>> AcceptAsync(Invitation invitation, Guid userId, bool verifiesEmail, DateTimeOffset now, CancellationToken cancellationToken)
+    {
         var user = await context.Users.SingleAsync(user => user.Id == userId, cancellationToken);
-        if (user.NormalizedEmail != invitation.NormalizedEmail)
+        if (user.NormalizedEmail != invitation.NormalizedEmail || (!verifiesEmail && !user.EmailConfirmed))
         {
             return OrganizationErrors.InvitationForSomeoneElse;
         }

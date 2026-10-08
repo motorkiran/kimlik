@@ -65,7 +65,8 @@ internal static class ManagementApi
             .MapClientEndpoints()
             .MapOrganizationEndpoints()
             .MapAuditEventEndpoints()
-            .MapProvisioningEndpoints();
+            .MapProvisioningEndpoints()
+            .MapAccountEndpoints();
 
         endpoints.MapOpenApi();
         endpoints.MapScalarApiReference(options => options.WithTitle("Kimlik API"));

@@ -38,6 +38,10 @@ public static class DependencyInjection
         services.AddScoped<AccessResolver>();
         services.AddScoped<AccessGuard>();
         services.AddScoped<UserOrganizations>();
+        services.AddScoped<OrganizationGuard>();
+        services.AddScoped<MyOrganizations>();
+        services.AddScoped<MyInvitations>();
+        services.AddScoped<OrganizationSelfService>();
         services.AddScoped<PermissionProvisioner>();
         services.AddScoped<RoleProvisioner>();
         services.AddScoped<ApiResourceProvisioner>();

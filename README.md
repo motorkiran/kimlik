@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, a Management API, provisioning and a .NET SDK (milestones M1 and M2). Organizations come next. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M3). Plans and entitlements come next. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -92,6 +92,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Email__FromAddress`, `Kimlik__Email__Smtp__Host` | Sender and SMTP relay for verification and reset emails |
 | `Kimlik__Provisioning__FilePath` | A provisioning file to apply at startup (see below) |
 | `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
+| `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
 
 Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`.
