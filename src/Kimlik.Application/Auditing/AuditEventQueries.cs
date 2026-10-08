@@ -17,6 +17,7 @@ public sealed record ListAuditEventsQuery(
     string? ActorId,
     string? SubjectType,
     string? SubjectId,
+    Guid? OrganizationId,
     DateTimeOffset? From,
     DateTimeOffset? To,
     string? Cursor,
@@ -70,6 +71,11 @@ public sealed class ListAuditEventsHandler(IKimlikDbContext context)
             events = events.Where(auditEvent => auditEvent.SubjectId == subjectId);
         }
 
+        if (query.OrganizationId is { } organizationId)
+        {
+            events = events.Where(auditEvent => auditEvent.OrganizationId == organizationId);
+        }
+
         if (query.From is { } from)
         {
             events = events.Where(auditEvent => auditEvent.OccurredAt >= from);
@@ -94,6 +100,7 @@ public sealed class ListAuditEventsHandler(IKimlikDbContext context)
         auditEvent.ActorId,
         auditEvent.SubjectType,
         auditEvent.SubjectId,
+        auditEvent.OrganizationId,
         auditEvent.IpAddress?.ToString(),
         auditEvent.UserAgent,
         auditEvent.CorrelationId,

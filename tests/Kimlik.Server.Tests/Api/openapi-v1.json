@@ -2031,6 +2031,628 @@
         ]
       }
     },
+    "/api/v1/organizations": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "List organizations",
+        "description": "Lists organizations in creation order.\n\nRequires the `kimlik.organizations:read` permission.",
+        "operationId": "ListOrganizations",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Part of the name or slug.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfOrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Create an organization",
+        "description": "Requires the `kimlik.organizations:write` permission.",
+        "operationId": "CreateOrganization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{id}": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get an organization",
+        "description": "Requires the `kimlik.organizations:read` permission.",
+        "operationId": "GetOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Rename an organization or change its slug",
+        "description": "Requires the `kimlik.organizations:write` permission.",
+        "operationId": "UpdateOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Delete an organization",
+        "description": "Also removes its memberships.\n\nRequires the `kimlik.organizations:write` permission.",
+        "operationId": "DeleteOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{id}/members": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "List the members of an organization",
+        "description": "Requires the `kimlik.organizations:read` permission.",
+        "operationId": "ListOrganizationMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Add a user to an organization",
+        "description": "Requires the `kimlik.organizations:write` permission.",
+        "operationId": "AddOrganizationMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{id}/members/{userId}/roles": {
+      "put": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Replace a member's organization roles",
+        "description": "Requires the `kimlik.organizations:write` permission.",
+        "operationId": "SetOrganizationMemberRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRolesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/organizations/{id}/members/{userId}": {
+      "delete": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Remove a member from an organization",
+        "description": "Requires the `kimlik.organizations:write` permission.",
+        "operationId": "RemoveOrganizationMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/audit-events": {
       "get": {
         "tags": [
@@ -2078,6 +2700,15 @@
             "description": "The ID of what was acted on.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "Events within this organization.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -2242,6 +2873,26 @@
   },
   "components": {
     "schemas": {
+      "AddMemberRequest": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roles": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys of organization roles."
+          }
+        }
+      },
       "ApiResourceResponse": {
         "required": [
           "id",
@@ -2298,6 +2949,7 @@
           "actorId",
           "subjectType",
           "subjectId",
+          "organizationId",
           "ipAddress",
           "userAgent",
           "correlationId",
@@ -2336,6 +2988,13 @@
               "null",
               "string"
             ]
+          },
+          "organizationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "ipAddress": {
             "type": [
@@ -2569,6 +3228,26 @@
         },
         "description": "A new client and, for web and service clients, its secret. The secret is shown only this once."
       },
+      "CreateOrganizationRequest": {
+        "required": [
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "Up to 64 lowercase letters, digits and inner hyphens, such as `acme`."
+          }
+        }
+      },
       "CreatePermissionRequest": {
         "required": [
           "key"
@@ -2728,6 +3407,76 @@
         }
       },
       "JsonElement": { },
+      "MemberResponse": {
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "roles",
+          "joinedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A member of an organization and the organization roles they hold there."
+      },
+      "OrganizationResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A group of users, such as a company, workspace or team. Clients may name it by ID or slug."
+      },
       "PageOfApiResourceResponse": {
         "required": [
           "items",
@@ -2783,6 +3532,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClientResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfMemberResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfOrganizationResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationResponse"
             }
           },
           "nextCursor": {
@@ -3346,6 +4139,29 @@
         },
         "description": "Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and `null` empties\na list. Lists are replaced as a whole."
       },
+      "UpdateOrganizationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new slug; clients that use the old one must switch to it."
+          }
+        },
+        "description": "Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value."
+      },
       "UpdatePermissionRequest": {
         "type": "object",
         "properties": {
@@ -3524,6 +4340,9 @@
     },
     {
       "name": "Clients"
+    },
+    {
+      "name": "Organizations"
     },
     {
       "name": "Audit events"

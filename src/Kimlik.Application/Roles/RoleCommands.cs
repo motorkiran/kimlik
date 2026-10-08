@@ -40,7 +40,12 @@ public sealed class CreateRoleHandler(IKimlikDbContext context, AccessGuard guar
             return RoleErrors.AlreadyExists;
         }
 
-        role.SetPermissions(permissions, now);
+        var assigned = role.SetPermissions(permissions, now);
+        if (assigned.IsFailure)
+        {
+            return assigned.Error;
+        }
+
         context.Roles.Add(role);
         auditLog.Record(AuditActions.RoleCreated, AuditSubject.Role(role.Id), new Dictionary<string, object?>
         {

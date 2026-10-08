@@ -27,6 +27,9 @@ public sealed class AuditEvent
 
     public string? SubjectId { get; init; }
 
+    /// <summary>The organization the action happened in, so an organization's trail can be read as a whole.</summary>
+    public Guid? OrganizationId { get; init; }
+
     public IPAddress? IpAddress { get; init; }
 
     public string? UserAgent { get; init; }

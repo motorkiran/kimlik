@@ -32,4 +32,11 @@ public static class AccessErrors
         "access.privilege_escalation", "Granting system permissions, or managing an account that holds them, requires holding them yourself.");
 
     public static readonly Error InvalidDescription = Error.Validation("access.invalid_description", "A description is at most 256 characters.");
+
+    public static readonly Error GlobalPermissionInOrganizationRole = Error.Validation(
+        "access.global_permission_in_organization_role",
+        "Organization roles cannot hold system permissions for the whole installation; only 'kimlik.org.' ones.");
+
+    public static readonly Error OrganizationPermissionInGlobalRole = Error.Validation(
+        "access.organization_permission_in_global_role", "System permissions starting with 'kimlik.org.' apply within an organization and belong in organization roles.");
 }

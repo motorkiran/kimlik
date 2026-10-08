@@ -32,4 +32,10 @@ public static class AuditActions
     public const string ClientRolesChanged = "client.roles_changed";
     public const string ClientDeleted = "client.deleted";
     public const string ProvisioningApplied = "provisioning.applied";
+    public const string OrganizationCreated = "organization.created";
+    public const string OrganizationUpdated = "organization.updated";
+    public const string OrganizationDeleted = "organization.deleted";
+    public const string MembershipCreated = "membership.created";
+    public const string MembershipUpdated = "membership.updated";
+    public const string MembershipDeleted = "membership.deleted";
 }

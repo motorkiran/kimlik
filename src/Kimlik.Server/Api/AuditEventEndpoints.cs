@@ -29,6 +29,7 @@ internal static class AuditEventEndpoints
         [Description("A user ID or client ID.")] string? actorId,
         [Description("What was acted on, such as `user` or `role`.")] string? subjectType,
         [Description("The ID of what was acted on.")] string? subjectId,
+        [Description("Events within this organization.")] Guid? organizationId,
         [Description("Events at or after this time (ISO 8601).")] DateTimeOffset? from,
         [Description("Events before this time (ISO 8601).")] DateTimeOffset? to,
         [Description("The `nextCursor` of the previous page.")] string? cursor,
@@ -41,7 +42,7 @@ internal static class AuditEventEndpoints
             return ApiResults.Problem(CommonErrors.InvalidParameter(nameof(actorType)));
         }
 
-        var query = new ListAuditEventsQuery(action, actorTypeFilter, actorId, subjectType, subjectId, from, to, cursor, limit);
+        var query = new ListAuditEventsQuery(action, actorTypeFilter, actorId, subjectType, subjectId, organizationId, from, to, cursor, limit);
         return (await handler.HandleAsync(query, cancellationToken)).ToOk();
     }
 }

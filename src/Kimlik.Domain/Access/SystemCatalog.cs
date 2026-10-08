@@ -1,6 +1,6 @@
 namespace Kimlik.Domain.Access;
 
-/// <summary>Permissions that guard Kimlik's own Management API and admin panel.</summary>
+/// <summary>Permissions that guard Kimlik itself: its Management API and admin panel, and organization self-service.</summary>
 public static class SystemPermissions
 {
     public const string UsersRead = "kimlik.users:read";
@@ -10,9 +10,15 @@ public static class SystemPermissions
     public const string ClientsRead = "kimlik.clients:read";
     public const string ClientsWrite = "kimlik.clients:write";
     public const string AuditRead = "kimlik.audit:read";
+    public const string OrganizationsRead = "kimlik.organizations:read";
+    public const string OrganizationsWrite = "kimlik.organizations:write";
 
-    /// <summary>Every system permission with its description.</summary>
-    public static readonly IReadOnlyDictionary<string, string> All = new Dictionary<string, string>(StringComparer.Ordinal)
+    public const string OrganizationMembersRead = "kimlik.org.members:read";
+    public const string OrganizationMembersWrite = "kimlik.org.members:write";
+    public const string OrganizationSettingsWrite = "kimlik.org.settings:write";
+
+    /// <summary>The system permissions that apply to the whole installation, held through global roles.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Global = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         [UsersRead] = "View users, their roles and sessions.",
         [UsersWrite] = "Create, change, suspend and delete users and assign their roles.",
@@ -21,12 +27,28 @@ public static class SystemPermissions
         [ClientsRead] = "View clients and API resources.",
         [ClientsWrite] = "Register and change clients and API resources, and issue client secrets.",
         [AuditRead] = "Read the audit log.",
+        [OrganizationsRead] = "View organizations and their members.",
+        [OrganizationsWrite] = "Create, change and delete organizations and manage their members.",
     };
+
+    /// <summary>The system permissions that apply within one organization, held through organization roles.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Organization = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [OrganizationMembersRead] = "View the organization's members and invitations.",
+        [OrganizationMembersWrite] = "Invite and remove members of the organization and change their roles.",
+        [OrganizationSettingsWrite] = "Rename or delete the organization.",
+    };
+
+    /// <summary>Every system permission with its description.</summary>
+    public static readonly IReadOnlyDictionary<string, string> All = Global.Concat(Organization).ToDictionary(StringComparer.Ordinal);
 }
 
 /// <summary>Roles that Kimlik defines.</summary>
 public static class SystemRoles
 {
-    /// <summary>Full control of the installation: every system permission.</summary>
+    /// <summary>Full control of the installation: every global system permission.</summary>
     public const string Admin = "kimlik-admin";
+
+    /// <summary>Full control of one organization: every organization system permission. Organization creators get it.</summary>
+    public const string OrganizationAdmin = "kimlik-org-admin";
 }

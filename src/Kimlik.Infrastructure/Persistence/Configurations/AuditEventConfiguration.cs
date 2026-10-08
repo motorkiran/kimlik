@@ -21,5 +21,6 @@ internal sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEv
         builder.HasIndex(auditEvent => auditEvent.OccurredAt);
         builder.HasIndex(auditEvent => new { auditEvent.SubjectType, auditEvent.SubjectId });
         builder.HasIndex(auditEvent => auditEvent.ActorId);
+        builder.HasIndex(auditEvent => auditEvent.OrganizationId);
     }
 }

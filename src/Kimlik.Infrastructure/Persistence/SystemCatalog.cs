@@ -6,8 +6,8 @@ using OpenIddict.Abstractions;
 namespace Kimlik.Infrastructure.Persistence;
 
 /// <summary>
-/// Brings the definitions Kimlik ships with up to date: system permissions, the admin role and the scope of
-/// Kimlik's own API. Idempotent; runs as part of database preparation, after migrations.
+/// Brings the definitions Kimlik ships with up to date: system permissions, the administrator roles of the
+/// installation and of organizations, and the scope of Kimlik's own API. Idempotent; runs as part of database preparation, after migrations.
 /// </summary>
 internal sealed class SystemCatalog(KimlikDbContext context, IOpenIddictScopeManager scopes, TimeProvider timeProvider)
 {
@@ -31,9 +31,12 @@ internal sealed class SystemCatalog(KimlikDbContext context, IOpenIddictScopeMan
             permissions.Remove(obsolete);
         }
 
-        var admin = await context.Roles.Include(role => role.Permissions).SingleOrDefaultAsync(role => role.Key == SystemRoles.Admin, cancellationToken)
-            ?? context.Roles.Add(Role.CreateSystem(SystemRoles.Admin, "Kimlik administrator", "Full control of this Kimlik installation.", now)).Entity;
-        admin.SyncSystemPermissions(permissions.Values, now);
+        var admin = await SystemRoleAsync(SystemRoles.Admin, "Kimlik administrator", "Full control of this Kimlik installation.", RoleScope.Global, now, cancellationToken);
+        admin.SyncSystemPermissions(permissions.Values.Where(permission => SystemPermissions.Global.ContainsKey(permission.Key)), now);
+
+        var organizationAdmin = await SystemRoleAsync(
+            SystemRoles.OrganizationAdmin, "Organization administrator", "Full control of one organization.", RoleScope.Organization, now, cancellationToken);
+        organizationAdmin.SyncSystemPermissions(permissions.Values.Where(permission => SystemPermissions.Organization.ContainsKey(permission.Key)), now);
 
         await context.SaveChangesAsync(cancellationToken);
 
@@ -44,4 +47,8 @@ internal sealed class SystemCatalog(KimlikDbContext context, IOpenIddictScopeMan
                 cancellationToken);
         }
     }
+
+    private async Task<Role> SystemRoleAsync(string key, string name, string description, RoleScope scope, DateTimeOffset now, CancellationToken cancellationToken) =>
+        await context.Roles.Include(role => role.Permissions).SingleOrDefaultAsync(role => role.Key == key, cancellationToken)
+            ?? context.Roles.Add(Role.CreateSystem(key, name, description, scope, now)).Entity;
 }

@@ -18,6 +18,9 @@ public sealed record AuditEventQuery
 
     public string? SubjectId { get; init; }
 
+    /// <summary>Events within this organization.</summary>
+    public Guid? OrganizationId { get; init; }
+
     /// <summary>Events at or after this time.</summary>
     public DateTimeOffset? From { get; init; }
 
@@ -46,6 +49,7 @@ public sealed class AuditEventsClient
             ("actorId", query.ActorId),
             ("subjectType", query.SubjectType),
             ("subjectId", query.SubjectId),
+            ("organizationId", query.OrganizationId),
             ("from", query.From),
             ("to", query.To),
             ("cursor", query.Cursor),

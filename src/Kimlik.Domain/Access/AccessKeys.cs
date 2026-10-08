@@ -11,6 +11,12 @@ public static partial class AccessKeys
     /// <summary>Permissions in this namespace guard Kimlik itself and are defined only by Kimlik.</summary>
     public const string SystemPermissionPrefix = "kimlik.";
 
+    /// <summary>
+    /// System permissions that apply within one organization, such as managing its members. Only organization roles
+    /// carry them; every other system permission applies to the whole installation and only global roles carry it.
+    /// </summary>
+    public const string OrganizationSystemPermissionPrefix = "kimlik.org.";
+
     /// <summary>Roles with this prefix are defined only by Kimlik.</summary>
     public const string SystemRolePrefix = "kimlik-";
 
@@ -22,6 +28,12 @@ public static partial class AccessKeys
         key is { Length: > 0 and <= RoleKeyMaxLength } && RoleKeyPattern().IsMatch(key);
 
     public static bool IsSystemPermission(string key) => key.StartsWith(SystemPermissionPrefix, StringComparison.Ordinal);
+
+    public static bool IsOrganizationSystemPermission(string key) => key.StartsWith(OrganizationSystemPermissionPrefix, StringComparison.Ordinal);
+
+    /// <summary>Whether a role of <paramref name="scope"/> may hold the permission; see <see cref="OrganizationSystemPermissionPrefix"/>.</summary>
+    public static bool FitsScope(string permissionKey, RoleScope scope) =>
+        !IsSystemPermission(permissionKey) || IsOrganizationSystemPermission(permissionKey) == (scope == RoleScope.Organization);
 
     public static bool IsSystemRole(string key) => key.StartsWith(SystemRolePrefix, StringComparison.Ordinal);
 

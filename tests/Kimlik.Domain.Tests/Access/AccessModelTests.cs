@@ -49,9 +49,37 @@ public sealed class AccessModelTests
     }
 
     [Fact]
+    public void OrganizationRoles_CannotCarryAccessToTheWholeInstallation()
+    {
+        var role = Role.Create("owner", "Owner", null, RoleScope.Organization, Now).Value;
+
+        role.SetPermissions([Permission.CreateSystem(SystemPermissions.UsersWrite, "Manage users.", Now)], Now)
+            .Error.ShouldBe(AccessErrors.GlobalPermissionInOrganizationRole);
+        role.SetPermissions([Permission.CreateSystem(SystemPermissions.OrganizationMembersWrite, "Manage members.", Now)], Now)
+            .IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GlobalRoles_CannotCarryAccessToOneOrganization()
+    {
+        var role = Role.Create("support", "Support", null, RoleScope.Global, Now).Value;
+
+        role.SetPermissions([Permission.CreateSystem(SystemPermissions.OrganizationMembersWrite, "Manage members.", Now)], Now)
+            .Error.ShouldBe(AccessErrors.OrganizationPermissionInGlobalRole);
+    }
+
+    [Fact]
+    public void SystemPermissionCatalog_SplitsByScope()
+    {
+        SystemPermissions.Global.Keys.ShouldAllBe(key => AccessKeys.FitsScope(key, RoleScope.Global));
+        SystemPermissions.Organization.Keys.ShouldAllBe(key => AccessKeys.FitsScope(key, RoleScope.Organization));
+        SystemPermissions.All.Count.ShouldBe(SystemPermissions.Global.Count + SystemPermissions.Organization.Count);
+    }
+
+    [Fact]
     public void SystemDefinitions_AreReadOnly()
     {
-        var role = Role.CreateSystem(SystemRoles.Admin, "Administrator", "Everything.", Now);
+        var role = Role.CreateSystem(SystemRoles.Admin, "Administrator", "Everything.", RoleScope.Global, Now);
         var permission = Permission.CreateSystem(SystemPermissions.UsersRead, "View users.", Now);
 
         role.Update("Renamed", null, Now).Error.ShouldBe(AccessErrors.SystemDefinitionReadOnly);

@@ -63,9 +63,9 @@ public sealed class Role
     }
 
     /// <summary>A role defined by Kimlik; see <see cref="SystemRoles"/>.</summary>
-    public static Role CreateSystem(string key, string name, string description, DateTimeOffset now) =>
+    public static Role CreateSystem(string key, string name, string description, RoleScope scope, DateTimeOffset now) =>
         AccessKeys.IsSystemRole(key) && AccessKeys.IsValidRoleKey(key)
-            ? New(key, name, description, RoleScope.Global, isSystem: true, now)
+            ? New(key, name, description, scope, isSystem: true, now)
             : throw new ArgumentException($"'{key}' is not a system role key.", nameof(key));
 
     public Result Update(string name, string? description, DateTimeOffset now)
@@ -91,7 +91,10 @@ public sealed class Role
         return Result.Success();
     }
 
-    /// <summary>Replaces the permissions of the role.</summary>
+    /// <summary>
+    /// Replaces the permissions of the role. Organization roles cannot carry access to the whole installation,
+    /// and global roles cannot carry access to a single organization.
+    /// </summary>
     public Result SetPermissions(IEnumerable<Permission> permissions, DateTimeOffset now)
     {
         if (IsSystem)
@@ -99,7 +102,13 @@ public sealed class Role
             return AccessErrors.SystemDefinitionReadOnly;
         }
 
-        ReplacePermissions(permissions, now);
+        var wanted = permissions.ToList();
+        if (!wanted.TrueForAll(permission => AccessKeys.FitsScope(permission.Key, Scope)))
+        {
+            return Scope == RoleScope.Organization ? AccessErrors.GlobalPermissionInOrganizationRole : AccessErrors.OrganizationPermissionInGlobalRole;
+        }
+
+        ReplacePermissions(wanted, now);
         return Result.Success();
     }
 

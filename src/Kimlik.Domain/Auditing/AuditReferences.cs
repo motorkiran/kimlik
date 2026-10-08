@@ -24,4 +24,6 @@ public sealed record AuditSubject(string Type, string Id)
     public static AuditSubject ApiResource(Guid scopeId) => new("api_resource", scopeId.ToString());
 
     public static AuditSubject Client(Guid applicationId) => new("client", applicationId.ToString());
+
+    public static AuditSubject Organization(Guid organizationId) => new("organization", organizationId.ToString());
 }

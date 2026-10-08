@@ -1,5 +1,6 @@
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
+using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -21,6 +22,12 @@ public interface IKimlikDbContext
     DbSet<UserRole> UserRoles { get; }
 
     DbSet<ClientRole> ClientRoles { get; }
+
+    DbSet<Organization> Organizations { get; }
+
+    DbSet<Membership> Memberships { get; }
+
+    DbSet<MembershipRole> MembershipRoles { get; }
 
     /// <summary>OpenID Connect clients, for queries. Change them through <c>IOpenIddictApplicationManager</c>, which validates them and hashes secrets.</summary>
     IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications { get; }

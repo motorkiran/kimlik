@@ -1,6 +1,7 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
+using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Outbox;
 using Kimlik.Infrastructure.Security.TokenKeys;
@@ -26,6 +27,12 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     public DbSet<ClientRole> ClientRoles => Set<ClientRole>();
+
+    public DbSet<Organization> Organizations => Set<Organization>();
+
+    public DbSet<Membership> Memberships => Set<Membership>();
+
+    public DbSet<MembershipRole> MembershipRoles => Set<MembershipRole>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 

@@ -34,10 +34,17 @@ public sealed class AccessGuard(IKimlikDbContext context, IRequestContext reques
     public Task<Result> EnsureCanManageRoleAsync(Guid roleId, CancellationToken cancellationToken) =>
         EnsureHoldsAsync(link => link.RoleId == roleId, cancellationToken);
 
+    /// <summary>
+    /// Fails when the permissions include a system permission for the whole installation that the caller does not
+    /// have. Organization system permissions only apply within an organization, which global access covers.
+    /// </summary>
     public Result EnsureCanGrant(IEnumerable<string> permissions) =>
-        IsKimlik || permissions.Where(AccessKeys.IsSystemPermission).All(request.Permissions.Contains)
+        IsKimlik || permissions.Where(IsInstallationWide).All(request.Permissions.Contains)
             ? Result.Success()
             : AccessErrors.PrivilegeEscalation;
+
+    private static bool IsInstallationWide(string permission) =>
+        AccessKeys.IsSystemPermission(permission) && !AccessKeys.IsOrganizationSystemPermission(permission);
 
     private bool IsKimlik => request.Actor.Type == AuditActorType.System;
 

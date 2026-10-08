@@ -140,7 +140,7 @@ public sealed class RoleApiTests(KimlikServerFixture server)
         using var listed = await api.Http.GetAsync($"{Roles}?q={SystemRoles.Admin}", CancellationToken);
         var admin = (await listed.ReadAsync<Page<RoleResponse>>()).Items.ShouldHaveSingleItem();
         admin.IsSystem.ShouldBeTrue();
-        admin.Permissions.ShouldBe(SystemPermissions.All.Keys, ignoreOrder: true);
+        admin.Permissions.ShouldBe(SystemPermissions.Global.Keys, ignoreOrder: true);
 
         using var renamed = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Roles}/{admin.Id}", """{ "name": "Root" }""");
         using var stripped = await api.Http.PutJsonAsync($"{Roles}/{admin.Id}/permissions", new SetPermissionsRequest { Permissions = [] });

@@ -35,7 +35,7 @@ public sealed class AccessClaimsTests(KimlikServerFixture server)
 
         var payload = await AccessTokenPayloadAsync(user, $"openid {KimlikScopes.Api}");
 
-        Strings(payload, KimlikClaimTypes.Permissions).ShouldBe(SystemPermissions.All.Keys, ignoreOrder: true);
+        Strings(payload, KimlikClaimTypes.Permissions).ShouldBe(SystemPermissions.Global.Keys, ignoreOrder: true);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class AccessClaimsTests(KimlikServerFixture server)
             .Join(context.Permissions, link => link.PermissionId, permission => permission.Id, (_, permission) => permission.Key)
             .ToListAsync(TestContext.Current.CancellationToken));
 
-        adminPermissions.ShouldBe(SystemPermissions.All.Keys, ignoreOrder: true);
+        adminPermissions.ShouldBe(SystemPermissions.Global.Keys, ignoreOrder: true);
         (await server.WithServicesAsync(services => services.GetRequiredService<IOpenIddictScopeManager>().FindByNameAsync(KimlikScopes.Api).AsTask()))
             .ShouldNotBeNull();
     }

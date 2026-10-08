@@ -27,6 +27,7 @@ public sealed record AuditEventResponse(
     string? ActorId,
     string? SubjectType,
     string? SubjectId,
+    Guid? OrganizationId,
     string? IpAddress,
     string? UserAgent,
     string? CorrelationId,
