@@ -28,11 +28,18 @@
       <dl>
         <dt>Roles</dt><dd id="roles"></dd>
         <dt>Permissions</dt><dd id="permissions"></dd>
+        <dt>Plan</dt><dd id="plan"></dd>
       </dl>
-      <button id="become-accountant" class="secondary">Become an accountant (demo)</button>
+      <div class="actions">
+        <button id="become-accountant" class="secondary">Become an accountant (demo)</button>
+        <button id="upgrade" class="secondary">Upgrade to Pro (demo)</button>
+      </div>
 
       <h2>Invoices</h2>
-      <button id="load-invoices">Load invoices</button>
+      <div class="actions">
+        <button id="load-invoices">Load invoices</button>
+        <button id="export" class="secondary">Export (Pro)</button>
+      </div>
       <table>
         <thead><tr><th>Customer</th><th>Amount</th><th>Created by</th></tr></thead>
         <tbody id="invoices"></tbody>

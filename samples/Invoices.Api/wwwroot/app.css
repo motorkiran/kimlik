@@ -84,4 +84,11 @@ input {
 
 #status {
   min-height: 1.5rem;
+  white-space: pre-line;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }

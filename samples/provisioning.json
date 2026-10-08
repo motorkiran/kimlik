@@ -12,11 +12,19 @@
       "permissions": ["invoices:read", "invoices:write"]
     },
     {
-      // A custom role may hold system permissions; this one lets the sample API manage users.
-      "key": "user-manager",
-      "name": "User manager",
-      "permissions": ["kimlik.users:read", "kimlik.users:write"]
+      // A custom role may hold system permissions; this one lets the sample API manage users and subscriptions.
+      "key": "invoices-backend",
+      "name": "Invoices backend",
+      "permissions": ["kimlik.users:read", "kimlik.users:write", "kimlik.plans:read", "kimlik.subscriptions:read", "kimlik.subscriptions:write"]
     }
+  ],
+  "features": [
+    { "key": "export_pdf", "name": "Invoice export", "type": "boolean" },
+    { "key": "max_invoices", "name": "Invoices per user", "type": "limit" }
+  ],
+  "plans": [
+    { "key": "free", "name": "Free", "features": { "export_pdf": false, "max_invoices": 3 } },
+    { "key": "pro", "name": "Pro", "features": { "export_pdf": true, "max_invoices": null } }
   ],
   "apiResources": [
     { "scope": "invoices", "audience": "invoices-api", "displayName": "Manage your invoices" }
@@ -35,7 +43,7 @@
       "displayName": "Invoices backend",
       "type": "service",
       "scopes": ["kimlik"],
-      "roles": ["user-manager"],
+      "roles": ["invoices-backend"],
       // Read from configuration, here the Samples__InvoicesBackendSecret environment variable.
       "clientSecret": "${Samples:InvoicesBackendSecret}"
     }

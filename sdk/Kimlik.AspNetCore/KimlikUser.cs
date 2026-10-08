@@ -24,6 +24,7 @@ public sealed class KimlikUser
         Permissions = Values(principal, KimlikClaimTypes.Permissions);
         OrganizationId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
         OrganizationRoles = Values(principal, KimlikClaimTypes.OrganizationRoles);
+        Plan = principal.FindFirstValue(KimlikClaimTypes.Plan);
     }
 
     /// <summary>The user ID, or the client ID of a service client.</summary>
@@ -55,6 +56,9 @@ public sealed class KimlikUser
 
     /// <summary>The user's roles in <see cref="OrganizationId"/>.</summary>
     public IReadOnlySet<string> OrganizationRoles { get; }
+
+    /// <summary>The key of the plan in effect: the organization's in an organization context, otherwise the user's.</summary>
+    public string? Plan { get; }
 
     public bool HasPermission(string permission) => Permissions.Contains(permission);
 

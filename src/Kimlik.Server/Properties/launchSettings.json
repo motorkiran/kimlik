@@ -18,6 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "Kimlik__Provisioning__FilePath": "../../samples/provisioning.json",
+        "Kimlik__Plans__DefaultUserPlan": "free",
         "Samples__InvoicesBackendSecret": "invoices-backend-development-secret"
       }
     }

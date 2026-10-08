@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kimlik.Contracts\Kimlik.Contracts.csproj" />
+    <ProjectReference Include="..\Kimlik.Client\Kimlik.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

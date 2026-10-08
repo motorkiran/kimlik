@@ -42,6 +42,7 @@ async function render() {
     const me = await (await api("/api/me")).json();
     $("roles").textContent = me.roles.join(", ") || "none";
     $("permissions").textContent = me.permissions.join(", ") || "none";
+    $("plan").textContent = me.plan ?? "none";
   }
 }
 
@@ -68,6 +69,23 @@ $("sign-in").addEventListener("click", () => userManager.signinRedirect());
 $("sign-out").addEventListener("click", () => userManager.signoutRedirect());
 $("load-invoices").addEventListener("click", loadInvoices);
 
+// Roles and plans are fixed in a token; the refresh token gets a new one that carries the change.
+async function refreshAccess(message) {
+  await userManager.signinSilent();
+  await render();
+  show(message);
+}
+
+$("upgrade").addEventListener("click", async () => {
+  await api("/api/demo/upgrade", { method: "POST" });
+  await refreshAccess("You are on the Pro plan now: export works and invoices are unlimited.");
+});
+
+$("export").addEventListener("click", async () => {
+  const response = await api("/api/invoices/export");
+  show(response.ok ? `Exported:\n${await response.text()}` : "The API refused: your plan does not include export.");
+});
+
 $("become-accountant").addEventListener("click", async () => {
   const response = await api("/api/demo/become-accountant", { method: "POST" });
   if (!response.ok) {
@@ -75,10 +93,7 @@ $("become-accountant").addEventListener("click", async () => {
     return;
   }
 
-  // Permissions are fixed in a token; the refresh token gets a new one that carries the new role.
-  await userManager.signinSilent();
-  await render();
-  show("You are an accountant now. Load the invoices again.");
+  await refreshAccess("You are an accountant now. Load the invoices again.");
 });
 
 $("new-invoice").addEventListener("submit", async (event) => {
@@ -91,7 +106,7 @@ $("new-invoice").addEventListener("submit", async (event) => {
   });
 
   if (response.status === 403) {
-    show("The API refused: your token does not carry invoices:write.");
+    show((await response.json().catch(() => null))?.detail ?? "The API refused: your token does not carry invoices:write.");
     return;
   }
 

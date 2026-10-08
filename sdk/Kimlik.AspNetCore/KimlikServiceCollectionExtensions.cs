@@ -1,4 +1,5 @@
 using Kimlik.AspNetCore.Authorization;
+using Kimlik.AspNetCore.Entitlements;
 using Kimlik.Contracts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,9 +27,28 @@ public static class KimlikServiceCollectionExtensions
 
         services.AddAuthorization();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, PermissionAuthorizationHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, FeatureAuthorizationHandler>());
         services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureKimlikBearer>();
 
         return services.AddAuthentication(KimlikDefaults.AuthenticationScheme).AddJwtBearer(KimlikDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Enables <see cref="IKimlikEntitlements"/> and <see cref="FeatureEndpointExtensions.RequireFeature{TBuilder}"/>.
+    /// Plan definitions come through Kimlik.Client, so register it with <c>AddKimlikClient</c> as a service client
+    /// holding <c>kimlik.plans:read</c>.
+    /// </summary>
+    public static IServiceCollection AddKimlikEntitlements(this IServiceCollection services, Action<KimlikEntitlementsOptions>? configure = null)
+    {
+        var options = services.AddOptions<KimlikEntitlementsOptions>();
+        if (configure is not null)
+        {
+            options.Configure(configure);
+        }
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IKimlikEntitlements, KimlikEntitlements>();
+        return services;
     }
 
     private sealed class ConfigureKimlikBearer(IOptions<KimlikOptions> kimlik) : IConfigureNamedOptions<JwtBearerOptions>
