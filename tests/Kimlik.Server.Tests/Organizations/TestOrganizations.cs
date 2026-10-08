@@ -14,6 +14,10 @@ internal static class TestOrganizations
     /// makes the given users members with that role.
     /// </summary>
     public static Task<TestOrganization> CreateOrganizationAsync(this KimlikServerFixture server, params Guid[] members) =>
+        server.CreateOrganizationAsync(requireMfa: false, members);
+
+    /// <inheritdoc cref="CreateOrganizationAsync(KimlikServerFixture, Guid[])"/>
+    public static Task<TestOrganization> CreateOrganizationAsync(this KimlikServerFixture server, bool requireMfa, params Guid[] members) =>
         server.QueryDatabaseAsync(async context =>
         {
             var now = DateTimeOffset.UtcNow;
@@ -21,7 +25,7 @@ internal static class TestOrganizations
             var permission = Permission.Create($"projects{suffix}:read", null, now).Value;
             var role = Role.Create($"member-{suffix}", "Member", null, RoleScope.Organization, now).Value;
             role.SetPermissions([permission], now).IsSuccess.ShouldBeTrue();
-            var organization = Organization.Create("Acme", $"acme-{suffix}", now).Value;
+            var organization = Organization.Create("Acme", $"acme-{suffix}", requireMfa, now).Value;
 
             context.Permissions.Add(permission);
             context.Roles.Add(role);

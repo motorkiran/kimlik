@@ -8,7 +8,7 @@ namespace Kimlik.Application.Organizations;
 internal static class OrganizationMapping
 {
     public static OrganizationResponse ToResponse(this Organization organization) =>
-        new(organization.Id, organization.Name, organization.Slug, organization.CreatedAt, organization.UpdatedAt);
+        new(organization.Id, organization.Name, organization.Slug, organization.RequireMfa, organization.CreatedAt, organization.UpdatedAt);
 
     /// <summary>Describes memberships with the members' email address, name and role keys.</summary>
     public static async Task<List<MemberResponse>> ToMemberResponsesAsync(

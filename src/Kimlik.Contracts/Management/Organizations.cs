@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Kimlik.Contracts.Management;
 
 /// <summary>A group of users, such as a company, workspace or team. Clients may name it by ID or slug.</summary>
-public sealed record OrganizationResponse(Guid Id, string Name, string Slug, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+public sealed record OrganizationResponse(Guid Id, string Name, string Slug, bool RequireMfa, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
 public sealed record CreateOrganizationRequest
 {
@@ -16,6 +16,9 @@ public sealed record CreateOrganizationRequest
     [Required]
     [StringLength(64)]
     public required string Slug { get; init; }
+
+    /// <summary>Whether signing in to the organization takes a second factor.</summary>
+    public bool RequireMfa { get; init; }
 }
 
 /// <summary>Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value.</summary>
@@ -43,6 +46,9 @@ public sealed record UpdateOrganizationRequest
             HasSlug = true;
         }
     }
+
+    /// <summary>Whether signing in to the organization takes a second factor.</summary>
+    public bool? RequireMfa { get; init; }
 
     /// <summary>Whether the request sets <see cref="Name"/>.</summary>
     [JsonIgnore]

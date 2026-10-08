@@ -24,11 +24,14 @@ public sealed partial class Organization
     /// </summary>
     public string Slug { get; private set; } = string.Empty;
 
+    /// <summary>Whether signing in to the organization takes a second factor, whatever the installation's policy.</summary>
+    public bool RequireMfa { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private init; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    public static Result<Organization> Create(string name, string slug, DateTimeOffset now)
+    public static Result<Organization> Create(string name, string slug, bool requireMfa, DateTimeOffset now)
     {
         var validation = Validate(name, slug);
         if (validation.IsFailure)
@@ -41,12 +44,13 @@ public sealed partial class Organization
             Id = Guid.CreateVersion7(now),
             Name = name.Trim(),
             Slug = slug,
+            RequireMfa = requireMfa,
             CreatedAt = now,
             UpdatedAt = now,
         };
     }
 
-    public Result Update(string name, string slug, DateTimeOffset now)
+    public Result Update(string name, string slug, bool requireMfa, DateTimeOffset now)
     {
         var validation = Validate(name, slug);
         if (validation.IsFailure)
@@ -56,6 +60,7 @@ public sealed partial class Organization
 
         Name = name.Trim();
         Slug = slug;
+        RequireMfa = requireMfa;
         UpdatedAt = now;
         return Result.Success();
     }

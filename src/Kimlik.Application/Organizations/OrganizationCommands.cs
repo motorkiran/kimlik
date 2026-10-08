@@ -12,7 +12,7 @@ public sealed class CreateOrganizationHandler(IKimlikDbContext context, IAuditLo
 {
     public async Task<Result<OrganizationResponse>> HandleAsync(CreateOrganizationRequest request, CancellationToken cancellationToken)
     {
-        var created = Organization.Create(request.Name, request.Slug, timeProvider.GetUtcNow());
+        var created = Organization.Create(request.Name, request.Slug, request.RequireMfa, timeProvider.GetUtcNow());
         if (created.IsFailure)
         {
             return created.Error;
@@ -49,7 +49,7 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return OrganizationErrors.NotFound;
         }
 
-        if (!request.HasName && !request.HasSlug)
+        if (!request.HasName && !request.HasSlug && request.RequireMfa is null)
         {
             return organization.ToResponse();
         }
@@ -60,7 +60,11 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return OrganizationErrors.SlugTaken;
         }
 
-        var updated = organization.Update(request.HasName ? request.Name ?? string.Empty : organization.Name, slug, timeProvider.GetUtcNow());
+        var updated = organization.Update(
+            request.HasName ? request.Name ?? string.Empty : organization.Name,
+            slug,
+            request.RequireMfa ?? organization.RequireMfa,
+            timeProvider.GetUtcNow());
         if (updated.IsFailure)
         {
             return updated.Error;

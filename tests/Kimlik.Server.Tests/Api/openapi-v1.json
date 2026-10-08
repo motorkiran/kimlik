@@ -5874,6 +5874,10 @@
             "minLength": 0,
             "type": "string",
             "description": "Up to 64 lowercase letters, digits and inner hyphens, such as `acme`."
+          },
+          "requireMfa": {
+            "type": "boolean",
+            "description": "Whether signing in to the organization takes a second factor."
           }
         }
       },
@@ -6372,6 +6376,7 @@
           "id",
           "name",
           "slug",
+          "requireMfa",
           "createdAt",
           "updatedAt"
         ],
@@ -6386,6 +6391,9 @@
           },
           "slug": {
             "type": "string"
+          },
+          "requireMfa": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -7437,6 +7445,13 @@
               "string"
             ],
             "description": "A new slug; clients that use the old one must switch to it."
+          },
+          "requireMfa": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether signing in to the organization takes a second factor."
           }
         },
         "description": "Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value."

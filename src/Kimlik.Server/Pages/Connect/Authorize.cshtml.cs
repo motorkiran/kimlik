@@ -1,8 +1,11 @@
 using System.Collections.Immutable;
 using Kimlik.Application.Clients;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
+using Kimlik.Contracts.Management;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Identity;
 using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Antiforgery;
@@ -29,6 +32,8 @@ public sealed class AuthorizeModel(
     IOpenIddictAuthorizationManager authorizations,
     IOpenIddictScopeManager scopes,
     UserOrganizations userOrganizations,
+    SignInFlow signInFlow,
+    MfaPolicy mfaPolicy,
     UserManager<User> userManager,
     OidcPrincipalFactory principalFactory,
     IAntiforgery antiforgery,
@@ -92,11 +97,18 @@ public sealed class AuthorizeModel(
             ?? throw new InvalidOperationException("The client application cannot be found.");
         var applicationId = await applications.GetIdAsync(application, cancellationToken);
 
-        var (interruption, organizationId) = await ResolveOrganizationAsync(request, user, application, cancellationToken);
+        var (interruption, organization) = await ResolveOrganizationAsync(request, user, application, cancellationToken);
         if (interruption is not null)
         {
             return interruption;
         }
+
+        if (await StepUpAsync(request, user, session, organization, cancellationToken) is { } stepUp)
+        {
+            return stepUp;
+        }
+
+        var organizationId = organization?.Id;
 
         var existingAuthorizations = await authorizations.FindAsync(
             subject: user.Id.ToString(),
@@ -165,13 +177,13 @@ public sealed class AuthorizeModel(
     /// The organization the tokens act in: the one the request names, if the user belongs to it. A client that
     /// requires an organization sends users without one to choose theirs first.
     /// </summary>
-    private async Task<(IActionResult? Interruption, Guid? OrganizationId)> ResolveOrganizationAsync(
+    private async Task<(IActionResult? Interruption, OrganizationResponse? Organization)> ResolveOrganizationAsync(
         OpenIddictRequest request, User user, object application, CancellationToken cancellationToken)
     {
         if (request.GetParameter(KimlikParameters.Organization)?.ToString() is { Length: > 0 } reference)
         {
             var organization = await userOrganizations.FindAsync(user.Id, reference, cancellationToken);
-            return organization.IsSuccess ? (null, organization.Value.Id) : (ForbidWith(Errors.AccessDenied, organization.Error.Message), null);
+            return organization.IsSuccess ? (null, organization.Value) : (ForbidWith(Errors.AccessDenied, organization.Error.Message), null);
         }
 
         if (!ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)))
@@ -186,6 +198,40 @@ public sealed class AuthorizeModel(
 
         var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
         return (LocalRedirect($"{Request.PathBase}/select-organization?returnUrl={Uri.EscapeDataString(retry)}"), null);
+    }
+
+    /// <summary>
+    /// Adds the second factor to a session that started with a password alone, when the account needs one (it became
+    /// an administrator, say) or the organization does. The user verifies a code, or sets up an authenticator, and
+    /// comes back; a trusted browser counts as verified.
+    /// </summary>
+    private async Task<IActionResult?> StepUpAsync(
+        OpenIddictRequest request, User user, AuthenticateResult session, OrganizationResponse? organization, CancellationToken cancellationToken)
+    {
+        if (session.Principal!.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod)
+            || (organization?.RequireMfa != true && !await mfaPolicy.IsRequiredAsync(user.Id, cancellationToken)))
+        {
+            return null;
+        }
+
+        if (request.HasPromptValue(PromptValues.None))
+        {
+            return ForbidWith(Errors.InteractionRequired, "The user has to verify a second factor.");
+        }
+
+        var persistent = session.Properties?.IsPersistent == true;
+        var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
+        var step = user.TwoFactorEnabled ? await signInFlow.NextStepAsync(user, cancellationToken) : SignInStep.SetUp;
+
+        if (step == SignInStep.TrustedBrowser)
+        {
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, cancellationToken);
+            return LocalRedirect(retry);
+        }
+
+        await signInFlow.DeferAsync(user, persistent, step);
+        var page = step == SignInStep.Verify ? "two-factor" : "set-up-two-factor";
+        return LocalRedirect($"{Request.PathBase}/signin/{page}?returnUrl={Uri.EscapeDataString(retry)}");
     }
 
     private ForbidResult ForbidWith(string error, string description) =>

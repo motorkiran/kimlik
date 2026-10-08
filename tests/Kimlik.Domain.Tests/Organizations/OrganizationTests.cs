@@ -26,8 +26,8 @@ public sealed class OrganizationTests
     [Fact]
     public void Create_TrimsTheName_AndRequiresOne()
     {
-        Organization.Create("  Acme Labs ", "acme-labs", Now).Value.Name.ShouldBe("Acme Labs");
-        Organization.Create("   ", "acme", Now).Error.ShouldBe(OrganizationErrors.InvalidName);
+        Organization.Create("  Acme Labs ", "acme-labs", requireMfa: false, Now).Value.Name.ShouldBe("Acme Labs");
+        Organization.Create("   ", "acme", requireMfa: false, Now).Error.ShouldBe(OrganizationErrors.InvalidName);
     }
 
     [Fact]
