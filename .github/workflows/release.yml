@@ -1,7 +1,7 @@
 name: Release
 
-# Pushing a version tag, such as v0.1.0, releases that version: the NuGet packages, a multi-arch container image on
-# GitHub Container Registry, and a GitHub release. It needs the NUGET_API_KEY secret.
+# Pushing a version tag, such as v0.1.0, releases that version: a multi-arch container image on GitHub Container
+# Registry, a GitHub release with the packages, and the packages on NuGet once the NUGET_API_KEY secret is set.
 on:
   push:
     tags: ["v*"]
@@ -43,8 +43,16 @@ jobs:
             dotnet pack "$project" --configuration Release --no-build -p:Version="$VERSION" --output artifacts
           done
 
+      # Conditions cannot read secrets, so this step tells whether the key is set, without exposing it to other steps.
+      - name: Check for a NuGet key
+        id: nuget
+        run: echo "enabled=${{ secrets.NUGET_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Publish packages
-        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        if: steps.nuget.outputs.enabled == 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Publish container image
         run: |

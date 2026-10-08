@@ -8,6 +8,8 @@ The [design document](docs/design.md) describes the vision, scope, architecture 
 
 ## Use Kimlik from .NET
 
+The packages are not on NuGet yet; until they are, reference the projects in [`sdk/`](sdk), as the [sample API](samples/Invoices.Api) does.
+
 Protect an API with `Kimlik.AspNetCore`: it validates Kimlik access tokens for the API's audience and checks permissions.
 
 ```csharp
