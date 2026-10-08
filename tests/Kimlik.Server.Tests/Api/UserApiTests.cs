@@ -172,6 +172,8 @@ public sealed class UserApiTests(KimlikServerFixture server)
     [Theory]
     [InlineData("cursor=not-a-cursor", "common.invalid_cursor")]
     [InlineData("status=7", "common.invalid_parameter")]
+    [InlineData("status=Active", "common.invalid_parameter")]
+    [InlineData("limit=many", "request.invalid")]
     public async Task ListUsers_WithInvalidParameter_IsBadRequest(string query, string code)
     {
         using var api = await server.CreateApiClientAsync();

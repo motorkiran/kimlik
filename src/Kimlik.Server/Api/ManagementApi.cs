@@ -39,7 +39,7 @@ internal static class ManagementApi
             // Malformed requests get a code too, like every other API error.
             if (context.ProblemDetails.Status == StatusCodes.Status400BadRequest)
             {
-                context.ProblemDetails.Extensions.TryAdd(ApiResults.CodeExtension, "request.invalid");
+                context.ProblemDetails.Extensions.TryAdd(ApiResults.CodeExtension, ParameterBindingFilter.InvalidRequestCode);
             }
         });
         services.AddValidation();
@@ -57,6 +57,7 @@ internal static class ManagementApi
     public static IEndpointRouteBuilder MapManagementApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGroup(BasePath)
+            .AddEndpointFilter<ParameterBindingFilter>()
             .MapUserEndpoints()
             .MapPermissionEndpoints()
             .MapRoleEndpoints()
