@@ -5,8 +5,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Kimlik.Domain\Kimlik.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kimlik.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Kimlik.Server.Tests" />
   </ItemGroup>
 
 </Project>

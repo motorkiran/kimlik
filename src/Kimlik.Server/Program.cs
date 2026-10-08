@@ -12,8 +12,8 @@ builder.Services.AddHealthProbes();
 
 var app = builder.Build();
 
-// Resolving the options validates the database configuration before anything touches the database.
-var databaseOptions = app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+// Fail fast on invalid configuration, before anything touches the database.
+app.Services.GetRequiredService<IStartupValidator>().Validate();
 
 if (args is ["migrate", ..])
 {
@@ -21,7 +21,7 @@ if (args is ["migrate", ..])
     return;
 }
 
-if (databaseOptions.MigrateOnStartup)
+if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOnStartup)
 {
     await app.Services.MigrateDatabaseAsync();
 }

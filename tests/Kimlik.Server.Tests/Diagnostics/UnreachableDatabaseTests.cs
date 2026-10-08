@@ -7,6 +7,9 @@ namespace Kimlik.Server.Tests.Diagnostics;
 
 public sealed class UnreachableDatabaseTests
 {
+    // Nothing listens on port 1, so connections are refused immediately.
+    private const string UnreachableConnectionString = "Host=127.0.0.1;Port=1;Database=kimlik;Username=kimlik;Password=kimlik";
+
     [Fact]
     public async Task Readiness_ReturnsServiceUnavailable_WhenDatabaseIsUnreachable()
     {
@@ -32,12 +35,12 @@ public sealed class UnreachableDatabaseTests
     private sealed class UnreachableDatabaseFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
-            .UseEnvironment("Testing")
-            .ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            .UseEnvironment(TestConfiguration.Environment)
+            .ConfigureAppConfiguration((_, configuration) =>
             {
-                // Nothing listens on port 1, so connections are refused immediately.
-                ["ConnectionStrings:Kimlik"] = "Host=127.0.0.1;Port=1;Database=kimlik;Username=kimlik;Password=kimlik",
-                ["Kimlik:Database:MigrateOnStartup"] = "false",
-            }));
+                var settings = TestConfiguration.Create(UnreachableConnectionString);
+                settings["Kimlik:Database:MigrateOnStartup"] = "false";
+                configuration.AddInMemoryCollection(settings);
+            });
     }
 }

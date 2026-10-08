@@ -1,9 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Kimlik.Domain/Kimlik.Domain.csproj" />
     <Project Path="src/Kimlik.Infrastructure/Kimlik.Infrastructure.csproj" />
     <Project Path="src/Kimlik.Server/Kimlik.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Kimlik.Architecture.Tests/Kimlik.Architecture.Tests.csproj" />
+    <Project Path="tests/Kimlik.Domain.Tests/Kimlik.Domain.Tests.csproj" />
+    <Project Path="tests/Kimlik.Infrastructure.Tests/Kimlik.Infrastructure.Tests.csproj" />
     <Project Path="tests/Kimlik.Server.Tests/Kimlik.Server.Tests.csproj" />
   </Folder>
 </Solution>

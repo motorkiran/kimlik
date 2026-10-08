@@ -1,6 +1,8 @@
+using Kimlik.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 
 [assembly: AssemblyFixture(typeof(Kimlik.Server.Tests.KimlikServerFixture))]
@@ -18,12 +20,17 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
 
     public async ValueTask InitializeAsync() => await _postgres.StartAsync();
 
+    /// <summary>Runs <paramref name="action"/> with a fresh database context in its own scope.</summary>
+    public async Task<T> QueryDatabaseAsync<T>(Func<KimlikDbContext, Task<T>> action)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await action(scope.ServiceProvider.GetRequiredService<KimlikDbContext>());
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
-        .UseEnvironment("Testing")
-        .ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:Kimlik"] = _postgres.GetConnectionString(),
-        }));
+        .UseEnvironment(TestConfiguration.Environment)
+        .ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(TestConfiguration.Create(_postgres.GetConnectionString())));
 
     public override async ValueTask DisposeAsync()
     {
