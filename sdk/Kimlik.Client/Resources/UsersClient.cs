@@ -44,6 +44,10 @@ public sealed class UsersClient
     public Task SendPasswordResetAsync(Guid id, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Post, $"users/{id}/send-password-reset", body: null, cancellationToken);
 
+    /// <summary>Removes the user's second factor, for someone who lost their authenticator; their sessions end.</summary>
+    public Task ResetMfaAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Post, $"users/{id}/mfa/reset", body: null, cancellationToken);
+
     /// <summary>Replaces the user's global roles.</summary>
     public Task<UserResponse> SetRolesAsync(Guid id, IReadOnlyList<string> roles, CancellationToken cancellationToken = default) =>
         _http.SendAsync<UserResponse>(HttpMethod.Put, $"users/{id}/roles", new SetRolesRequest { Roles = roles }, cancellationToken);

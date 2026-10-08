@@ -513,6 +513,53 @@
         ]
       }
     },
+    "/api/v1/users/{id}/mfa/reset": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Remove a user's second factor",
+        "description": "For a user who lost their authenticator. Their sessions end, and they set up a second factor again at their next sign-in if the policy requires one.\n\nRequires the `kimlik.users:write` permission.",
+        "operationId": "ResetUserMfa",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.users:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/users/{id}/roles": {
       "put": {
         "tags": [
@@ -4992,6 +5039,244 @@
         ]
       }
     },
+    "/api/v1/me/mfa": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Get my two-factor authentication status",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "GetMyMfa",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/mfa/authenticator": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Set up an authenticator app",
+        "description": "Returns a new key for an authenticator app. Two-factor authentication turns on once a code from the app confirms it.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "SetUpMyAuthenticator",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatorSetupResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/mfa/authenticator/confirm": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Confirm the authenticator app and turn two-factor authentication on",
+        "description": "Returns the recovery codes, which are shown only this once.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "ConfirmMyAuthenticator",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticatorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/mfa/recovery-codes": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Replace my recovery codes",
+        "description": "Takes a current code from the authenticator app. The old codes stop working.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "RegenerateMyRecoveryCodes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticatorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/mfa/disable": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Turn two-factor authentication off",
+        "description": "Takes a current code from the authenticator app. Not possible when the policy requires it for the account.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "DisableMyMfa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticatorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/me/invitations": {
       "get": {
         "tags": [
@@ -5278,6 +5563,36 @@
           }
         },
         "description": "A security-relevant action. `action` reads `resource.past_tense_verb`, such as `user.suspended`.\nPeople are referenced by ID only, so the trail outlives their personal data."
+      },
+      "AuthenticatorCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 16,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "description": "A code from the authenticator app, proving the request comes from someone holding it."
+      },
+      "AuthenticatorSetupResponse": {
+        "required": [
+          "secret",
+          "otpAuthUri"
+        ],
+        "type": "object",
+        "properties": {
+          "secret": {
+            "type": "string"
+          },
+          "otpAuthUri": {
+            "type": "string"
+          }
+        },
+        "description": "A new authenticator key. Add it to an authenticator app, by scanning `otpAuthUri` as a QR code or typing\n`secret`, then confirm with a code from the app."
       },
       "ClientResponse": {
         "required": [
@@ -5952,6 +6267,31 @@
           }
         },
         "description": "A member of an organization and the organization roles they hold there."
+      },
+      "MfaStatusResponse": {
+        "required": [
+          "enabled",
+          "required",
+          "recoveryCodesLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "recoveryCodesLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "The signed-in user's two-factor authentication."
       },
       "MyInvitationResponse": {
         "required": [
@@ -6781,6 +7121,21 @@
           }
         },
         "description": "What applying a provisioning document changed."
+      },
+      "RecoveryCodesResponse": {
+        "required": [
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Single-use codes for signing in without the authenticator app. They are shown only this once."
       },
       "RoleResponse": {
         "required": [

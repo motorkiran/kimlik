@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Kimlik.Application.Common;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Users;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
@@ -74,6 +75,13 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapPost("{id:guid}/mfa/reset", ResetMfaAsync)
+            .WithName("ResetUserMfa")
+            .WithSummary("Remove a user's second factor")
+            .WithDescription("For a user who lost their authenticator. Their sessions end, and they set up a second factor again at their next sign-in if the policy requires one.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
         users.MapPut("{id:guid}/roles", SetRolesAsync)
             .WithName("SetUserRoles")
             .WithSummary("Replace a user's roles")
@@ -136,4 +144,8 @@ internal static class UserEndpoints
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> SetRolesAsync(
         Guid id, SetRolesRequest request, SetUserRolesHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, request, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ResetMfaAsync(
+        Guid id, ResetUserMfaHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, cancellationToken)).ToNoContent();
 }

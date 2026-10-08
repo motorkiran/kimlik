@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Security.Claims;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Users;
 using Kimlik.Contracts.Account;
@@ -81,6 +82,29 @@ internal static class AccountEndpoints
             .WithSummary("Revoke an invitation")
             .WithDescription("Requires `kimlik.org.members:write` in the organization.")
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapGet("mfa", GetMfaAsync).WithName("GetMyMfa").WithSummary("Get my two-factor authentication status")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapPost("mfa/authenticator", BeginAuthenticatorSetupAsync).WithName("SetUpMyAuthenticator")
+            .WithSummary("Set up an authenticator app")
+            .WithDescription("Returns a new key for an authenticator app. Two-factor authentication turns on once a code from the app confirms it.")
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        me.MapPost("mfa/authenticator/confirm", ConfirmAuthenticatorAsync).WithName("ConfirmMyAuthenticator")
+            .WithSummary("Confirm the authenticator app and turn two-factor authentication on")
+            .WithDescription("Returns the recovery codes, which are shown only this once.")
+            .ProducesValidationProblem();
+
+        me.MapPost("mfa/recovery-codes", RegenerateRecoveryCodesAsync).WithName("RegenerateMyRecoveryCodes")
+            .WithSummary("Replace my recovery codes")
+            .WithDescription("Takes a current code from the authenticator app. The old codes stop working.")
+            .ProducesValidationProblem();
+
+        me.MapPost("mfa/disable", DisableMfaAsync).WithName("DisableMyMfa")
+            .WithSummary("Turn two-factor authentication off")
+            .WithDescription("Takes a current code from the authenticator app. Not possible when the policy requires it for the account.")
+            .ProducesValidationProblem();
 
         me.MapGet("invitations", ListInvitationsToMeAsync).WithName("ListMyInvitations")
             .WithSummary("List invitations to me")
@@ -176,4 +200,24 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> DeclineInvitationAsync(
         ClaimsPrincipal principal, Guid id, MyInvitations invitations, CancellationToken cancellationToken) =>
         (await invitations.DeclineAsync(Caller(principal), id, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<MfaStatusResponse>, ProblemHttpResult>> GetMfaAsync(
+        ClaimsPrincipal principal, TwoFactor twoFactor, CancellationToken cancellationToken) =>
+        (await twoFactor.StatusAsync(Caller(principal), cancellationToken)).ToOk();
+
+    private static async Task<Results<Ok<AuthenticatorSetupResponse>, ProblemHttpResult>> BeginAuthenticatorSetupAsync(
+        ClaimsPrincipal principal, TwoFactor twoFactor) =>
+        (await twoFactor.BeginSetupAsync(Caller(principal))).ToOk();
+
+    private static async Task<Results<Ok<RecoveryCodesResponse>, ProblemHttpResult>> ConfirmAuthenticatorAsync(
+        ClaimsPrincipal principal, AuthenticatorCodeRequest request, TwoFactor twoFactor, CancellationToken cancellationToken) =>
+        (await twoFactor.ConfirmSetupAsync(Caller(principal), request.Code, cancellationToken)).ToOk();
+
+    private static async Task<Results<Ok<RecoveryCodesResponse>, ProblemHttpResult>> RegenerateRecoveryCodesAsync(
+        ClaimsPrincipal principal, AuthenticatorCodeRequest request, TwoFactor twoFactor, CancellationToken cancellationToken) =>
+        (await twoFactor.RegenerateRecoveryCodesAsync(Caller(principal), request.Code, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> DisableMfaAsync(
+        ClaimsPrincipal principal, AuthenticatorCodeRequest request, TwoFactor twoFactor, CancellationToken cancellationToken) =>
+        (await twoFactor.DisableAsync(Caller(principal), request.Code, cancellationToken)).ToNoContent();
 }

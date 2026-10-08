@@ -3,6 +3,7 @@ using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Plans;
 using Kimlik.Application.Provisioning;
@@ -35,6 +36,11 @@ public static class DependencyInjection
             .Validate(options => options.ExpirationInterval > TimeSpan.Zero, $"{PlanOptions.SectionName}:ExpirationInterval must be positive.")
             .ValidateOnStart();
 
+        services.AddOptions<MfaOptions>()
+            .BindConfiguration(MfaOptions.SectionName)
+            .Validate(options => options.RememberBrowserFor >= TimeSpan.Zero, $"{MfaOptions.SectionName}:RememberBrowserFor cannot be negative.")
+            .ValidateOnStart();
+
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)
             .ValidateDataAnnotations()
@@ -45,6 +51,8 @@ public static class DependencyInjection
         services.AddScoped<AccessGuard>();
         services.AddScoped<UserOrganizations>();
         services.AddScoped<Entitlements>();
+        services.AddScoped<MfaPolicy>();
+        services.AddScoped<TwoFactor>();
         services.AddScoped<OrganizationGuard>();
         services.AddScoped<MyOrganizations>();
         services.AddScoped<MyInvitations>();

@@ -22,6 +22,8 @@ internal static class TestConfiguration
         // Any reuse of a refresh token counts as theft, so the tests need not wait out the leeway.
         ["Kimlik:Tokens:RefreshTokenReuseLeeway"] = "00:00:00",
         ["Kimlik:Outbox:PollingInterval"] = "00:00:00.200",
+        // Tests sign administrators in with a password alone; the MFA tests turn the policy on where they need it.
+        ["Kimlik:Mfa:RequireForAdministrators"] = "false",
         // Every test request comes from the same address; rate limiting has its own tests.
         ["Kimlik:RateLimits:SignInsPerMinute"] = "100000",
         ["Kimlik:RateLimits:SignUpsPerMinute"] = "100000",

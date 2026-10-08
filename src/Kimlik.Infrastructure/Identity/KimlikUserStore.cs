@@ -19,10 +19,12 @@ internal sealed class KimlikUserStore(KimlikDbContext context, ISecretProtector 
     private const string AuthenticatorKeyPurpose = "identity.authenticator-key";
     private const string RecoveryCodePurpose = "identity.recovery-code";
 
-    public override Task SetAuthenticatorKeyAsync(User user, string key, CancellationToken cancellationToken)
+    /// <summary>Stores a new key; the last accepted code step belonged to the old key, so it goes.</summary>
+    public override async Task SetAuthenticatorKeyAsync(User user, string key, CancellationToken cancellationToken)
     {
         var encrypted = protector.Protect(Encoding.UTF8.GetBytes(key), AuthenticatorKeyPurpose, user.Id.ToByteArray());
-        return base.SetAuthenticatorKeyAsync(user, Convert.ToBase64String(encrypted), cancellationToken);
+        await base.SetAuthenticatorKeyAsync(user, Convert.ToBase64String(encrypted), cancellationToken);
+        await RemoveTokenAsync(user, TotpTokenProvider.TokenLoginProvider, TotpTokenProvider.LastStepTokenName, cancellationToken);
     }
 
     public override async Task<string?> GetAuthenticatorKeyAsync(User user, CancellationToken cancellationToken) =>
