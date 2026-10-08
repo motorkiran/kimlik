@@ -1,0 +1,16 @@
+{
+  "$schema": "../../docs/schemas/provisioning.schema.json",
+  "roles": [
+    { "key": "load-test", "name": "Load test", "permissions": ["kimlik.users:read"] }
+  ],
+  "clients": [
+    {
+      "clientId": "load-test",
+      "displayName": "Load test",
+      "type": "service",
+      "scopes": ["kimlik"],
+      "roles": ["load-test"],
+      "clientSecret": "${LoadTest:ClientSecret}"
+    }
+  ]
+}
