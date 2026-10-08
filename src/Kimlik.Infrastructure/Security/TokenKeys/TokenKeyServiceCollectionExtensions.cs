@@ -25,6 +25,8 @@ public static class TokenKeyServiceCollectionExtensions
         services.AddSingleton<TokenKeyRing>();
         services.AddSingleton<ITokenKeyStatus>(provider => provider.GetRequiredService<TokenKeyRing>());
         services.AddSingleton<TokenKeyRefresher>();
+        services.AddSingleton<TokenKeyChangeSignal>();
+        services.AddSingleton<IOptionsChangeTokenSource<OpenIddictServerOptions>, TokenKeyOptionsChangeTokenSource<OpenIddictServerOptions>>();
         services.AddHostedService<TokenKeyRefreshService>();
 
         services.AddSingleton<ConfigureTokenKeyCredentials>();
