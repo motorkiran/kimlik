@@ -41,8 +41,12 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
-    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
-        Database.BeginTransactionAsync(cancellationToken);
+    /// <summary>
+    /// Starts a transaction, or joins the one in progress: a use case that runs as part of a larger one, such as
+    /// applying a provisioning file, then commits or rolls back with it.
+    /// </summary>
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
+        Database.CurrentTransaction is { } current ? new JoinedTransaction(current) : await Database.BeginTransactionAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

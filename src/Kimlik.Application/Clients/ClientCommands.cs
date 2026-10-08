@@ -18,7 +18,11 @@ public sealed class CreateClientHandler(
     IAuditLog auditLog,
     TimeProvider timeProvider)
 {
-    public async Task<Result<CreatedClientResponse>> HandleAsync(CreateClientRequest request, CancellationToken cancellationToken)
+    public Task<Result<CreatedClientResponse>> HandleAsync(CreateClientRequest request, CancellationToken cancellationToken) =>
+        CreateAsync(request, secret: null, cancellationToken);
+
+    /// <summary>Creates the client with <paramref name="secret"/>, or a generated secret when it is <see langword="null"/>.</summary>
+    internal async Task<Result<CreatedClientResponse>> CreateAsync(CreateClientRequest request, string? secret, CancellationToken cancellationToken)
     {
         var clientId = request.ClientId.Trim();
         if (!ClientPresets.IsValidClientId(clientId))
@@ -44,7 +48,19 @@ public sealed class CreateClientHandler(
             return ClientErrors.AlreadyExists;
         }
 
-        var secret = ClientPresets.IsConfidential(request.Type) ? ClientPresets.GenerateSecret() : null;
+        if (secret is not null)
+        {
+            var secretCheck = ClientPresets.CheckSecret(request.Type, secret);
+            if (secretCheck.IsFailure)
+            {
+                return secretCheck.Error;
+            }
+        }
+        else if (ClientPresets.IsConfidential(request.Type))
+        {
+            secret = ClientPresets.GenerateSecret();
+        }
+
         var descriptor = new OpenIddictApplicationDescriptor { ClientId = clientId, ClientSecret = secret };
         ClientPresets.Apply(descriptor, request.Type, settings);
 
@@ -149,16 +165,20 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
 /// </summary>
 public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
 {
-    public async Task<Result<ClientSecretResponse>> HandleAsync(Guid id, CancellationToken cancellationToken)
+    public Task<Result<ClientSecretResponse>> HandleAsync(Guid id, CancellationToken cancellationToken) =>
+        ReplaceAsync(id, ClientPresets.GenerateSecret(), cancellationToken);
+
+    internal async Task<Result<ClientSecretResponse>> ReplaceAsync(Guid id, string secret, CancellationToken cancellationToken)
     {
         if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
         {
             return ClientErrors.NotFound;
         }
 
-        if (!await applications.HasClientTypeAsync(application, OpenIddictConstants.ClientTypes.Confidential, cancellationToken))
+        var secretCheck = ClientPresets.CheckSecret(await applications.GetPresetAsync(application, cancellationToken), secret);
+        if (secretCheck.IsFailure)
         {
-            return ClientErrors.NotConfidential;
+            return secretCheck.Error;
         }
 
         var guardResult = await guard.EnsureCanManageClientAsync(id, cancellationToken);
@@ -166,8 +186,6 @@ public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpe
         {
             return guardResult.Error;
         }
-
-        var secret = ClientPresets.GenerateSecret();
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         await applications.UpdateAsync(application, secret, cancellationToken);

@@ -3,6 +3,7 @@ using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
+using Kimlik.Application.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Application;
@@ -30,6 +31,10 @@ public static class DependencyInjection
 
         services.AddScoped<AccessResolver>();
         services.AddScoped<AccessGuard>();
+        services.AddScoped<PermissionProvisioner>();
+        services.AddScoped<RoleProvisioner>();
+        services.AddScoped<ApiResourceProvisioner>();
+        services.AddScoped<ClientProvisioner>();
 
         // Use case handlers are plain classes, one per use case, resolved directly by their callers;
         // outbox message handlers are also registered under their handler interface.

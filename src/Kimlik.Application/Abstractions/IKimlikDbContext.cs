@@ -33,5 +33,6 @@ public interface IKimlikDbContext
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Starts a transaction, or joins the one already in progress, which then decides the outcome.</summary>
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
 }

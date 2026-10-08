@@ -61,14 +61,34 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Security__MasterKey` | 256-bit key that encrypts secrets at rest (`openssl rand -base64 32`). Back it up. |
 | `Kimlik__Bootstrap__AdminEmail`, `Kimlik__Bootstrap__AdminPassword` | The first administrator, created while the installation has none. An existing account with this address is promoted only if it has verified the address. |
 | `Kimlik__Email__FromAddress`, `Kimlik__Email__Smtp__Host` | Sender and SMTP relay for verification and reset emails |
+| `Kimlik__Provisioning__FilePath` | A provisioning file to apply at startup (see below) |
 | `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
 
 Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`.
 
+### Provisioning
+
+Permissions, roles, API resources and clients can be declared in a JSON file and kept in version control:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/motorkiran/kimlik/main/docs/schemas/provisioning.schema.json",
+  "permissions": [{ "key": "invoices:read" }, { "key": "invoices:write" }],
+  "roles": [{ "key": "billing-service", "name": "Billing service", "permissions": ["invoices:read"] }],
+  "apiResources": [{ "scope": "invoices", "audience": "invoices-api", "displayName": "Manage your invoices" }],
+  "clients": [
+    { "clientId": "web", "displayName": "Web app", "type": "spa", "redirectUris": ["https://app.example.com/callback"], "scopes": ["openid", "profile", "invoices"] },
+    { "clientId": "billing-worker", "displayName": "Billing worker", "type": "service", "scopes": ["invoices"], "roles": ["billing-service"], "clientSecret": "${Billing:WorkerSecret}" }
+  ]
+}
+```
+
+Set `Kimlik__Provisioning__FilePath` and Kimlik applies the file whenever it prepares the database: it creates what is missing and updates what differs, in one transaction, and never deletes. `${Some:Setting}` reads a client secret from configuration, such as the environment variable `Some__Setting`, so secrets stay out of the file. The same document can be applied with `POST /api/v1/provisioning`, and `GET /api/v1/provisioning` exports the current model.
+
 ### Database migrations
 
-Migrations run at startup by default. To run them as a separate deployment step instead, set `Kimlik__Database__MigrateOnStartup=false` and run:
+Migrations run at startup by default, followed by the bootstrap administrator and the provisioning file. To run all of it as a separate deployment step instead, set `Kimlik__Database__MigrateOnStartup=false` and run:
 
 ```bash
 dotnet run --project src/Kimlik.Server -- migrate

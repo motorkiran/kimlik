@@ -3,8 +3,8 @@ using OpenIddict.Validation.AspNetCore;
 
 namespace Kimlik.Server.Api;
 
-/// <summary>Marks an endpoint with the system permission it requires; also read by the OpenAPI document.</summary>
-internal sealed record RequiredPermission(string Permission);
+/// <summary>Marks an endpoint with the system permissions it requires; also read by the OpenAPI document.</summary>
+internal sealed record RequiredPermission(IReadOnlyList<string> Permissions);
 
 internal sealed record PermissionRequirement(string Permission) : IAuthorizationRequirement;
 
@@ -23,15 +23,15 @@ internal sealed class PermissionAuthorizationHandler : AuthorizationHandler<Perm
 
 internal static class PermissionEndpointExtensions
 {
-    /// <summary>Requires an access token for Kimlik's API that carries <paramref name="permission"/>.</summary>
-    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, string permission)
+    /// <summary>Requires an access token for Kimlik's API that carries every one of <paramref name="permissions"/>.</summary>
+    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, params string[] permissions)
         where TBuilder : IEndpointConventionBuilder
     {
         var policy = new AuthorizationPolicyBuilder(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
-            .AddRequirements(new PermissionRequirement(permission))
+            .AddRequirements([.. permissions.Select(permission => new PermissionRequirement(permission))])
             .Build();
 
-        return builder.RequireAuthorization(policy).WithMetadata(new RequiredPermission(permission));
+        return builder.RequireAuthorization(policy).WithMetadata(new RequiredPermission(permissions));
     }
 }

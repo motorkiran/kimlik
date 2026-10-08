@@ -42,14 +42,15 @@ internal sealed class PermissionOperationTransformer : IOpenApiOperationTransfor
             return Task.CompletedTask;
         }
 
-        var requirement = $"Requires the `{required.Permission}` permission.";
+        var permissions = string.Join(" and ", required.Permissions.Select(permission => $"`{permission}`"));
+        var requirement = $"Requires the {permissions} permission{(required.Permissions.Count > 1 ? "s" : string.Empty)}.";
         operation.Description = operation.Description is null ? requirement : $"{operation.Description}\n\n{requirement}";
 
         operation.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(ManagementApiDocumentTransformer.SecuritySchemeName, context.Document)] = [] }];
 
         operation.Responses ??= [];
         operation.Responses.TryAdd("401", new OpenApiResponse { Description = "The access token is missing, invalid or revoked." });
-        operation.Responses.TryAdd("403", new OpenApiResponse { Description = $"The access token does not carry `{required.Permission}`." });
+        operation.Responses.TryAdd("403", new OpenApiResponse { Description = $"The access token does not carry {permissions}." });
 
         return Task.CompletedTask;
     }

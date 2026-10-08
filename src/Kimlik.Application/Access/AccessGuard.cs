@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Access;
+using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,8 @@ namespace Kimlik.Application.Access;
 
 /// <summary>
 /// Keeps callers within their own access to Kimlik: they cannot hand out system permissions they do not hold,
-/// nor change, suspend or delete an account, a client or a role that holds such permissions.
+/// nor change, suspend or delete an account, a client or a role that holds such permissions. Kimlik itself, such
+/// as when it applies configuration at startup, is not limited.
 /// </summary>
 public sealed class AccessGuard(IKimlikDbContext context, IRequestContext request)
 {
@@ -33,13 +35,20 @@ public sealed class AccessGuard(IKimlikDbContext context, IRequestContext reques
         EnsureHoldsAsync(link => link.RoleId == roleId, cancellationToken);
 
     public Result EnsureCanGrant(IEnumerable<string> permissions) =>
-        permissions.Where(AccessKeys.IsSystemPermission).All(request.Permissions.Contains)
+        IsKimlik || permissions.Where(AccessKeys.IsSystemPermission).All(request.Permissions.Contains)
             ? Result.Success()
             : AccessErrors.PrivilegeEscalation;
+
+    private bool IsKimlik => request.Actor.Type == AuditActorType.System;
 
     /// <summary>Fails when a system permission linked to the selected roles is missing from the caller.</summary>
     private async Task<Result> EnsureHoldsAsync(Expression<Func<RolePermission, bool>> roles, CancellationToken cancellationToken)
     {
+        if (IsKimlik)
+        {
+            return Result.Success();
+        }
+
         var systemPermissions = await context.RolePermissions
             .Where(roles)
             .Join(context.Permissions, link => link.PermissionId, permission => permission.Id, (_, permission) => permission)

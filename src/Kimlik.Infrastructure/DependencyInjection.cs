@@ -6,6 +6,7 @@ using Kimlik.Infrastructure.Email;
 using Kimlik.Infrastructure.Identity;
 using Kimlik.Infrastructure.Outbox;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -57,6 +58,12 @@ public static class DependencyInjection
 
         services.AddScoped<IKimlikDbContext>(provider => provider.GetRequiredService<KimlikDbContext>());
         services.AddScoped<SystemCatalog>();
+        services.AddScoped<DatabasePreparation>();
+
+        services.AddOptions<ProvisioningOptions>()
+            .BindConfiguration(ProvisioningOptions.SectionName)
+            .Validate(options => options.IsValid(), $"{ProvisioningOptions.SectionName}:FilePath does not exist.")
+            .ValidateOnStart();
     }
 
     private static void AddSecurity(IServiceCollection services)

@@ -31,4 +31,5 @@ public static class AuditActions
     public const string ClientSecretRegenerated = "client.secret_regenerated";
     public const string ClientRolesChanged = "client.roles_changed";
     public const string ClientDeleted = "client.deleted";
+    public const string ProvisioningApplied = "provisioning.applied";
 }

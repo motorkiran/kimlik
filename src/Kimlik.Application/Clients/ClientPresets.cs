@@ -27,6 +27,9 @@ internal static partial class ClientPresets
 {
     private const int UriMaxLength = 2000;
 
+    /// <summary>Secrets that people choose, as in a provisioning file, must be at least this long.</summary>
+    private const int SecretMinimumLength = 16;
+
     /// <summary>The scopes of apps that sign users in. <c>openid</c> needs no permission in OpenIddict.</summary>
     private static readonly HashSet<string> UserScopes = new(StringComparer.Ordinal) { Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess };
 
@@ -38,6 +41,16 @@ internal static partial class ClientPresets
 
     /// <summary>A 256-bit secret, which OpenIddict stores hashed.</summary>
     public static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+
+    public static Result CheckSecret(ClientType type, string secret)
+    {
+        if (!IsConfidential(type))
+        {
+            return ClientErrors.NotConfidential;
+        }
+
+        return secret.Length >= SecretMinimumLength ? Result.Success() : ClientErrors.WeakSecret;
+    }
 
     public static async Task<Result> ValidateAsync(IKimlikDbContext context, ClientType type, ClientSettings settings, CancellationToken cancellationToken)
     {

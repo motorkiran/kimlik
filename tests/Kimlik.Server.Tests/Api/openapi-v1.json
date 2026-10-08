@@ -2154,6 +2154,90 @@
           }
         ]
       }
+    },
+    "/api/v1/provisioning": {
+      "get": {
+        "tags": [
+          "Provisioning"
+        ],
+        "summary": "Export the access model",
+        "description": "Describes permissions, roles, API resources and clients as a provisioning document, without client secrets.\n\nRequires the `kimlik.roles:read` and `kimlik.clients:read` permissions.",
+        "operationId": "ExportProvisioning",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.roles:read` and `kimlik.clients:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Provisioning"
+        ],
+        "summary": "Apply a provisioning document",
+        "description": "Creates what is missing and updates what differs, in one transaction; nothing is deleted.\n\nRequires the `kimlik.roles:write` and `kimlik.clients:write` permissions.",
+        "operationId": "ApplyProvisioning",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisioningDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.roles:write` and `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2847,6 +2931,258 @@
           }
         }
       },
+      "ProvisionedApiResource": {
+        "required": [
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "audience": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The scope when omitted. It cannot be changed once the API resource exists."
+          },
+          "displayName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProvisionedClient": {
+        "required": [
+          "clientId",
+          "displayName",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "type": {
+            "description": "It cannot be changed once the client exists.",
+            "$ref": "#/components/schemas/ClientType"
+          },
+          "firstParty": {
+            "type": "boolean"
+          },
+          "redirectUris": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postLogoutRedirectUris": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "maxItems": 50,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys of a service client's global roles; when omitted, an existing client keeps its roles."
+          },
+          "clientSecret": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The secret of a web or service client, at least 16 characters. When omitted, a new client gets a random secret\n(regenerate it through the API to learn one) and an existing client keeps its secret. Never exported. In a file\napplied at startup, `${Some:Setting}` reads the secret from configuration, such as the environment variable\n`Some__Setting`."
+          }
+        }
+      },
+      "ProvisionedPermission": {
+        "required": [
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProvisionedRole": {
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "description": "It cannot be changed once the role exists.",
+            "$ref": "#/components/schemas/RoleScope"
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys of the role's permissions; when omitted, an existing role keeps its permissions."
+          }
+        }
+      },
+      "ProvisioningDocument": {
+        "type": "object",
+        "properties": {
+          "$schema": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The JSON Schema of the document, for editor completion; ignored by Kimlik."
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedPermission"
+            }
+          },
+          "roles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedRole"
+            }
+          },
+          "apiResources": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedApiResource"
+            }
+          },
+          "clients": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedClient"
+            }
+          }
+        },
+        "description": "The access model of an installation as one document: permissions, roles, API resources and clients.\nApplying it creates what is missing and updates what differs, and never deletes. Each item is described in\nfull, except that role permissions, client roles and client secrets are left alone when omitted."
+      },
+      "ProvisioningResult": {
+        "required": [
+          "created",
+          "updated",
+          "unchanged"
+        ],
+        "type": "object",
+        "properties": {
+          "created": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "updated": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unchanged": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "What applying a provisioning document changed."
+      },
       "RoleResponse": {
         "required": [
           "id",
@@ -3191,6 +3527,9 @@
     },
     {
       "name": "Audit events"
+    },
+    {
+      "name": "Provisioning"
     }
   ]
 }
