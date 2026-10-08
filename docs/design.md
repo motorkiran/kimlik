@@ -227,7 +227,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Passkeys (WebAuthn) as a phishing-resistant sign-in method and second factor, built into ASP.NET Core Identity since .NET 10.
+1. Passkeys as the second step after a password, and accounts without a password (with passwordless email sign-in). Passkey sign-in itself is milestone M9 ([§10.4](#104-passkeys)).
 2. Passwordless email sign-in (one-time code or magic link).
 3. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
 4. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
@@ -428,7 +428,7 @@ Principles:
 ### 6.4 Hosted UI
 
 - Razor Pages, rendered on the server with minimal JavaScript (progressive enhancement).
-- Anti-forgery tokens on every form and a strict Content Security Policy with nonces.
+- Anti-forgery tokens on every form and a strict Content Security Policy with nonces. Pages run no script, except the first-party passkey script on the pages that need it ([§10.4](#104-passkeys)).
 - Localization through resource files, and theming through CSS custom properties driven by configuration.
 - Accessibility target: WCAG 2.2 AA.
 
@@ -517,6 +517,7 @@ erDiagram
 |---|---|---|
 | Identity | `users` | ASP.NET Core Identity columns (email, normalized email, password hash, security stamp, lockout) plus `given_name`, `family_name`, `picture_url`, `locale`, `time_zone`, `status` (active/suspended), `public_metadata`, `private_metadata`, `last_sign_in_at` |
 | | `user_logins` | External provider links (`login_provider`, `provider_key`) |
+| | `user_passkeys` | Passkeys: credential ID, public key, signature counter, transports, flags, name, creation time |
 | | `user_tokens`, `user_claims` | Identity internals: the encrypted TOTP secret, hashed recovery codes and the last accepted TOTP time step |
 | Protocol | `oidc_applications`, `oidc_authorizations`, `oidc_scopes`, `oidc_tokens` | OpenIddict entities with UUID keys. A client's type (preset) and first-party flag map onto OpenIddict's own settings (client type, application type, grant types and consent type), so they need no extra columns and cannot drift from them. An API resource is a scope with one audience. |
 | Access | `permissions` | `key` (unique), `description`, `is_system` |
@@ -597,7 +598,7 @@ erDiagram
 }
 ```
 
-- **`auth_time` and `amr`:** when and how the user authenticated, with RFC 8176 method values such as `pwd`, `otp` and `mfa`, and `fed` after a sign-in at another provider. Applications can use them to require MFA for sensitive operations. ID tokens carry them too.
+- **`auth_time` and `amr`:** when and how the user authenticated, with RFC 8176 method values such as `pwd`, `otp` and `mfa`, `fed` after a sign-in at another provider, and `pop` for a passkey. Applications can use them to require MFA for sensitive operations. ID tokens carry them too.
 - **`roles`:** the user's global roles.
 - **`org_id` and `org_roles`:** present when an organization context is active.
 - **`permissions`:** the effective permissions for the current context (global roles plus organization roles), deduplicated.
@@ -739,19 +740,34 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 - Accounts created through social login have no password. Their owners can set one, and they cannot unlink their last way to sign in themselves; an administrator can, after which a password reset restores access.
 - Sessions that started at a provider report `fed` as their first factor in `amr`, followed by `otp` and `mfa` after a second factor.
 
-### 10.4 Administrative security
+### 10.4 Passkeys
+
+Passkeys (WebAuthn) are a phishing-resistant way to sign in, built on the passkey support of ASP.NET Core Identity in .NET 10.
+
+- **A sign-in of its own.** A passkey signs a person in without a password. Kimlik requires user verification (a PIN or biometric on the device), so a passkey sign-in counts as two factors: it meets the MFA requirements for administrators, organizations and the installation, and tokens report `amr` `["pop", "mfa"]`. Signing in with a password and a TOTP code works as before; passkeys are not offered as the second step after a password.
+- **The relying party** is the host of `Kimlik:Server:PublicUrl`, and Kimlik accepts responses only from that origin. Passkeys are bound to the host, so moving Kimlik to another one leaves them unusable, and people sign in another way to add new ones. No attestation is requested: any authenticator, synced or device-bound, is accepted.
+- **The sign-in page** offers a "Sign in with a passkey" button, and its email field offers the browser's saved passkeys as the person types (conditional UI). Without JavaScript or a browser that supports passkeys, the page works as before.
+- **JavaScript.** One first-party script, `/js/passkeys.js`, runs the browser side: it asks Kimlik for options, calls the WebAuthn API and posts the result in the form. Only the pages that need it load it, under a content security policy that allows `script-src 'self'`; every other page keeps `script-src 'none'`.
+- **Adding passkeys.** People add, rename and remove passkeys on the account pages, up to 25 each. After a password sign-in, people without a passkey are offered once, and can skip, to add one. Adding a passkey takes a sign-in within the last ten minutes, so a stolen session cannot plant one; otherwise the person signs in again first.
+- **Recovery.** Every account keeps a password or a linked login, so a lost passkey locks nobody out. Accounts without a password are a later phase, with passwordless email sign-in.
+- **Management.** The Account API lists, renames and removes the user's passkeys (`/api/v1/me/passkeys`). The Management API, `Kimlik.Client` and the admin panel list and remove those of any user (`/api/v1/users/{id}/passkeys`), for example after a device is stolen. Passkeys are only created in the browser, on the hosted pages.
+- **Storage.** Identity's passkey data (credential ID, public key, signature counter, transports, flags, name and creation time) is kept in `user_passkeys` through Kimlik's user store. A signature counter that goes backwards fails the sign-in, as it suggests a cloned authenticator.
+- **Audit.** Adding and removing passkeys is audited, and sign-ins record `passkey` as their method.
+- **Testing.** End-to-end tests drive the ceremonies with a software authenticator that creates and signs real WebAuthn responses.
+
+### 10.5 Administrative security
 
 - The admin panel and the Management API require system permissions. The `kimlik-admin` role can only be granted through bootstrap or by another administrator.
 - Every administrative change is audited with the actor, the target and the changed fields.
 - Administrators must use MFA by default. Accounts holding system permissions enroll at their next sign-in, and the admin panel accepts only sessions authenticated with MFA.
 
-### 10.5 Privacy (KVKK/GDPR)
+### 10.6 Privacy (KVKK/GDPR)
 
 - **Data minimization:** Kimlik stores only what identity and access require, plus metadata the developer defines.
 - **Account deletion** is available both as self-service and to admins, and it removes personal data. Audit events reference only the user ID and are kept for a configurable retention period (365 days by default).
 - **Personal data export** is planned for a later phase.
 
-### 10.6 Supply chain
+### 10.7 Supply chain
 
 - The dependency policy in [§14.4](#144-dependency-policy).
 - Dependabot, CodeQL and secret scanning.
@@ -964,7 +980,8 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests ✅ |
 | **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection ✅ |
 | **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI ✅ (product settings come from configuration, [ADR 0001](adr/0001-product-settings-from-configuration.md)) |
-| **M8: Hardening and v0.1.0** | Security review ✅, load tests ✅, documentation, samples, container image. NuGet publishing waits until the `Kimlik.*` prefix is reserved ([§17.1](#171-open-questions)) | v0.1.0 released |
+| **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image. NuGet publishing waits until the `Kimlik.*` prefix is reserved ([§17.1](#171-open-questions)) | v0.1.0 released ✅ (container image and GitHub release, 2026-10-08) |
+| **M9: Passkeys** | Passkey sign-in with conditional UI; adding passkeys on the account pages and after sign-in; passkeys in the Account and Management APIs, the SDK and the admin panel ([§10.4](#104-passkeys)) | A passkey created in the browser signs in and meets MFA requirements, in end-to-end tests with a software authenticator |
 
 ---
 
