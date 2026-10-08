@@ -49,7 +49,7 @@ public sealed class SignInTwoFactorModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent))
+        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent, var provider))
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
@@ -78,7 +78,7 @@ public sealed class SignInTwoFactorModel(
                 auditLog.Record(AuditActions.UserRecoveryCodeUsed, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
             }
 
-            await signInFlow.RecordAsync(user, SignInFlow.MultiFactorMethod, cancellationToken);
+            await signInFlow.RecordAsync(user, SignInFlow.MultiFactorMethod, provider, cancellationToken);
             return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
 

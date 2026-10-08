@@ -69,6 +69,30 @@ public sealed class MyAccount(
         return Result.Success();
     }
 
+    /// <summary>Gives a password to an account that signs in only with accounts at other providers.</summary>
+    public async Task<Result> AddPasswordAsync(Guid userId, string password, CancellationToken cancellationToken)
+    {
+        if (await userManager.FindByIdAsync(userId.ToString()) is not { } user)
+        {
+            return UserErrors.NotFound;
+        }
+
+        if (await userManager.HasPasswordAsync(user))
+        {
+            return AccountErrors.PasswordAlreadySet;
+        }
+
+        var added = await userManager.AddPasswordAsync(user, password);
+        if (!added.Succeeded)
+        {
+            return AccountErrors.FromIdentity(added.Errors);
+        }
+
+        auditLog.Record(AuditActions.UserPasswordChanged, AuditSubject.User(userId));
+        await context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
     /// <summary>The applications that can get tokens for the user.</summary>
     public async Task<IReadOnlyList<SessionResponse>> ListSessionsAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -135,20 +159,34 @@ public sealed class MyAccount(
         }
 
         var confirmed = await ConfirmPasswordAsync(user, request.Password);
-        if (confirmed.IsFailure)
+        return confirmed.IsFailure ? confirmed : await DeleteAsync(user, cancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes an account that has no password, which the hosted pages confirm another way. Accounts with a password
+    /// confirm with it.
+    /// </summary>
+    public async Task<Result> DeleteWithoutPasswordAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (await userManager.FindByIdAsync(userId.ToString()) is not { } user)
         {
-            return confirmed;
+            return UserErrors.NotFound;
         }
 
+        return await userManager.HasPasswordAsync(user) ? AccountErrors.PasswordRequired : await DeleteAsync(user, cancellationToken);
+    }
+
+    private async Task<Result> DeleteAsync(User user, CancellationToken cancellationToken)
+    {
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
-        await sessions.RevokeAllAsync(userId, cancellationToken);
+        await sessions.RevokeAllAsync(user.Id, cancellationToken);
         var deleted = await userManager.DeleteAsync(user);
         if (!deleted.Succeeded)
         {
             return Error.Failure("user.delete_failed", string.Join(", ", deleted.Errors.Select(error => error.Code)));
         }
 
-        auditLog.Record(AuditActions.UserDeleted, AuditSubject.User(userId));
+        auditLog.Record(AuditActions.UserDeleted, AuditSubject.User(user.Id));
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success();

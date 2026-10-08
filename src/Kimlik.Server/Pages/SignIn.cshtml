@@ -37,6 +37,8 @@
     <button type="submit" class="button">@L["Sign in"]</button>
 </form>
 
+<partial name="_ExternalSignIn" model="Model.ReturnUrl" />
+
 @if (Model.CanSignUp)
 {
     <p class="switch">@L["New here?"] <a asp-page="/SignUp" asp-route-returnUrl="@Model.ReturnUrl">@L["Create an account"]</a></p>

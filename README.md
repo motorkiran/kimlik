@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication and account pages. Social sign-in comes next. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, and account pages (milestone M5). Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -98,8 +98,24 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
 | `Kimlik__Plans__DefaultUserPlan`, `Kimlik__Plans__DefaultOrganizationPlan` | The plan of users and organizations without a current subscription |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
+| `Kimlik__SocialLogin__*` | Sign-in with Google, Microsoft, Apple and GitHub (see below) |
 
 Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`.
+
+### Sign-in with other providers
+
+People can sign up and sign in with an account at Google, Microsoft, Apple or GitHub. A provider appears on the sign-in page once its client ID is set:
+
+| Provider | Settings |
+|---|---|
+| Google | `Kimlik__SocialLogin__Google__ClientId`, `__ClientSecret` |
+| Microsoft | `Kimlik__SocialLogin__Microsoft__ClientId`, `__ClientSecret`, and `__Tenant` (`common` by default) |
+| GitHub | `Kimlik__SocialLogin__GitHub__ClientId`, `__ClientSecret` |
+| Apple | `Kimlik__SocialLogin__Apple__ClientId` (the Services ID), `__TeamId`, `__KeyId`, `__PrivateKey` (the PEM text of the `.p8` key) |
+
+Register `{PublicUrl}/signin/external/callback/{provider}` as the redirect URI with the provider, such as `https://id.example.com/signin/external/callback/google`.
+
+Kimlik never links accounts because their email addresses match: when someone signs in with a provider account whose address belongs to an existing account, they sign in to that account first and confirm the link. A new account counts its address as verified only if the provider verified it and is trusted to (`__TrustEmail`: on for Google, Apple and GitHub; off for Microsoft, which does not verify every address). Two-factor authentication applies after a provider sign-in too, and tokens report it in `amr` (`fed`, plus `otp` and `mfa`).
 
 ### Provisioning
 

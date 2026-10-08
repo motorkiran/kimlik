@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Users;
+using Kimlik.Server.SocialLogin;
 using Kimlik.Server.Ui;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,11 @@ using Microsoft.Extensions.Localization;
 namespace Kimlik.Server.Pages.Account;
 
 /// <summary>The account overview: the profile, and the way to the other account settings.</summary>
-public sealed class ProfileModel(UserManager<User> userManager, MyAccount account, IStringLocalizer<SharedResource> localizer) : AccountPageModel
+public sealed class ProfileModel(
+    UserManager<User> userManager,
+    MyAccount account,
+    ExternalProviders providers,
+    IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
     [BindProperty]
     public ProfileInput Input { get; set; } = new();
@@ -19,6 +24,9 @@ public sealed class ProfileModel(UserManager<User> userManager, MyAccount accoun
     public string? Email { get; private set; }
 
     public bool TwoFactorEnabled { get; private set; }
+
+    /// <summary>Whether accounts at other providers can be connected.</summary>
+    public bool HasProviders => providers.All.Count > 0;
 
     /// <summary>The languages of the hosted pages, plus the user's current one if it is another.</summary>
     public IReadOnlyList<SelectListItem> Languages { get; private set; } = [];

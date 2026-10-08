@@ -6,6 +6,7 @@ using Kimlik.Server.Diagnostics;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Kimlik.Server.Oidc;
+using Kimlik.Server.SocialLogin;
 using Kimlik.Server.Ui;
 using Microsoft.Extensions.Options;
 
@@ -16,6 +17,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddSignInSession();
 builder.Services.AddOidcServer();
+builder.Services.AddSocialLogin(builder.Configuration);
 builder.Services.AddBrowserClientCors();
 builder.Services.AddManagementApi();
 builder.Services.AddHostedUi();

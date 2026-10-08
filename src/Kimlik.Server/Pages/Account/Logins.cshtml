@@ -1,0 +1,37 @@
+@page "/account/logins"
+@model LoginsModel
+@{
+    ViewData["Title"] = L["Connected accounts"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Connected accounts"]</h1>
+<p class="lead">@L["Sign in with an account you already have at one of these providers."]</p>
+
+@if (Model.Notice is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Notice</div>
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<ul class="list" id="logins">
+    @foreach (var provider in Model.Providers)
+    {
+        var connected = Model.Connected.Contains(provider.Name);
+        <li data-provider="@provider.Name">
+            <div>
+                <strong>@provider.DisplayName</strong>
+                <div class="hint">@(connected ? L["Connected"] : L["Not connected"])</div>
+            </div>
+            <form method="post" asp-page-handler="@(connected ? "Disconnect" : "Connect")">
+                <input type="hidden" name="provider" value="@provider.Name" />
+                <button type="submit" class="button button-secondary button-small">@(connected ? L["Disconnect"] : L["Connect"])</button>
+            </form>
+        </li>
+    }
+</ul>

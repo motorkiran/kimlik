@@ -1,0 +1,34 @@
+@page "/signin/link"
+@model SignInLinkModel
+@{
+    ViewData["Title"] = L["Connect your {0} account", Model.Link!.Provider.DisplayName];
+    var provider = Model.Link!.Provider.DisplayName;
+}
+
+<h1 id="page-title">@L["Connect your {0} account", provider]</h1>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.SignedInAs is null)
+{
+    <p class="lead" id="explanation">@L["An account with {0} already exists. Sign in to it to connect your {1} account; then you can sign in with either.", Model.Link.Email ?? string.Empty, provider]</p>
+    <form method="post" asp-page-handler="Cancel" asp-route-returnUrl="@Model.ReturnUrl" class="actions">
+        <a class="button" href="@Model.SignInUrl">@L["Sign in"]</a>
+        <button type="submit" class="button button-secondary">@L["Cancel"]</button>
+    </form>
+}
+else
+{
+    <p class="lead" id="explanation">@L["Connect your {0} account to {1}? Then you can sign in with either.", provider, Model.SignedInAs]</p>
+    <div class="actions">
+        <form method="post" asp-page-handler="Connect" asp-route-returnUrl="@Model.ReturnUrl" id="connect">
+            <button type="submit" class="button">@L["Connect"]</button>
+        </form>
+        <form method="post" asp-page-handler="Cancel" asp-route-returnUrl="@Model.ReturnUrl" id="cancel">
+            <button type="submit" class="button button-secondary">@L["Cancel"]</button>
+        </form>
+    </div>
+}

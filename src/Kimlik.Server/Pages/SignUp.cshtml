@@ -46,6 +46,8 @@ else
         </div>
         <button type="submit" class="button">@L["Create account"]</button>
     </form>
+
+    <partial name="_ExternalSignIn" model="Model.ReturnUrl" />
 }
 
 <p class="switch">@L["Already have an account?"] <a asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in"]</a></p>

@@ -75,6 +75,13 @@ internal static class IdentityServiceCollectionExtensions
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
                 options.SlidingExpiration = false;
             }
+            else if (name == IdentityConstants.ExternalScheme)
+            {
+                // An account at another provider, waiting to be linked once the user signs in.
+                Secure(options, "external");
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+                options.SlidingExpiration = false;
+            }
             else if (name == IdentityConstants.TwoFactorRememberMeScheme)
             {
                 // A browser the user trusts to skip the second factor.

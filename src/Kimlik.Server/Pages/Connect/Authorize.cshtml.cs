@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Security.Claims;
 using Kimlik.Application.Clients;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
@@ -220,16 +221,17 @@ public sealed class AuthorizeModel(
         }
 
         var persistent = session.Properties?.IsPersistent == true;
+        var provider = session.Principal.FindFirstValue(SignInFlow.ProviderClaim);
         var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
         var step = user.TwoFactorEnabled ? await signInFlow.NextStepAsync(user, cancellationToken) : SignInStep.SetUp;
 
         if (step == SignInStep.TrustedBrowser)
         {
-            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, cancellationToken);
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken);
             return LocalRedirect(retry);
         }
 
-        await signInFlow.DeferAsync(user, persistent, step);
+        await signInFlow.DeferAsync(user, persistent, step, provider);
         var page = step == SignInStep.Verify ? "two-factor" : "set-up-two-factor";
         return LocalRedirect($"{Request.PathBase}/signin/{page}?returnUrl={Uri.EscapeDataString(retry)}");
     }

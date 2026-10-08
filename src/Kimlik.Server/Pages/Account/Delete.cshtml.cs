@@ -10,8 +10,12 @@ using Microsoft.Extensions.Localization;
 
 namespace Kimlik.Server.Pages.Account;
 
-/// <summary>Deletes the account once the password confirms it, and signs this browser out.</summary>
+/// <summary>
+/// Deletes the account once the password confirms it, and signs this browser out. Accounts without a password confirm
+/// by typing their email address.
+/// </summary>
 public sealed class DeleteModel(
+    UserManager<User> userManager,
     MyAccount account,
     SignInManager<User> signInManager,
     RequestThrottle throttle,
@@ -23,12 +27,37 @@ public sealed class DeleteModel(
 
     public bool Deleted { get; private set; }
 
-    public void OnGet()
+    /// <summary>Whether the password confirms the deletion, rather than the email address.</summary>
+    public bool HasPassword { get; private set; }
+
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (await userManager.GetUserAsync(User) is not { } user)
+        {
+            return Challenge();
+        }
+
+        HasPassword = await userManager.HasPasswordAsync(user);
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        if (await userManager.GetUserAsync(User) is not { } user)
+        {
+            return Challenge();
+        }
+
+        HasPassword = await userManager.HasPasswordAsync(user);
+        if (!HasPassword)
+        {
+            ModelState.Remove($"{nameof(Input)}.{nameof(Input.CurrentPassword)}");
+            if (!string.Equals(Input.Email?.Trim(), user.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Email)}", localizer["Type the email address of your account."]);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -41,7 +70,9 @@ public sealed class DeleteModel(
             return Page();
         }
 
-        var deleted = await account.DeleteAsync(UserId, new DeleteAccountRequest { Password = Input.CurrentPassword }, cancellationToken);
+        var deleted = HasPassword
+            ? await account.DeleteAsync(user.Id, new DeleteAccountRequest { Password = Input.CurrentPassword }, cancellationToken)
+            : await account.DeleteWithoutPasswordAsync(user.Id, cancellationToken);
         if (deleted.IsFailure)
         {
             ModelState.AddModelError(errorMessages.FieldFor(deleted.Error), errorMessages.For(deleted.Error));
@@ -61,4 +92,8 @@ public sealed class DeleteAccountInput
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
     public string CurrentPassword { get; set; } = string.Empty;
+
+    [StringLength(256, ErrorMessage = "Use at most {1} characters.")]
+    [Display(Name = "Email")]
+    public string? Email { get; set; }
 }

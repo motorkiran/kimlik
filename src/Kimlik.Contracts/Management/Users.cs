@@ -100,6 +100,11 @@ public sealed record UpdateUserRequest
     public bool HasLocale { get; private init; }
 }
 
+/// <summary>An account at another provider, such as Google, that the user signs in with.</summary>
+/// <param name="Provider">The provider's name in Kimlik, such as <c>google</c>.</param>
+/// <param name="ProviderDisplayName">The provider's name for people, such as <c>Google</c>.</param>
+public sealed record UserLoginResponse(string Provider, string ProviderDisplayName);
+
 /// <summary>Replaces the global roles of a user or a client.</summary>
 public sealed record SetRolesRequest
 {

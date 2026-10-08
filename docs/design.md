@@ -591,7 +591,7 @@ erDiagram
 }
 ```
 
-- **`auth_time` and `amr`:** when and how the user authenticated, with RFC 8176 method values such as `pwd`, `otp` and `mfa`. Applications can use them to require MFA for sensitive operations. ID tokens carry them too.
+- **`auth_time` and `amr`:** when and how the user authenticated, with RFC 8176 method values such as `pwd`, `otp` and `mfa`, and `fed` after a sign-in at another provider. Applications can use them to require MFA for sensitive operations. ID tokens carry them too.
 - **`roles`:** the user's global roles.
 - **`org_id` and `org_roles`:** present when an organization context is active.
 - **`permissions`:** the effective permissions for the current context (global roles plus organization roles), deduplicated.
@@ -721,9 +721,12 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 
 ### 10.3 Social login and account linking
 
-- External identities are stored as linked logins.
-- When an external account's email matches an existing local account, Kimlik never links them automatically. The user must first prove ownership of the existing account, either by signing in or by confirming through email.
-- When social login creates a new account, Kimlik trusts the provider's `email_verified` claim only for providers configured as trusted.
+- External identities are stored as linked logins, at most one per provider for each user. Kimlik signs in with providers through OpenIddict's client, whose state tokens bind each response to the browser that started the sign-in.
+- When an external account's email matches an existing local account, Kimlik never links them automatically. The user must first prove ownership of the existing account by signing in to it (with its second factor, if any), then confirm the link. The same confirmation applies when someone who is already signed in uses an unknown external account. Confirming through email is a possible later addition.
+- When social login creates a new account, Kimlik trusts the provider's `email_verified` claim only for providers configured as trusted: Google, Apple and GitHub (whose verified addresses Kimlik reads from its API) by default, but not Microsoft, which does not verify every address. Otherwise the person verifies the address with Kimlik first.
+- A password reset on an account that had no password, or whose address was not verified yet, is the first proof that the person owns the address. It unlinks the external accounts linked before, which may belong to someone who signed up with the address first (pre-account hijacking).
+- Accounts created through social login have no password. Their owners can set one, and they cannot unlink their last way to sign in themselves; an administrator can, after which a password reset restores access.
+- Sessions that started at a provider report `fed` as their first factor in `amr`, followed by `otp` and `mfa` after a second factor.
 
 ### 10.4 Administrative security
 
@@ -947,7 +950,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M2: Access control and Management API** | Permissions, roles, assignments, token claims; Management API (users, roles, clients); bootstrap admin; provisioning file; SDK v0 (`AddKimlik`, `RequirePermission`) | A sample SPA and API complete the full flow; the sample API authorizes by permission through the SDK ✅ |
 | **M3: Organizations** | Organizations, memberships, invitations, organization roles, organization context in tokens, Account API self-service | Users switch organizations and receive context-specific permissions ✅ |
 | **M4: Plans and entitlements** | Features, plans, subscriptions, expiration job, `plan` claim, entitlements API, SDK `RequireFeature` and limits | The sample API gates a feature and enforces a limit ✅ |
-| **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests |
+| **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests ✅ |
 | **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection |
 | **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI |
 | **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image and NuGet publishing | v0.1.0 released |

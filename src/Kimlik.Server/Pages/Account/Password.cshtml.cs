@@ -11,8 +11,12 @@ using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages.Account;
 
-/// <summary>Changes the password. This browser stays signed in; every other session and application is signed out.</summary>
+/// <summary>
+/// Changes the password. This browser stays signed in; every other session and application is signed out. Accounts
+/// that sign in only with other providers set a first password instead.
+/// </summary>
 public sealed class PasswordModel(
+    UserManager<User> userManager,
     MyAccount account,
     SignInManager<User> signInManager,
     RequestThrottle throttle,
@@ -25,14 +29,35 @@ public sealed class PasswordModel(
 
     public bool Changed { get; private set; }
 
+    /// <summary>Whether the account has a password to change, rather than a first one to set.</summary>
+    public bool HasPassword { get; private set; }
+
     public int PasswordMinimumLength => accounts.Value.PasswordMinimumLength;
 
-    public void OnGet()
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (await userManager.GetUserAsync(User) is not { } user)
+        {
+            return Challenge();
+        }
+
+        HasPassword = await userManager.HasPasswordAsync(user);
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        if (await userManager.GetUserAsync(User) is not { } user)
+        {
+            return Challenge();
+        }
+
+        HasPassword = await userManager.HasPasswordAsync(user);
+        if (!HasPassword)
+        {
+            ModelState.Remove($"{nameof(Input)}.{nameof(Input.CurrentPassword)}");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -45,10 +70,10 @@ public sealed class PasswordModel(
             return Page();
         }
 
-        var changed = await account.ChangePasswordAsync(
-            UserId,
-            new ChangePasswordRequest { CurrentPassword = Input.CurrentPassword, NewPassword = Input.Password },
-            cancellationToken);
+        var changed = HasPassword
+            ? await account.ChangePasswordAsync(
+                user.Id, new ChangePasswordRequest { CurrentPassword = Input.CurrentPassword, NewPassword = Input.Password }, cancellationToken)
+            : await account.AddPasswordAsync(user.Id, Input.Password, cancellationToken);
 
         if (changed.IsFailure)
         {

@@ -1,4 +1,5 @@
 using System.Net;
+using Kimlik.Application.Accounts;
 using Kimlik.Client;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
@@ -29,6 +30,12 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
         updated.Name.ShouldBe("Augusta Lovelace");
 
         (await kimlik.Users.ListAsync(search: email, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem().Id.ShouldBe(created.Id);
+
+        await server.WithServicesAsync(scope =>
+            scope.GetRequiredService<ExternalLogins>().LinkAsync(created.Id, new ExternalLogin("github", "583231", "GitHub"), CancellationToken));
+        (await kimlik.Users.ListLoginsAsync(created.Id, CancellationToken)).ShouldHaveSingleItem().Provider.ShouldBe("github");
+        await kimlik.Users.UnlinkLoginAsync(created.Id, "github", CancellationToken);
+        (await kimlik.Users.ListLoginsAsync(created.Id, CancellationToken)).ShouldBeEmpty();
 
         await kimlik.Users.SuspendAsync(created.Id, CancellationToken);
         (await kimlik.Users.ListAsync(search: email, status: UserStatus.Suspended, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem();

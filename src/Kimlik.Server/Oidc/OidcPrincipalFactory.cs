@@ -102,11 +102,16 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
     }
 
     /// <summary>
-    /// How the user signed in, as RFC 8176 method references: a password, and a one-time code when a second factor
-    /// was used (or the browser was trusted after one).
+    /// How the user signed in, as method references (RFC 8176): a password (<c>pwd</c>) or an account at another
+    /// provider (<c>fed</c>, as Microsoft Entra ID uses it), and a one-time code when a second factor was used (or the
+    /// browser was trusted after one).
     /// </summary>
-    public static IReadOnlyList<string> AuthenticationMethodsOf(ClaimsPrincipal session) =>
-        session.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod) ? ["pwd", "otp", "mfa"] : ["pwd"];
+    public static IReadOnlyList<string> AuthenticationMethodsOf(ClaimsPrincipal session)
+    {
+        var firstFactor = session.HasClaim(claim => claim.Type == SignInFlow.ProviderClaim) ? SignInFlow.FederatedMethod : SignInFlow.PasswordMethod;
+
+        return session.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod) ? [firstFactor, "otp", "mfa"] : [firstFactor];
+    }
 
     /// <summary>The authentication methods a previously issued token carries, one claim per value or one JSON array.</summary>
     public static IReadOnlyList<string> GetAuthenticationMethods(ClaimsPrincipal principal) =>

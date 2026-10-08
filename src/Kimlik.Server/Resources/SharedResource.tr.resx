@@ -460,4 +460,82 @@
   <data name="Delete my account" xml:space="preserve">
     <value>Hesabımı sil</value>
   </data>
+  <data name="An account with {0} already exists. Sign in to it to connect your {1} account; then you can sign in with either." xml:space="preserve">
+    <value>{0} adresiyle bir hesap zaten var. {1} hesabınızı bağlamak için önce o hesaba giriş yapın; sonra ikisinden biriyle giriş yapabilirsiniz.</value>
+  </data>
+  <data name="Another account at this provider is already connected. Disconnect it first." xml:space="preserve">
+    <value>Bu sağlayıcıdan başka bir hesap zaten bağlı. Önce onun bağlantısını kaldırın.</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Bağla</value>
+  </data>
+  <data name="Connect your {0} account" xml:space="preserve">
+    <value>{0} hesabınızı bağlayın</value>
+  </data>
+  <data name="Connect your {0} account to {1}? Then you can sign in with either." xml:space="preserve">
+    <value>{0} hesabınız {1} hesabına bağlansın mı? Sonra ikisinden biriyle giriş yapabilirsiniz.</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Bağlı</value>
+  </data>
+  <data name="Connected accounts" xml:space="preserve">
+    <value>Bağlı hesaplar</value>
+  </data>
+  <data name="Continue with {0}" xml:space="preserve">
+    <value>{0} ile devam et</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Bağlantıyı kaldır</value>
+  </data>
+  <data name="Not connected" xml:space="preserve">
+    <value>Bağlı değil</value>
+  </data>
+  <data name="Set a password" xml:space="preserve">
+    <value>Şifre belirleyin</value>
+  </data>
+  <data name="Set a password or connect another account first, so you can still sign in." xml:space="preserve">
+    <value>Giriş yapabilmeye devam etmeniz için önce bir şifre belirleyin veya başka bir hesap bağlayın.</value>
+  </data>
+  <data name="Set password" xml:space="preserve">
+    <value>Şifre belirle</value>
+  </data>
+  <data name="Sign in with an account you already have at one of these providers." xml:space="preserve">
+    <value>Bu sağlayıcılardan birindeki mevcut hesabınızla giriş yapın.</value>
+  </data>
+  <data name="Signing in with that account did not work. Try again." xml:space="preserve">
+    <value>O hesapla giriş yapılamadı. Yeniden deneyin.</value>
+  </data>
+  <data name="That account is already connected to another account." xml:space="preserve">
+    <value>Bu hesap zaten başka bir hesaba bağlı.</value>
+  </data>
+  <data name="That {0} account is already connected to another account." xml:space="preserve">
+    <value>Bu {0} hesabı zaten başka bir hesaba bağlı.</value>
+  </data>
+  <data name="The account was disconnected." xml:space="preserve">
+    <value>Hesabın bağlantısı kaldırıldı.</value>
+  </data>
+  <data name="This account cannot sign in. Contact an administrator." xml:space="preserve">
+    <value>Bu hesapla giriş yapılamıyor. Bir yöneticiyle iletişime geçin.</value>
+  </data>
+  <data name="Type the email address of your account to confirm." xml:space="preserve">
+    <value>Onaylamak için hesabınızın e-posta adresini yazın.</value>
+  </data>
+  <data name="Type the email address of your account." xml:space="preserve">
+    <value>Hesabınızın e-posta adresini yazın.</value>
+  </data>
+  <data name="You can now sign in with your email address and password too." xml:space="preserve">
+    <value>Artık e-posta adresiniz ve şifrenizle de giriş yapabilirsiniz.</value>
+  </data>
+  <data name="You sign in with an account at another provider. With a password, you can also sign in with your email address." xml:space="preserve">
+    <value>Başka bir sağlayıcıdaki hesabınızla giriş yapıyorsunuz. Bir şifre belirlerseniz e-posta adresinizle de giriş yapabilirsiniz.</value>
+  </data>
+  <data name="Your password has been set." xml:space="preserve">
+    <value>Şifreniz belirlendi.</value>
+  </data>
+  <data name="Your {0} account does not share an email address, which an account here needs. Create an account with your email address instead." xml:space="preserve">
+    <value>{0} hesabınız bir e-posta adresi paylaşmıyor; burada hesap oluşturmak için bu gerekli. Bunun yerine e-posta adresinizle bir hesap oluşturun.</value>
+  </data>
+  <data name="or" xml:space="preserve">
+    <value>veya</value>
+  </data>
 </root>

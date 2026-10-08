@@ -40,6 +40,10 @@
         <span>@L["Two-factor authentication"]</span>
         <span class="badge" id="two-factor-status">@(Model.TwoFactorEnabled ? L["On"] : L["Off"])</span>
     </a>
+    @if (Model.HasProviders)
+    {
+        <a asp-page="/Account/Logins">@L["Connected accounts"]</a>
+    }
     <a asp-page="/Account/Sessions">@L["Signed-in applications"]</a>
     <a asp-page="/Account/Delete">@L["Delete account"]</a>
 </nav>

@@ -75,6 +75,19 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapGet("{id:guid}/logins", ListLoginsAsync)
+            .WithName("ListUserLogins")
+            .WithSummary("List a user's accounts at other providers")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersRead);
+
+        users.MapDelete("{id:guid}/logins/{provider}", UnlinkLoginAsync)
+            .WithName("UnlinkUserLogin")
+            .WithSummary("Disconnect a user's account at another provider")
+            .WithDescription("The user can no longer sign in with it. If it was their only way to sign in, they can still set a password by resetting it.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
         users.MapPost("{id:guid}/mfa/reset", ResetMfaAsync)
             .WithName("ResetUserMfa")
             .WithSummary("Remove a user's second factor")
@@ -144,6 +157,14 @@ internal static class UserEndpoints
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> SetRolesAsync(
         Guid id, SetRolesRequest request, SetUserRolesHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, request, cancellationToken)).ToOk();
+
+    private static async Task<Results<Ok<IReadOnlyList<UserLoginResponse>>, ProblemHttpResult>> ListLoginsAsync(
+        Guid id, ListUserLoginsHandler handler) =>
+        (await handler.HandleAsync(id)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
+        Guid id, string provider, UnlinkUserLoginHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, provider, cancellationToken)).ToNoContent();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> ResetMfaAsync(
         Guid id, ResetUserMfaHandler handler, CancellationToken cancellationToken) =>

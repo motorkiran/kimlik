@@ -513,6 +513,118 @@
         ]
       }
     },
+    "/api/v1/users/{id}/logins": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List a user's accounts at other providers",
+        "description": "Requires the `kimlik.users:read` permission.",
+        "operationId": "ListUserLogins",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserLoginResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.users:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}/logins/{provider}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Disconnect a user's account at another provider",
+        "description": "The user can no longer sign in with it. If it was their only way to sign in, they can still set a password by resetting it.\n\nRequires the `kimlik.users:write` permission.",
+        "operationId": "UnlinkUserLogin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.users:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/users/{id}/mfa/reset": {
       "post": {
         "tags": [
@@ -4480,6 +4592,98 @@
         ]
       }
     },
+    "/api/v1/me/logins": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List the accounts at other providers that I sign in with",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "ListMyLogins",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserLoginResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/logins/{provider}": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Disconnect an account at another provider",
+        "description": "Not possible for the last way to sign in: set a password or connect another account first.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "UnlinkMyLogin",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/me/delete": {
       "post": {
         "tags": [
@@ -7929,6 +8133,24 @@
           }
         },
         "description": "Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and\n`null` clears one."
+      },
+      "UserLoginResponse": {
+        "required": [
+          "provider",
+          "providerDisplayName"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "The provider's name in Kimlik, such as `google`."
+          },
+          "providerDisplayName": {
+            "type": "string",
+            "description": "The provider's name for people, such as `Google`."
+          }
+        },
+        "description": "An account at another provider, such as Google, that the user signs in with."
       },
       "UserResponse": {
         "required": [

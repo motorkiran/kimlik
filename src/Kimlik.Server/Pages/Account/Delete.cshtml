@@ -19,11 +19,23 @@ else
     <p class="lead">@L["This deletes your account for good and signs you out of every application. It cannot be undone."]</p>
     <partial name="_FormError" />
     <form method="post" novalidate>
-        <div class="field">
-            <label asp-for="Input.CurrentPassword"></label>
-            <input asp-for="Input.CurrentPassword" autocomplete="current-password" />
-            <span asp-validation-for="Input.CurrentPassword" class="field-error"></span>
-        </div>
+        @if (Model.HasPassword)
+        {
+            <div class="field">
+                <label asp-for="Input.CurrentPassword"></label>
+                <input asp-for="Input.CurrentPassword" autocomplete="current-password" />
+                <span asp-validation-for="Input.CurrentPassword" class="field-error"></span>
+            </div>
+        }
+        else
+        {
+            <div class="field">
+                <label asp-for="Input.Email"></label>
+                <input asp-for="Input.Email" type="email" autocomplete="off" aria-describedby="email-hint" />
+                <span id="email-hint" class="hint">@L["Type the email address of your account to confirm."]</span>
+                <span asp-validation-for="Input.Email" class="field-error"></span>
+            </div>
+        }
         <button type="submit" class="button button-danger">@L["Delete my account"]</button>
     </form>
 }

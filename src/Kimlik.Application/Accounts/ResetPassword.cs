@@ -10,7 +10,10 @@ public sealed record ResetPasswordCommand(Guid UserId, string Token, string NewP
 
 /// <summary>
 /// Sets a new password with the token from the reset email. Every existing session and token of the user
-/// is revoked, because a reset usually means the old password can no longer be trusted.
+/// is revoked, because a reset usually means the old password can no longer be trusted. When the account had no
+/// password or its address was not verified yet, the reset is the first proof that the person owns the address, so
+/// accounts at other providers linked before it are unlinked: they may belong to someone who signed up with the
+/// address before its owner did (pre-account hijacking).
 /// </summary>
 public sealed class ResetPasswordHandler(
     UserManager<User> userManager,
@@ -26,6 +29,8 @@ public sealed class ResetPasswordHandler(
             return AccountErrors.InvalidLink;
         }
 
+        var ownerUnproven = !user.EmailConfirmed || !await userManager.HasPasswordAsync(user);
+
         var result = await userManager.ResetPasswordAsync(user, command.Token, command.NewPassword);
         if (!result.Succeeded)
         {
@@ -39,6 +44,19 @@ public sealed class ResetPasswordHandler(
         {
             user.EmailConfirmed = true;
             await userManager.UpdateAsync(user);
+        }
+
+        if (ownerUnproven)
+        {
+            foreach (var login in await userManager.GetLoginsAsync(user))
+            {
+                await userManager.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey);
+                auditLog.Record(
+                    AuditActions.UserLoginUnlinked,
+                    AuditSubject.User(user.Id),
+                    new Dictionary<string, object?> { ["provider"] = login.LoginProvider, ["reason"] = "password_reset" },
+                    AuditActor.User(user.Id));
+            }
         }
 
         await sessions.RevokeAllAsync(user.Id, cancellationToken);

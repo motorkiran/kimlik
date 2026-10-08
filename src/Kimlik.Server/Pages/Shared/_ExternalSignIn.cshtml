@@ -1,0 +1,19 @@
+@* Buttons to sign in with an account at another provider; the model is where to go afterwards. *@
+@model string?
+@inject Kimlik.Server.SocialLogin.ExternalProviders Providers
+@{
+    var providers = Providers.All;
+}
+@if (providers.Count > 0)
+{
+    <div class="divider"><span>@L["or"]</span></div>
+    <div class="providers">
+        @foreach (var provider in providers)
+        {
+            <form method="post" asp-page="/SignInExternal" asp-route-returnUrl="@Model">
+                <input type="hidden" name="provider" value="@provider.Name" />
+                <button type="submit" class="button button-secondary">@L["Continue with {0}", provider.DisplayName]</button>
+            </form>
+        }
+    </div>
+}

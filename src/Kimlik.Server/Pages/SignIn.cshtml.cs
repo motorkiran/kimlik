@@ -70,25 +70,7 @@ public sealed class SignInModel(
         if (result.Succeeded)
         {
             var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
-
-            switch (await signInFlow.NextStepAsync(user, cancellationToken))
-            {
-                case SignInStep.Password:
-                    await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.PasswordMethod, cancellationToken);
-                    return LocalRedirect(returnUrl);
-
-                case SignInStep.TrustedBrowser:
-                    await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.MultiFactorMethod, cancellationToken);
-                    return LocalRedirect(returnUrl);
-
-                case SignInStep.Verify:
-                    await signInFlow.DeferAsync(user, Input.RememberMe, SignInStep.Verify);
-                    return RedirectToPage("/SignInTwoFactor", new { returnUrl });
-
-                default:
-                    await signInFlow.DeferAsync(user, Input.RememberMe, SignInStep.SetUp);
-                    return RedirectToPage("/SignInSetUpTwoFactor", new { returnUrl });
-            }
+            return LocalRedirect(await signInFlow.ContinueAsync(user, Input.RememberMe, provider: null, returnUrl, cancellationToken));
         }
 
         if (result.IsLockedOut)

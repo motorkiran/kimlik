@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using OpenIddict.Client;
 using OpenIddict.Server;
 using OpenIddict.Validation;
 
@@ -37,6 +38,19 @@ public static class TokenKeyServiceCollectionExtensions
         services.AddSingleton<IPostConfigureOptions<OpenIddictValidationOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
 
         services.AddHealthChecks().AddCheck<TokenKeysHealthCheck>("token-keys", HealthStatus.Unhealthy, healthCheckTags);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Supplies OpenIddict's client, which signs in with other providers, with the same keys for its state tokens.
+    /// Call it after <see cref="AddTokenKeys"/> and after the client is added, for the same ordering reason.
+    /// </summary>
+    public static IServiceCollection AddTokenKeysToClient(this IServiceCollection services)
+    {
+        services.AddSingleton<IOptionsChangeTokenSource<OpenIddictClientOptions>, TokenKeyOptionsChangeTokenSource<OpenIddictClientOptions>>();
+        services.AddSingleton<IConfigureOptions<OpenIddictClientOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
+        services.AddSingleton<IPostConfigureOptions<OpenIddictClientOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
 
         return services;
     }

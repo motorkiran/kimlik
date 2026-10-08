@@ -18,6 +18,8 @@ public static class AuditActions
     public const string UserPasswordReset = "user.password_reset";
     public const string UserPasswordChanged = "user.password_changed";
     public const string UserSessionRevoked = "user.session_revoked";
+    public const string UserLoginLinked = "user.login_linked";
+    public const string UserLoginUnlinked = "user.login_unlinked";
     public const string UserMfaEnabled = "user.mfa_enabled";
     public const string UserMfaDisabled = "user.mfa_disabled";
     public const string UserMfaReset = "user.mfa_reset";

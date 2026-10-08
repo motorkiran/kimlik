@@ -40,6 +40,15 @@ internal static class AccountEndpoints
             .WithSummary("Sign out everywhere")
             .WithDescription("Every application session and token ends, this one included; browser sessions end within minutes.");
 
+        me.MapGet("logins", ListLoginsAsync).WithName("ListMyLogins")
+            .WithSummary("List the accounts at other providers that I sign in with");
+
+        me.MapDelete("logins/{provider}", UnlinkLoginAsync).WithName("UnlinkMyLogin")
+            .WithSummary("Disconnect an account at another provider")
+            .WithDescription("Not possible for the last way to sign in: set a password or connect another account first.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         me.MapPost("delete", DeleteAccountAsync).WithName("DeleteMyAccount")
             .WithSummary("Delete my account")
             .WithDescription("Takes the password. The account and its personal data are deleted, and every session ends.")
@@ -267,6 +276,14 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> RevokeAllSessionsAsync(
         ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
         (await account.RevokeAllSessionsAsync(Caller(principal), cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<IReadOnlyList<UserLoginResponse>>, ProblemHttpResult>> ListLoginsAsync(
+        ClaimsPrincipal principal, ExternalLogins logins) =>
+        (await logins.ListAsync(Caller(principal))).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
+        ClaimsPrincipal principal, string provider, ExternalLogins logins, CancellationToken cancellationToken) =>
+        (await logins.UnlinkAsync(Caller(principal), provider, keepASignInMethod: true, cancellationToken)).ToNoContent();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeleteAccountAsync(
         ClaimsPrincipal principal, DeleteAccountRequest request, MyAccount account, CancellationToken cancellationToken) =>
