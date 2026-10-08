@@ -141,7 +141,11 @@ public static class DependencyInjection
         services.AddScoped<WebhookSender>();
         services.AddHttpClient(WebhookSender.HttpClientName)
             .ConfigureHttpClient((provider, client) => WebhookHttpClient.Configure(client, provider.GetRequiredService<IOptions<WebhookOptions>>().Value.Timeout))
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+            .ConfigurePrimaryHttpMessageHandler(provider => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                ConnectCallback = WebhookNetwork.Connect(provider.GetRequiredService<IOptions<WebhookOptions>>().Value.AllowPrivateNetworks),
+            });
         services.AddHostedService<WebhookDeliveryService>();
     }
 

@@ -111,6 +111,7 @@ A provider is offered on the sign-in page once its client ID is set. Register `{
 
 | Setting | Default | Description |
 |---|---|---|
+| `Kimlik:Webhooks:AllowPrivateNetworks` | `false` | Lets webhooks reach endpoints on the local machine and private networks. Off, Kimlik refuses to connect to loopback, private, link-local (cloud metadata among them) and other non-public addresses, whatever the endpoint's name resolves to. Development turns it on. |
 | `Kimlik:Webhooks:Timeout` | `00:00:10` | How long an endpoint has to answer. |
 | `Kimlik:Webhooks:RetryDelays` | about 21 hours | The waits before each retry, as a list: `Kimlik__Webhooks__RetryDelays__0=00:00:10`, `…__1=00:01:00` and so on. The delivery fails once they are used up. |
 | `Kimlik:Webhooks:RetentionPeriod` | `30.00:00:00` | How long the delivery log is kept. |

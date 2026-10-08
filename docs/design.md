@@ -697,7 +697,7 @@ Webhook delivery follows the Standard Webhooks specification (`webhook-id`, `web
 - Endpoints that keep failing are flagged (`failingSince`) until a delivery succeeds.
 - Events are thin: `{ "type", "timestamp", "data": { "subjectType", "subjectId", "organizationId", "actor", "details" } }`. They name what changed and leave its current state to the Management API, so delayed or repeated deliveries never carry stale data.
 - Each event is the audit event of the change: recording a change whose action is a webhook event type also queues the event in the outbox, in the same transaction, and `webhook-id` is the audit event's ID. A worker fans the event out into one delivery per subscribed endpoint, and senders lease due deliveries with `FOR UPDATE SKIP LOCKED`, so any number of instances share the work.
-- Endpoint URLs must use HTTPS, except `localhost` for development. Secrets (`whsec_…`) are encrypted with the master key; rotating one takes effect at once.
+- Endpoint URLs must use HTTPS, except `localhost` for development, and webhooks only reach public addresses: Kimlik checks the address it connects to, so endpoints cannot point it at its own network, cloud metadata or sidecars (server-side request forgery), even through DNS rebinding. `Kimlik:Webhooks:AllowPrivateNetworks` lifts this for development and internal deployments. Secrets (`whsec_…`) are encrypted with the master key; rotating one takes effect at once.
 - A test event (`webhook.test`) can be sent to an endpoint, even a disabled one, and any delivery can be sent again. The delivery log is kept for 30 days.
 
 ---

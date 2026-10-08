@@ -8,6 +8,12 @@ public sealed class WebhookOptions
     /// <summary>How often due deliveries are looked for; new events on this instance are sent at once.</summary>
     public TimeSpan PollingInterval { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Lets endpoints on the local machine and private networks receive webhooks, as in development or when Kimlik
+    /// and the application share an internal network. Off, webhooks only go to the public internet.
+    /// </summary>
+    public bool AllowPrivateNetworks { get; set; }
+
     /// <summary>How long an endpoint has to answer an attempt.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
