@@ -32,7 +32,7 @@ public static class KimlikServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddAuthorization();
-        services.AddMemoryCache();
+        services.TryAddSingleton<ApiKeyCache>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, PermissionAuthorizationHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, FeatureAuthorizationHandler>());
         services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureKimlikBearer>();

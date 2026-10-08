@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -84,6 +85,19 @@ public sealed class ApiKeyAuthenticationTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task OnlyWellFormedKeys_AreSentToKimlik()
+    {
+        var kimlikRequests = new RequestLog();
+        await using var api = await StartApiAsync([], kimlikRequests: kimlikRequests);
+
+        (await WithKey(api, "kmk_not-a-key").GetAsync("/me", CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await WithKey(api, ApiKeyFormat.Prefix + new string('a', 4000)).GetAsync("/me", CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await WithKey(api, ApiKeyFormat.Prefix + new string('A', 43)).GetAsync("/me", CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        kimlikRequests.Paths.Count(path => path == "/api/v1/api-keys/verify").ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Keys_AreRefused_UnlessEnabled()
     {
         var user = await server.CreateUserAsync();
@@ -117,7 +131,7 @@ public sealed class ApiKeyAuthenticationTests(KimlikServerFixture server)
         return await response.ReadAsync<CreatedApiKeyResponse>();
     }
 
-    private async Task<WebApplication> StartApiAsync(string[] permissions, bool enabled = true, TimeSpan? cacheDuration = null)
+    private async Task<WebApplication> StartApiAsync(string[] permissions, bool enabled = true, TimeSpan? cacheDuration = null, RequestLog? kimlikRequests = null)
     {
         var verifier = await server.CreateServiceClientAsync(KimlikScopes.Api);
         await server.AssignToClientAsync(verifier.ClientId, await server.CreateRoleWithAsync(SystemPermissions.ApiKeysVerify));
@@ -141,7 +155,14 @@ public sealed class ApiKeyAuthenticationTests(KimlikServerFixture server)
 
         // Kimlik runs in memory, so every call to it goes through the test server.
         builder.Services.Configure<JwtBearerOptions>(KimlikDefaults.AuthenticationScheme, options => options.BackchannelHttpHandler = server.Server.CreateHandler());
-        builder.Services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(() => server.Server.CreateHandler()));
+        builder.Services.ConfigureHttpClientDefaults(http =>
+        {
+            http.ConfigurePrimaryHttpMessageHandler(() => server.Server.CreateHandler());
+            if (kimlikRequests is not null)
+            {
+                http.AddHttpMessageHandler(() => new RequestLog.Handler(kimlikRequests));
+            }
+        });
 
         var app = builder.Build();
         app.MapGet("/read", () => "read").RequirePermission(permissions.ElementAtOrDefault(0) ?? "orders:read");
@@ -157,5 +178,22 @@ public sealed class ApiKeyAuthenticationTests(KimlikServerFixture server)
         var http = api.GetTestClient();
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
         return http;
+    }
+
+    /// <summary>The paths of the requests the API sends to Kimlik.</summary>
+    private sealed class RequestLog
+    {
+        private readonly ConcurrentQueue<string> _paths = new();
+
+        public IReadOnlyCollection<string> Paths => _paths;
+
+        public sealed class Handler(RequestLog log) : DelegatingHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                log._paths.Enqueue(request.RequestUri!.AbsolutePath);
+                return base.SendAsync(request, cancellationToken);
+            }
+        }
     }
 }

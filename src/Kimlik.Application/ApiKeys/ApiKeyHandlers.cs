@@ -51,7 +51,7 @@ public sealed class VerifyApiKeyHandler(
 
     public async Task<ApiKeyVerificationResponse> HandleAsync(VerifyApiKeyRequest request, CancellationToken cancellationToken)
     {
-        if (!ApiKeySecrets.IsWellFormed(request.Key))
+        if (!ApiKeyFormat.IsWellFormed(request.Key))
         {
             return Inactive;
         }

@@ -25,16 +25,15 @@ internal sealed partial class KimlikApiKeyHandler(
     ILoggerFactory loggerFactory,
     UrlEncoder encoder,
     IServiceProvider services,
-    IMemoryCache cache,
+    ApiKeyCache cache,
     IOptions<KimlikOptions> kimlik)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, loggerFactory, encoder)
 {
     private const string BearerPrefix = "Bearer ";
-    private const string KeyPrefix = "kmk_";
 
     /// <summary>The API key in the request, if its bearer token is one.</summary>
     public static string? ApiKeyOf(HttpRequest request) =>
-        request.Headers.Authorization.ToString() is var header && header.StartsWith(BearerPrefix + KeyPrefix, StringComparison.Ordinal)
+        request.Headers.Authorization.ToString() is var header && header.StartsWith(BearerPrefix + ApiKeyFormat.Prefix, StringComparison.Ordinal)
             ? header[BearerPrefix.Length..].Trim()
             : null;
 
@@ -45,8 +44,14 @@ internal sealed partial class KimlikApiKeyHandler(
             return AuthenticateResult.NoResult();
         }
 
+        // Made-up values are turned away here, without a call to Kimlik or an entry in the cache.
+        if (!ApiKeyFormat.IsWellFormed(key))
+        {
+            return AuthenticateResult.Fail("The API key is not valid.");
+        }
+
         // The cache holds hashes of keys, never keys.
-        var cacheKey = $"kimlik:api-key:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)))}";
+        var cacheKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
         if (!cache.TryGetValue(cacheKey, out ApiKeyVerificationResponse? verification))
         {
             try
@@ -61,7 +66,7 @@ internal sealed partial class KimlikApiKeyHandler(
 
             if (kimlik.Value.ApiKeys.CacheDuration > TimeSpan.Zero)
             {
-                cache.Set(cacheKey, verification, kimlik.Value.ApiKeys.CacheDuration);
+                cache.Set(cacheKey, verification, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = kimlik.Value.ApiKeys.CacheDuration, Size = 1 });
             }
         }
 

@@ -28,7 +28,8 @@ public sealed class KimlikApiKeyOptions
 
     /// <summary>
     /// How long Kimlik's answer about a key is reused; zero asks Kimlik every time. A revoked key, or a permission its
-    /// owner lost, can keep working for this long.
+    /// owner lost, can keep working for this long. Up to 10,000 answers are kept, apart from the application's memory
+    /// cache; values that are not well-formed keys are refused without asking Kimlik.
     /// </summary>
     public TimeSpan CacheDuration { get; set; } = TimeSpan.FromSeconds(30);
 }
