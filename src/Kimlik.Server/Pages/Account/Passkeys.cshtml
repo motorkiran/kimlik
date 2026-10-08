@@ -1,0 +1,82 @@
+@page "/account/passkeys"
+@using Kimlik.Server.Hosting
+@model PasskeysModel
+@{
+    ViewData["Title"] = L["Passkeys"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Passkeys"]</h1>
+<p class="lead">@L["Sign in with your fingerprint, face or screen lock instead of your password. Passkeys cannot be phished."]</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Message</div>
+}
+<partial name="_FormError" />
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.Passkeys.Count == 0)
+{
+    <p class="hint" id="no-passkeys">@L["You have no passkeys yet."]</p>
+}
+else
+{
+    <ul class="list" id="passkeys">
+        @foreach (var passkey in Model.Passkeys)
+        {
+            <li>
+                <form method="post" asp-page-handler="Rename" asp-route-id="@passkey.Id" class="inline-form">
+                    <label class="visually-hidden" for="name-@passkey.Id">@L["Name"]</label>
+                    <input id="name-@passkey.Id" name="name" value="@passkey.Name" maxlength="64" required />
+                    <button type="submit" class="button button-secondary button-small">@L["Rename"]</button>
+                    <div class="hint">
+                        @L["Added {0}", passkey.CreatedAt.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)]
+                        @if (passkey.Synced)
+                        {
+                            <span>· @L["Synced to your other devices"]</span>
+                        }
+                    </div>
+                </form>
+                <form method="post" asp-page-handler="Remove" asp-route-id="@passkey.Id">
+                    <button type="submit" class="button button-secondary button-small">@L["Remove"]</button>
+                </form>
+            </li>
+        }
+    </ul>
+}
+
+@if (!Model.CanAdd)
+{
+    <p class="hint">@L["You have the most passkeys an account can have. Remove one to add another."]</p>
+}
+else if (!Model.SignedInRecently)
+{
+    <p id="sign-in-again">@L["For your security, sign in again before you add a passkey."]</p>
+    <div class="actions">
+        <a class="button" asp-page="/SignIn" asp-route-returnUrl="/account/passkeys">@L["Sign in again"]</a>
+    </div>
+}
+else
+{
+    <form method="post" asp-page-handler="Add" id="add-passkey" data-passkey="create" data-options="@Url.Page("/Account/Passkeys", "Options")" hidden>
+        <input type="hidden" asp-for="Credential" />
+        <input type="hidden" asp-for="State" />
+        <div class="field">
+            <label asp-for="Name">@L["Name"]</label>
+            <input asp-for="Name" maxlength="64" placeholder="@L["Such as My phone"]" aria-describedby="passkey-name-hint" />
+            <span id="passkey-name-hint" class="hint">@L["Helps you tell your passkeys apart."]</span>
+        </div>
+        <p class="field-error" data-passkey-error hidden>@L["The passkey could not be added. Try again."]</p>
+        <button type="submit" class="button">@L["Add a passkey"]</button>
+    </form>
+    <p class="hint" data-passkey-unsupported>@L["This browser cannot add passkeys."]</p>
+}
+
+@section Scripts {
+    <script src="~/js/passkeys.js" asp-append-version="true" nonce="@HttpContext.GetCspNonce()" defer></script>
+}

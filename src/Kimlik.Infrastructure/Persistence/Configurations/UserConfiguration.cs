@@ -41,3 +41,8 @@ internal sealed class UserTokenConfiguration : IEntityTypeConfiguration<Identity
 {
     public void Configure(EntityTypeBuilder<IdentityUserToken<Guid>> builder) => builder.ToTable("user_tokens");
 }
+
+internal sealed class UserPasskeyConfiguration : IEntityTypeConfiguration<IdentityUserPasskey<Guid>>
+{
+    public void Configure(EntityTypeBuilder<IdentityUserPasskey<Guid>> builder) => builder.ToTable("user_passkeys");
+}

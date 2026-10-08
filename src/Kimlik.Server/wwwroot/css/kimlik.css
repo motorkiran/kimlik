@@ -371,6 +371,32 @@ input[aria-invalid="true"],
     display: block;
 }
 
+.list .inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.inline-form input {
+    flex: 1;
+    min-width: 8rem;
+}
+
+.inline-form .hint {
+    flex-basis: 100%;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .footer nav {
     display: flex;
     gap: 1rem;

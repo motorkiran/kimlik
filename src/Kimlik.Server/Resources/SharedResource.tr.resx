@@ -553,4 +553,58 @@
   <data name="Your account cannot use the admin panel. Ask an administrator for access." xml:space="preserve">
     <value>Hesabınız yönetim panelini kullanamıyor. Erişim için bir yöneticiye başvurun.</value>
   </data>
+  <data name="Add a passkey" xml:space="preserve">
+    <value>Geçiş anahtarı ekle</value>
+  </data>
+  <data name="Added {0}" xml:space="preserve">
+    <value>{0} tarihinde eklendi</value>
+  </data>
+  <data name="For your security, sign in again before you add a passkey." xml:space="preserve">
+    <value>Güvenliğiniz için geçiş anahtarı eklemeden önce yeniden giriş yapın.</value>
+  </data>
+  <data name="Helps you tell your passkeys apart." xml:space="preserve">
+    <value>Geçiş anahtarlarınızı birbirinden ayırt etmenize yardımcı olur.</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Passkeys" xml:space="preserve">
+    <value>Geçiş anahtarları</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Kaldır</value>
+  </data>
+  <data name="Rename" xml:space="preserve">
+    <value>Yeniden adlandır</value>
+  </data>
+  <data name="Sign in again" xml:space="preserve">
+    <value>Yeniden giriş yap</value>
+  </data>
+  <data name="Sign in again to add a passkey." xml:space="preserve">
+    <value>Geçiş anahtarı eklemek için yeniden giriş yapın.</value>
+  </data>
+  <data name="Sign in with your fingerprint, face or screen lock instead of your password. Passkeys cannot be phished." xml:space="preserve">
+    <value>Şifreniz yerine parmak iziniz, yüzünüz veya ekran kilidinizle giriş yapın. Geçiş anahtarları oltalama yoluyla ele geçirilemez.</value>
+  </data>
+  <data name="Such as My phone" xml:space="preserve">
+    <value>Örneğin Telefonum</value>
+  </data>
+  <data name="Synced to your other devices" xml:space="preserve">
+    <value>Diğer cihazlarınızla eşitlenir</value>
+  </data>
+  <data name="The passkey could not be added. Try again." xml:space="preserve">
+    <value>Geçiş anahtarı eklenemedi. Yeniden deneyin.</value>
+  </data>
+  <data name="This browser cannot add passkeys." xml:space="preserve">
+    <value>Bu tarayıcı geçiş anahtarı ekleyemiyor.</value>
+  </data>
+  <data name="You have no passkeys yet." xml:space="preserve">
+    <value>Henüz geçiş anahtarınız yok.</value>
+  </data>
+  <data name="You have the most passkeys an account can have. Remove one to add another." xml:space="preserve">
+    <value>Bir hesabın sahip olabileceği en fazla geçiş anahtarına ulaştınız. Yenisini eklemek için birini kaldırın.</value>
+  </data>
+  <data name="Your passkey has been added." xml:space="preserve">
+    <value>Geçiş anahtarınız eklendi.</value>
+  </data>
 </root>

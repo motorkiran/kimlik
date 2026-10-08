@@ -15,6 +15,8 @@ internal sealed class ConfigureIdentity(IOptions<AccountOptions> accounts)
     {
         var policy = accounts.Value;
 
+        // Version 3 adds passkeys to the store.
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         options.User.RequireUniqueEmail = true;
         options.SignIn.RequireConfirmedEmail = policy.RequireVerifiedEmail;
 

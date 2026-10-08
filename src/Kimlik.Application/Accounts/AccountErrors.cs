@@ -34,6 +34,13 @@ public static class AccountErrors
 
     public static readonly Error LoginNotFound = Error.NotFound("account.login_not_found", "No account at this provider is linked.");
 
+    public static readonly Error PasskeyNotFound = Error.NotFound("account.passkey_not_found", "The user has no such passkey.");
+
+    public static readonly Error TooManyPasskeys = Error.Conflict("account.too_many_passkeys", "A user can have up to 25 passkeys; remove one first.");
+
+    /// <summary>The browser's answer to a passkey ceremony was not valid, or came too late.</summary>
+    public static readonly Error PasskeyRejected = Error.Validation("account.passkey_rejected", "The passkey could not be verified. Try again.");
+
     /// <summary>Unlinking would leave the user without a way to sign in.</summary>
     public static readonly Error LastSignInMethod = Error.Validation(
         "account.last_sign_in_method", "Set a password or link another account first, so there is still a way to sign in.");

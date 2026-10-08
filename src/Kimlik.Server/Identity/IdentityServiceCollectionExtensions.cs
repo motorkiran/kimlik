@@ -37,6 +37,8 @@ internal static class IdentityServiceCollectionExtensions
         services.AddScoped<PasswordHashTiming>();
         services.AddScoped<SignOutService>();
         services.AddScoped<SignInFlow>();
+        services.AddSingleton<IConfigureOptions<IdentityPasskeyOptions>, ConfigurePasskeys>();
+        services.AddScoped<PasskeyCeremonies>();
         services.AddScoped<AccountErrorMessages>();
         services.AddSingleton<IAccountLinks, AccountLinks>();
 
