@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Turkish texts for the hosted pages. Keys are the English texts used in code and views. -->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Account" xml:space="preserve">
+    <value>Hesap</value>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>İzin ver</value>
+  </data>
+  <data name="Allow access?" xml:space="preserve">
+    <value>Erişime izin verilsin mi?</value>
+  </data>
+  <data name="Already have an account?" xml:space="preserve">
+    <value>Zaten hesabınız var mı?</value>
+  </data>
+  <data name="An account with this email address already exists." xml:space="preserve">
+    <value>Bu e-posta adresiyle kayıtlı bir hesap zaten var.</value>
+  </data>
+  <data name="Back to sign in" xml:space="preserve">
+    <value>Girişe dön</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Vazgeç</value>
+  </data>
+  <data name="Check your inbox" xml:space="preserve">
+    <value>Gelen kutunuzu kontrol edin</value>
+  </data>
+  <data name="Choose a different password." xml:space="preserve">
+    <value>Farklı bir şifre seçin.</value>
+  </data>
+  <data name="Choose a password." xml:space="preserve">
+    <value>Bir şifre belirleyin.</value>
+  </data>
+  <data name="Confirm your email address before signing in. Check your inbox for the verification link." xml:space="preserve">
+    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın. Doğrulama bağlantısı için gelen kutunuzu kontrol edin.</value>
+  </data>
+  <data name="Confirm your identity" xml:space="preserve">
+    <value>Kimliğinizi doğrulamak</value>
+  </data>
+  <data name="Create account" xml:space="preserve">
+    <value>Hesap oluştur</value>
+  </data>
+  <data name="Create an account" xml:space="preserve">
+    <value>Hesap oluştur</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Reddet</value>
+  </data>
+  <data name="Do you want to sign out?" xml:space="preserve">
+    <value>Çıkış yapmak istiyor musunuz?</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-posta</value>
+  </data>
+  <data name="Enter a valid email address." xml:space="preserve">
+    <value>Geçerli bir e-posta adresi girin.</value>
+  </data>
+  <data name="Enter your email address." xml:space="preserve">
+    <value>E-posta adresinizi girin.</value>
+  </data>
+  <data name="Enter your password." xml:space="preserve">
+    <value>Şifrenizi girin.</value>
+  </data>
+  <data name="First name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Go to the home page" xml:space="preserve">
+    <value>Ana sayfaya git</value>
+  </data>
+  <data name="Invalid email or password." xml:space="preserve">
+    <value>E-posta adresi veya şifre hatalı.</value>
+  </data>
+  <data name="It only takes a minute." xml:space="preserve">
+    <value>Yalnızca bir dakikanızı alır.</value>
+  </data>
+  <data name="Keep me signed in" xml:space="preserve">
+    <value>Oturumum açık kalsın</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Dil</value>
+  </data>
+  <data name="Last name" xml:space="preserve">
+    <value>Soyad</value>
+  </data>
+  <data name="New here?" xml:space="preserve">
+    <value>Hesabınız yok mu?</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Şifre</value>
+  </data>
+  <data name="Registration is closed. Ask an administrator for an invitation." xml:space="preserve">
+    <value>Kayıtlar kapalı. Davet için bir yöneticiye başvurun.</value>
+  </data>
+  <data name="See your email address" xml:space="preserve">
+    <value>E-posta adresinizi görmek</value>
+  </data>
+  <data name="See your name and profile" xml:space="preserve">
+    <value>Adınızı ve profilinizi görmek</value>
+  </data>
+  <data name="Sign in" xml:space="preserve">
+    <value>Giriş yap</value>
+  </data>
+  <data name="Sign in to your account or create a new one." xml:space="preserve">
+    <value>Hesabınıza giriş yapın veya yeni bir hesap oluşturun.</value>
+  </data>
+  <data name="Sign out" xml:space="preserve">
+    <value>Çıkış yap</value>
+  </data>
+  <data name="Signed in as {0}." xml:space="preserve">
+    <value>{0} olarak giriş yaptınız.</value>
+  </data>
+  <data name="Something went wrong" xml:space="preserve">
+    <value>Bir şeyler ters gitti</value>
+  </data>
+  <data name="Something went wrong. Try again." xml:space="preserve">
+    <value>Bir şeyler ters gitti. Tekrar deneyin.</value>
+  </data>
+  <data name="Stay signed in to it" xml:space="preserve">
+    <value>Oturumunuzu açık tutmak</value>
+  </data>
+  <data name="The application sent an invalid sign-in request. Return to the application and try again." xml:space="preserve">
+    <value>Uygulama geçersiz bir giriş isteği gönderdi. Uygulamaya dönüp tekrar deneyin.</value>
+  </data>
+  <data name="The application sent an invalid sign-out request." xml:space="preserve">
+    <value>Uygulama geçersiz bir çıkış isteği gönderdi.</value>
+  </data>
+  <data name="Too many failed attempts. Try again later." xml:space="preserve">
+    <value>Çok fazla başarısız deneme yapıldı. Daha sonra tekrar deneyin.</value>
+  </data>
+  <data name="Use at least {0} characters." xml:space="preserve">
+    <value>En az {0} karakter kullanın.</value>
+  </data>
+  <data name="Use at most {0} characters." xml:space="preserve">
+    <value>En fazla {0} karakter kullanın.</value>
+  </data>
+  <data name="Use at most {1} characters." xml:space="preserve">
+    <value>En fazla {1} karakter kullanın.</value>
+  </data>
+  <data name="We could not complete your request. Try again in a moment." xml:space="preserve">
+    <value>İsteğinizi tamamlayamadık. Birazdan tekrar deneyin.</value>
+  </data>
+  <data name="We sent you an email with a link to confirm your address. Follow it to finish creating your account." xml:space="preserve">
+    <value>Adresinizi doğrulamanız için size bir bağlantı gönderdik. Hesabınızı oluşturmayı tamamlamak için bağlantıyı açın.</value>
+  </data>
+  <data name="Welcome" xml:space="preserve">
+    <value>Hoş geldiniz</value>
+  </data>
+  <data name="Welcome back. Sign in to continue." xml:space="preserve">
+    <value>Tekrar hoş geldiniz. Devam etmek için giriş yapın.</value>
+  </data>
+  <data name="You are signed in" xml:space="preserve">
+    <value>Giriş yaptınız</value>
+  </data>
+  <data name="{0} would like to:" xml:space="preserve">
+    <value>{0} şunları yapmak istiyor:</value>
+  </data>
+</root>

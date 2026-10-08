@@ -1,0 +1,26 @@
+@page "/"
+@model IndexModel
+@{
+    ViewData["Title"] = L["Account"];
+}
+
+@if (Model.Email is not null)
+{
+    <h1 id="page-title">@L["You are signed in"]</h1>
+    <p class="lead">@L["Signed in as {0}.", Model.Email]</p>
+    <div class="actions">
+        <a class="button button-secondary" asp-page="/SignOut">@L["Sign out"]</a>
+    </div>
+}
+else
+{
+    <h1 id="page-title">@L["Welcome"]</h1>
+    <p class="lead">@L["Sign in to your account or create a new one."]</p>
+    <div class="actions">
+        <a class="button" asp-page="/SignIn">@L["Sign in"]</a>
+        @if (Model.CanSignUp)
+        {
+            <a class="button button-secondary" asp-page="/SignUp">@L["Create an account"]</a>
+        }
+    </div>
+}

@@ -1,0 +1,47 @@
+@using Kimlik.Server.Hosting
+@using Kimlik.Server.Ui
+@using Microsoft.Extensions.Options
+@inject IOptions<BrandingOptions> Branding
+@{
+    var branding = Branding.Value;
+    var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var currentUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+}
+<!DOCTYPE html>
+<html lang="@language">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>@ViewData["Title"] · @branding.ProductName</title>
+    <link rel="stylesheet" href="~/css/kimlik.css" asp-append-version="true" />
+    <style nonce="@Context.GetCspNonce()">:root { --brand: @branding.PrimaryColor; }</style>
+</head>
+<body>
+    <main class="shell">
+        <section class="card" aria-labelledby="page-title">
+            <header class="brand">
+                @if (branding.LogoUrl is not null)
+                {
+                    <img src="@branding.LogoUrl" alt="@branding.ProductName" class="logo" />
+                }
+                else
+                {
+                    <span class="wordmark">@branding.ProductName</span>
+                }
+            </header>
+            @RenderBody()
+        </section>
+        <footer class="footer">
+            <nav aria-label="@L["Language"]">
+                @foreach (var culture in HostedUiServiceCollectionExtensions.SupportedCultures)
+                {
+                    <a href="/culture/@culture.Name?returnUrl=@Uri.EscapeDataString(currentUrl)"
+                       lang="@culture.Name"
+                       aria-current="@(culture.Name == language ? "true" : null)">@culture.TextInfo.ToTitleCase(culture.NativeName)</a>
+                }
+            </nav>
+        </footer>
+    </main>
+</body>
+</html>

@@ -1,0 +1,30 @@
+@page "/connect/endsession"
+@model EndSessionModel
+@{
+    ViewData["Title"] = L["Sign out"];
+}
+
+@if (Model.Error is not null)
+{
+    <h1 id="page-title">@L["Something went wrong"]</h1>
+    <p class="lead">@L["The application sent an invalid sign-out request."]</p>
+    <div class="alert alert-error" role="alert"><strong>@Model.Error</strong> @Model.ErrorDescription</div>
+}
+else
+{
+    <h1 id="page-title">@L["Sign out"]</h1>
+    <p class="lead">@L["Do you want to sign out?"]</p>
+
+    <form method="post" action="@Request.PathBase/connect/endsession" asp-antiforgery="true">
+        @foreach (var parameter in Model.RequestParameters)
+        {
+            foreach (var value in parameter.Value)
+            {
+                <input type="hidden" name="@parameter.Key" value="@value" />
+            }
+        }
+        <div class="actions">
+            <button type="submit" class="button" name="confirm" value="true">@L["Sign out"]</button>
+        </div>
+    </form>
+}

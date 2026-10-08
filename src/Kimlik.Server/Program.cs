@@ -1,14 +1,21 @@
+using Kimlik.Application;
 using Kimlik.Infrastructure;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Server.Diagnostics;
+using Kimlik.Server.Hosting;
+using Kimlik.Server.Identity;
 using Kimlik.Server.Oidc;
+using Kimlik.Server.Ui;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddTelemetry();
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
+builder.Services.AddSignInSession();
 builder.Services.AddOidcServer();
+builder.Services.AddHostedUi();
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthProbes();
@@ -31,13 +38,19 @@ if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOn
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseSecurityHeaders();
 
 app.UseHealthProbes();
 app.UseReadinessGate();
 
+app.UseRequestLocalization();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapStaticAssets();
+app.MapRazorPages().WithStaticAssets();
+app.MapCultureSwitch();
 app.MapTokenEndpoint();
+app.MapUserInfoEndpoint();
 
 await app.RunAsync();

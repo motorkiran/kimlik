@@ -25,6 +25,7 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     {
         await _postgres.StartAsync();
         await WaitUntilReadyAsync();
+        await WithServicesAsync(Oidc.TestClients.CreateApiScopeAsync);
     }
 
     /// <summary>Runs <paramref name="action"/> with a fresh database context in its own scope.</summary>
@@ -39,6 +40,13 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     {
         await using var scope = Services.CreateAsyncScope();
         return await action(scope.ServiceProvider);
+    }
+
+    /// <inheritdoc cref="WithServicesAsync{T}(Func{IServiceProvider, Task{T}})"/>
+    public async Task WithServicesAsync(Func<IServiceProvider, Task> action)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        await action(scope.ServiceProvider);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder

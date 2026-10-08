@@ -1,0 +1,10 @@
+@page "/error"
+@{
+    ViewData["Title"] = L["Something went wrong"];
+}
+
+<h1 id="page-title">@L["Something went wrong"]</h1>
+<p class="lead">@L["We could not complete your request. Try again in a moment."]</p>
+<div class="actions">
+    <a class="button button-secondary" asp-page="/Index">@L["Go to the home page"]</a>
+</div>

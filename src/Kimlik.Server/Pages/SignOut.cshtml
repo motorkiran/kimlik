@@ -1,0 +1,14 @@
+@page "/signout"
+@model SignOutModel
+@{
+    ViewData["Title"] = L["Sign out"];
+}
+
+<h1 id="page-title">@L["Sign out"]</h1>
+<p class="lead">@L["Do you want to sign out?"]</p>
+<form method="post">
+    <div class="actions">
+        <button type="submit" class="button">@L["Sign out"]</button>
+        <a class="button button-secondary" asp-page="/Index">@L["Cancel"]</a>
+    </div>
+</form>

@@ -1,3 +1,4 @@
+using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Outbox;
@@ -5,11 +6,12 @@ using Kimlik.Infrastructure.Security.TokenKeys;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Kimlik.Infrastructure.Persistence;
 
 public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
-    : IdentityUserContext<User, Guid>(options), IDataProtectionKeyContext
+    : IdentityUserContext<User, Guid>(options), IKimlikDbContext, IDataProtectionKeyContext
 {
     public const string Schema = "kimlik";
 
@@ -20,6 +22,9 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<TokenKey> TokenKeys => Set<TokenKey>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
+        Database.BeginTransactionAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

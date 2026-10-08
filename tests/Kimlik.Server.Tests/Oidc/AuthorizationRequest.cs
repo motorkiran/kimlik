@@ -1,0 +1,56 @@
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.IdentityModel.Tokens;
+
+namespace Kimlik.Server.Tests.Oidc;
+
+/// <summary>An authorization request as a client would build it, with fresh PKCE, state and nonce values.</summary>
+internal sealed class AuthorizationRequest(string clientId)
+{
+    public string CodeVerifier { get; } = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
+
+    public string State { get; } = Guid.NewGuid().ToString("N");
+
+    public string Nonce { get; } = Guid.NewGuid().ToString("N");
+
+    public string Scope { get; init; } = $"openid profile email offline_access {TestClients.ApiScope}";
+
+    public string? Prompt { get; init; }
+
+    public string RedirectUri { get; init; } = TestWebClient.RedirectUri;
+
+    public string Url
+    {
+        get
+        {
+            var parameters = new Dictionary<string, string?>
+            {
+                ["client_id"] = clientId,
+                ["redirect_uri"] = RedirectUri,
+                ["response_type"] = "code",
+                ["scope"] = Scope,
+                ["state"] = State,
+                ["nonce"] = Nonce,
+                ["code_challenge"] = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(CodeVerifier))),
+                ["code_challenge_method"] = "S256",
+            };
+
+            if (Prompt is not null)
+            {
+                parameters["prompt"] = Prompt;
+            }
+
+            return QueryHelpers.AddQueryString("/connect/authorize", parameters);
+        }
+    }
+
+    /// <summary>Reads the parameters the server sent back to the client's redirect URI.</summary>
+    public static Dictionary<string, string> ReadCallback(HttpResponseMessage response)
+    {
+        var location = response.Headers.Location ?? throw new InvalidOperationException($"Expected a redirect, got {(int)response.StatusCode}.");
+        location.GetLeftPart(UriPartial.Path).ShouldBe(TestWebClient.RedirectUri);
+
+        return QueryHelpers.ParseQuery(location.Query).ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
+    }
+}

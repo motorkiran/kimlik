@@ -15,6 +15,12 @@ public sealed class TokenOptions
     /// <summary>Sliding lifetime: every refresh issues a new refresh token valid for this long.</summary>
     public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromDays(14);
 
+    /// <summary>
+    /// How long a refresh token that was already used is still accepted, so that concurrent refreshes from one
+    /// client do not log it out. Any later reuse is treated as theft and revokes the whole token family.
+    /// </summary>
+    public TimeSpan RefreshTokenReuseLeeway { get; set; } = TimeSpan.FromSeconds(30);
+
     /// <summary>Upper bound for a chain of refreshes, after which the user must sign in again.</summary>
     public TimeSpan RefreshTokenAbsoluteLifetime { get; set; } = TimeSpan.FromDays(90);
 
@@ -23,5 +29,6 @@ public sealed class TokenOptions
         && IdentityTokenLifetime > TimeSpan.Zero
         && AuthorizationCodeLifetime > TimeSpan.Zero
         && RefreshTokenLifetime > TimeSpan.Zero
+        && RefreshTokenReuseLeeway >= TimeSpan.Zero
         && RefreshTokenAbsoluteLifetime >= RefreshTokenLifetime;
 }

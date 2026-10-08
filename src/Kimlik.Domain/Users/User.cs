@@ -61,7 +61,5 @@ public sealed class User : IdentityUser<Guid>
 
     public bool CanSignIn => Status == UserStatus.Active;
 
-    public void RecordSignIn(DateTimeOffset now) => LastSignInAt = now;
-
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

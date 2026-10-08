@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Kimlik.Application\Kimlik.Application.csproj" />
     <ProjectReference Include="..\Kimlik.Domain\Kimlik.Domain.csproj" />
   </ItemGroup>
 

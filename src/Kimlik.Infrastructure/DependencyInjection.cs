@@ -1,7 +1,12 @@
+using Kimlik.Application.Abstractions;
+using Kimlik.Domain.Users;
+using Kimlik.Infrastructure.Auditing;
+using Kimlik.Infrastructure.Identity;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +25,10 @@ public static class DependencyInjection
 
         AddPersistence(services);
         AddSecurity(services);
+        AddIdentity(services);
+
+        services.AddScoped<IAuditLog, AuditLog>();
+
         return services;
     }
 
@@ -39,6 +48,8 @@ public static class DependencyInjection
                 GetConnectionString(serviceProvider.GetRequiredService<IConfiguration>()),
                 npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, KimlikDbContext.Schema))
             .UseSnakeCaseNamingConvention());
+
+        services.AddScoped<IKimlikDbContext>(provider => provider.GetRequiredService<KimlikDbContext>());
     }
 
     private static void AddSecurity(IServiceCollection services)
@@ -57,6 +68,18 @@ public static class DependencyInjection
             .SetApplicationName("Kimlik")
             .PersistKeysToDbContext<KimlikDbContext>();
         services.AddSingleton<IConfigureOptions<KeyManagementOptions>, ConfigureKeyRingEncryption>();
+    }
+
+    private static void AddIdentity(IServiceCollection services)
+    {
+        services.AddIdentityCore<User>()
+            .AddEntityFrameworkStores<KimlikDbContext>()
+            .AddDefaultTokenProviders()
+            .AddPasswordValidator<MaximumLengthPasswordValidator<User>>();
+
+        services.AddSingleton<ConfigureIdentity>();
+        services.AddSingleton<IConfigureOptions<IdentityOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
+        services.AddSingleton<IConfigureOptions<PasswordHasherOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
     }
 
     private static string? GetConnectionString(IConfiguration configuration) =>

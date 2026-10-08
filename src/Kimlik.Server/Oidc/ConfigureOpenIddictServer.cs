@@ -16,6 +16,7 @@ internal sealed class ConfigureOpenIddictServer(IOptions<ServerOptions> server, 
         options.IdentityTokenLifetime = tokens.Value.IdentityTokenLifetime;
         options.AuthorizationCodeLifetime = tokens.Value.AuthorizationCodeLifetime;
         options.RefreshTokenLifetime = tokens.Value.RefreshTokenLifetime;
+        options.RefreshTokenReuseLeeway = tokens.Value.RefreshTokenReuseLeeway;
     }
 
     public void Configure(OpenIddictServerAspNetCoreOptions options) =>

@@ -5,6 +5,7 @@ using Kimlik.Server.Hosting;
 using Microsoft.Extensions.Options;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Kimlik.Server.Oidc;
 
@@ -35,23 +36,39 @@ internal static class OidcServiceCollectionExtensions
                 .ReplaceDefaultEntities<Guid>())
             .AddServer(options =>
             {
-                options.SetTokenEndpointUris("connect/token")
+                options.SetAuthorizationEndpointUris("connect/authorize")
+                    .SetTokenEndpointUris("connect/token")
+                    .SetUserInfoEndpointUris("connect/userinfo")
+                    .SetEndSessionEndpointUris("connect/endsession")
                     .SetIntrospectionEndpointUris("connect/introspect")
                     .SetRevocationEndpointUris("connect/revoke");
 
-                options.AllowClientCredentialsFlow();
+                options.AllowAuthorizationCodeFlow()
+                    .AllowRefreshTokenFlow()
+                    .AllowClientCredentialsFlow();
+
+                // PKCE for every client, confidential ones included (OAuth 2.0 Security BCP, RFC 9700).
+                options.RequireProofKeyForCodeExchange();
+
+                options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess);
 
                 // Access tokens are plain signed JWTs (RFC 9068) so any resource server can validate them.
                 options.DisableAccessTokenEncryption();
 
                 options.UseAspNetCore()
+                    .EnableAuthorizationEndpointPassthrough()
                     .EnableTokenEndpointPassthrough()
-                    .EnableStatusCodePagesIntegration();
+                    .EnableUserInfoEndpointPassthrough()
+                    .EnableEndSessionEndpointPassthrough()
+                    // Errors that cannot be returned to the client are rendered by the hosted pages.
+                    .EnableErrorPassthrough();
             });
 
         services.AddSingleton<ConfigureOpenIddictServer>();
         services.AddSingleton<IConfigureOptions<OpenIddictServerOptions>>(provider => provider.GetRequiredService<ConfigureOpenIddictServer>());
         services.AddSingleton<IConfigureOptions<OpenIddictServerAspNetCoreOptions>>(provider => provider.GetRequiredService<ConfigureOpenIddictServer>());
+
+        services.AddScoped<OidcPrincipalFactory>();
 
         // Must come after AddServer: see TokenKeyServiceCollectionExtensions.AddTokenKeys.
         services.AddTokenKeys(HealthProbeExtensions.ReadinessTag);

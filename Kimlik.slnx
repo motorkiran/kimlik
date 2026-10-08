@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Kimlik.Application/Kimlik.Application.csproj" />
     <Project Path="src/Kimlik.Domain/Kimlik.Domain.csproj" />
     <Project Path="src/Kimlik.Infrastructure/Kimlik.Infrastructure.csproj" />
     <Project Path="src/Kimlik.Server/Kimlik.Server.csproj" />

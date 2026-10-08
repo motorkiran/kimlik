@@ -1,0 +1,10 @@
+@page "/signup/check-email"
+@{
+    ViewData["Title"] = L["Check your inbox"];
+}
+
+<h1 id="page-title">@L["Check your inbox"]</h1>
+<p class="lead">@L["We sent you an email with a link to confirm your address. Follow it to finish creating your account."]</p>
+<div class="actions">
+    <a class="button button-secondary" asp-page="/SignIn">@L["Back to sign in"]</a>
+</div>

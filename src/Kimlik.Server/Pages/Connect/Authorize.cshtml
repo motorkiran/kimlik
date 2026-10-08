@@ -1,0 +1,38 @@
+@page "/connect/authorize"
+@model AuthorizeModel
+@{
+    ViewData["Title"] = Model.Error is null ? L["Allow access?"] : L["Something went wrong"];
+}
+
+@if (Model.Error is not null)
+{
+    <h1 id="page-title">@L["Something went wrong"]</h1>
+    <p class="lead">@L["The application sent an invalid sign-in request. Return to the application and try again."]</p>
+    <div class="alert alert-error" role="alert"><strong>@Model.Error</strong> @Model.ErrorDescription</div>
+}
+else
+{
+    <h1 id="page-title">@L["Allow access?"]</h1>
+    <p class="lead">@L["{0} would like to:", Model.ApplicationName ?? string.Empty]</p>
+
+    <ul class="scopes">
+        @foreach (var scope in Model.ScopeDescriptions)
+        {
+            <li>@scope</li>
+        }
+    </ul>
+
+    <form method="post" action="@Request.PathBase/connect/authorize" asp-antiforgery="true">
+        @foreach (var parameter in Model.RequestParameters)
+        {
+            foreach (var value in parameter.Value)
+            {
+                <input type="hidden" name="@parameter.Key" value="@value" />
+            }
+        }
+        <div class="actions">
+            <button type="submit" class="button" name="consent" value="accept">@L["Allow"]</button>
+            <button type="submit" class="button button-secondary" name="consent" value="deny">@L["Deny"]</button>
+        </div>
+    </form>
+}

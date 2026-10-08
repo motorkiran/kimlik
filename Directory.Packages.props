@@ -9,7 +9,10 @@
   <ItemGroup Label="Identity and protocol">
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
     <PackageVersion Include="OpenIddict.AspNetCore" Version="7.7.1" />
     <PackageVersion Include="OpenIddict.EntityFrameworkCore" Version="7.7.1" />
     <PackageVersion Include="OpenIddict.Server" Version="7.7.1" />
@@ -33,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Testing">
+    <PackageVersion Include="AngleSharp" Version="1.8.4" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
