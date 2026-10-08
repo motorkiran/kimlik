@@ -1,6 +1,7 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,12 @@ public static class DependencyInjection
         services.AddOptions<BrandingOptions>()
             .BindConfiguration(BrandingOptions.SectionName)
             .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<BootstrapOptions>()
+            .BindConfiguration(BootstrapOptions.SectionName)
+            .ValidateDataAnnotations()
+            .Validate(options => options.IsValid(), $"{BootstrapOptions.SectionName}: set both AdminEmail and AdminPassword, or neither.")
             .ValidateOnStart();
 
         services.AddScoped<AccessResolver>();

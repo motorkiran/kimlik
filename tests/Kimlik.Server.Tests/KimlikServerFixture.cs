@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Testcontainers.PostgreSql;
 
 [assembly: AssemblyFixture(typeof(Kimlik.Server.Tests.KimlikServerFixture))]
@@ -32,6 +33,10 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
         await WaitUntilReadyAsync(this);
         await WithServicesAsync(Oidc.TestClients.CreateApiScopeAsync);
     }
+
+    /// <summary>A connection string for another database on the same server, which Kimlik creates on startup.</summary>
+    public string ConnectionStringFor(string database) =>
+        new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString()) { Database = database }.ConnectionString;
 
     /// <summary>Runs <paramref name="action"/> with a fresh database context in its own scope.</summary>
     public async Task<T> QueryDatabaseAsync<T>(Func<KimlikDbContext, Task<T>> action)

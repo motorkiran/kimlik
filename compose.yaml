@@ -43,6 +43,9 @@ services:
       Kimlik__Email__Smtp__Security: None
       # Development key only. Production installations generate their own: openssl rand -base64 32
       Kimlik__Security__MasterKey: Hx+waeuN8N26ESEiMOsJMWTYMN5CjUbcDE3uSZqtbnE=
+      # Development only: the first administrator of a fresh database.
+      Kimlik__Bootstrap__AdminEmail: admin@kimlik.localhost
+      Kimlik__Bootstrap__AdminPassword: development-only-password
     ports:
       - "8080:8080"
 

@@ -27,6 +27,8 @@ dotnet run --project src/Kimlik.Server
 | http://localhost:5080/scalar/v1 | Management API reference; the OpenAPI document is at `/openapi/v1.json` |
 | http://localhost:8025 | Mailpit inbox for development email |
 
+In development, the first start creates the administrator `admin@kimlik.localhost` with the password `development-only-password`.
+
 The development database listens on port 5433 so that it does not clash with a locally installed PostgreSQL. To use another port, set `KIMLIK_POSTGRES_PORT` and update `ConnectionStrings:Kimlik` in `src/Kimlik.Server/appsettings.Development.json`.
 
 ### Run as a container
@@ -57,6 +59,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `ConnectionStrings__Kimlik` | PostgreSQL connection string |
 | `Kimlik__Server__PublicUrl` | Public base URL; the token issuer and the base of links in emails |
 | `Kimlik__Security__MasterKey` | 256-bit key that encrypts secrets at rest (`openssl rand -base64 32`). Back it up. |
+| `Kimlik__Bootstrap__AdminEmail`, `Kimlik__Bootstrap__AdminPassword` | The first administrator, created while the installation has none. An existing account with this address is promoted only if it has verified the address. |
 | `Kimlik__Email__FromAddress`, `Kimlik__Email__Smtp__Host` | Sender and SMTP relay for verification and reset emails |
 | `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
