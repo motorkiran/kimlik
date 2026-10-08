@@ -97,13 +97,18 @@ public sealed class SignInTests(KimlikServerFixture server)
         page.Text.ShouldContain("Invalid email or password.");
     }
 
-    [Fact]
-    public async Task ReturnUrl_ToAnotherSite_IsIgnored()
+    [Theory]
+    [InlineData("https://attacker.example/")]
+    [InlineData("//attacker.example/")]
+    [InlineData("/\\attacker.example/")]
+    [InlineData("/\t/attacker.example/")]
+    [InlineData("/\n/attacker.example/")]
+    public async Task ReturnUrl_ToAnotherSite_IsIgnored(string returnUrl)
     {
         var user = await server.CreateUserAsync();
         using var browser = new Browser(server);
 
-        using var response = await browser.SignInAsync(user.Email, user.Password, returnUrl: "https://attacker.example/");
+        using var response = await browser.SignInAsync(user.Email, user.Password, returnUrl);
 
         response.Headers.Location!.ToString().ShouldBe("/");
     }
