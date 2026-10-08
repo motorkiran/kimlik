@@ -21,7 +21,7 @@ internal sealed class Browser : IDisposable
 
     private readonly HttpClient _client;
 
-    public Browser(KimlikServerFixture server, string? acceptLanguage = null)
+    public Browser(WebApplicationFactory<Program> server, string? acceptLanguage = null)
     {
         _client = server.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -93,9 +93,9 @@ internal sealed class Browser : IDisposable
         return await _client.PostAsync(action, content, TestContext.Current.CancellationToken);
     }
 
-    public static async Task<WebPage> ReadPageAsync(HttpResponseMessage response)
+    public static async Task<WebPage> ReadPageAsync(HttpResponseMessage response, HttpStatusCode expectedStatus = HttpStatusCode.OK)
     {
-        if (response.StatusCode != HttpStatusCode.OK)
+        if (response.StatusCode != expectedStatus)
         {
             throw new InvalidOperationException($"Expected a page from {response.RequestMessage?.RequestUri} but got {(int)response.StatusCode}.");
         }

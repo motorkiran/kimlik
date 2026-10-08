@@ -16,6 +16,7 @@
 else
 {
     <p class="lead">@L["Enter your email address and we will send you a new verification link."]</p>
+    <partial name="_FormError" />
     <form method="post" novalidate>
         <input type="hidden" asp-for="ReturnUrl" />
         <div class="field">

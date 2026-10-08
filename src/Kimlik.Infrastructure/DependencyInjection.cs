@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Accounts;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Auditing;
 using Kimlik.Infrastructure.Email;
@@ -112,6 +113,8 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddMemoryCache();
+        services.AddSingleton<IAccountEmailThrottle, AccountEmailThrottle>();
         services.AddSingleton<IEmailTemplateRenderer, FluidEmailTemplateRenderer>();
         services.AddSingleton<SmtpEmailSender>();
         services.AddSingleton<UnconfiguredEmailSender>();

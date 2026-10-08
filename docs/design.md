@@ -136,7 +136,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 - Sign-up with email and password. The registration mode is open, invite-only or disabled.
 - Email verification, forgot password, password reset and password change.
-- Password policy with a configurable minimum length (default 12) and no composition rules by default. Account lockout with backoff, and rate limiting.
+- Password policy with a configurable minimum length (default 12) and no composition rules by default. Account lockout after repeated failures, rate limiting per network address, and a per-account cooldown on account emails.
 - Social login with Google, Microsoft, Apple and GitHub, with safe account linking ([§10.3](#103-social-login-and-account-linking)).
 - Multi-factor authentication with TOTP authenticator apps (RFC 6238) and single-use recovery codes. MFA applies after every primary sign-in method, including social login.
 - MFA policies: optional for users, required for administrators by default, and enforceable for the whole installation or per organization. Users who fall under a requirement enroll during sign-in.
@@ -635,7 +635,7 @@ erDiagram
 - **Errors:** RFC 9457 problem details, with a stable `code`, validation `errors` and a `traceId`.
 - **Updates:** `PATCH` with JSON Merge Patch semantics (RFC 7396). Optimistic concurrency uses `ETag` and `If-Match`. State transitions get explicit action endpoints (`POST /users/{id}/suspend`).
 - **Versioning:** the major version is part of the path, and additive changes are non-breaking. A snapshot test of the OpenAPI document catches accidental breaking changes.
-- **Rate limiting:** per IP and per client, answering `429` with `Retry-After`.
+- **Rate limiting:** per network address (IPv6 grouped by /64), answering `429` with `Retry-After`.
 
 ### 9.2 Management API (MVP resources)
 
@@ -697,7 +697,8 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 
 | Threat | Controls |
 |---|---|
-| Credential stuffing, brute force | Rate limiting per IP and per account, lockout with exponential backoff, generic error messages |
+| Credential stuffing, brute force | Rate limiting per network address, account lockout, generic error messages |
+| Inbox flooding through public forms | A per-account cooldown on verification and reset emails, on top of the per-address limits |
 | Phished or reused passwords | MFA (TOTP), enforceable for administrators, organizations or the whole installation |
 | Account enumeration | Identical responses and comparable timing for sign-up, sign-in and password reset |
 | CSRF, XSS, clickjacking | Anti-forgery tokens, output encoding, CSP with nonces, `frame-ancestors 'none'` |

@@ -202,6 +202,9 @@
   <data name="This link is invalid or has expired." xml:space="preserve">
     <value>Bu bağlantı geçersiz veya süresi dolmuş.</value>
   </data>
+  <data name="Too many attempts. Wait a minute and try again." xml:space="preserve">
+    <value>Çok fazla deneme yapıldı. Bir dakika bekleyip tekrar deneyin.</value>
+  </data>
   <data name="Too many failed attempts. Try again later." xml:space="preserve">
     <value>Çok fazla başarısız deneme yapıldı. Daha sonra tekrar deneyin.</value>
   </data>

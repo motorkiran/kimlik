@@ -29,7 +29,7 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
-        await WaitUntilReadyAsync();
+        await WaitUntilReadyAsync(this);
         await WithServicesAsync(Oidc.TestClients.CreateApiScopeAsync);
     }
 
@@ -66,10 +66,13 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
         await _postgres.DisposeAsync();
     }
 
-    // Token keys load in the background after startup; tests start once the instance reports ready.
-    private async Task WaitUntilReadyAsync()
+    /// <summary>
+    /// Token keys load in the background after startup, so tests start once the instance reports ready.
+    /// Also used for hosts derived with <see cref="WebApplicationFactory{TEntryPoint}.WithWebHostBuilder"/>.
+    /// </summary>
+    public static async Task WaitUntilReadyAsync(WebApplicationFactory<Program> factory)
     {
-        using var client = CreateClient();
+        using var client = factory.CreateClient();
         using var timeout = new CancellationTokenSource(ReadinessTimeout);
 
         while (true)

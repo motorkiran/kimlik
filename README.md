@@ -45,6 +45,21 @@ dotnet test
 
 Integration tests start a disposable PostgreSQL container with Testcontainers, so the container engine must be running.
 
+### Configuration
+
+Settings come from `appsettings.json` and environment variables (`Kimlik__Section__Key`). The essentials:
+
+| Setting | Purpose |
+|---|---|
+| `ConnectionStrings__Kimlik` | PostgreSQL connection string |
+| `Kimlik__Server__PublicUrl` | Public base URL; the token issuer and the base of links in emails |
+| `Kimlik__Security__MasterKey` | 256-bit key that encrypts secrets at rest (`openssl rand -base64 32`). Back it up. |
+| `Kimlik__Email__FromAddress`, `Kimlik__Email__Smtp__Host` | Sender and SMTP relay for verification and reset emails |
+| `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
+| `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
+
+Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`.
+
 ### Database migrations
 
 Migrations run at startup by default. To run them as a separate deployment step instead, set `Kimlik__Database__MigrateOnStartup=false` and run:

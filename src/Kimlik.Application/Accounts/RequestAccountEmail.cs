@@ -11,11 +11,16 @@ public sealed record ResendEmailVerificationCommand(string Email, string? Return
 /// Sends a new verification link. The caller always gets the same answer, so the form cannot be used to
 /// find out which addresses have accounts.
 /// </summary>
-public sealed class ResendEmailVerificationHandler(UserManager<User> userManager, IKimlikDbContext context, IOutbox outbox)
+public sealed class ResendEmailVerificationHandler(
+    UserManager<User> userManager,
+    IKimlikDbContext context,
+    IOutbox outbox,
+    IAccountEmailThrottle throttle)
 {
     public async Task HandleAsync(ResendEmailVerificationCommand command, CancellationToken cancellationToken)
     {
-        if (await userManager.FindByEmailAsync(command.Email) is { EmailConfirmed: false, CanSignIn: true } user)
+        if (await userManager.FindByEmailAsync(command.Email) is { EmailConfirmed: false, CanSignIn: true } user
+            && throttle.TryAcquire(user.Id, AccountEmail.EmailVerification))
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));
             await context.SaveChangesAsync(cancellationToken);
@@ -26,11 +31,17 @@ public sealed class ResendEmailVerificationHandler(UserManager<User> userManager
 public sealed record RequestPasswordResetCommand(string Email);
 
 /// <summary>Sends a password reset link; like resending verification, it never reveals whether the address is known.</summary>
-public sealed class RequestPasswordResetHandler(UserManager<User> userManager, IKimlikDbContext context, IOutbox outbox, IAuditLog auditLog)
+public sealed class RequestPasswordResetHandler(
+    UserManager<User> userManager,
+    IKimlikDbContext context,
+    IOutbox outbox,
+    IAuditLog auditLog,
+    IAccountEmailThrottle throttle)
 {
     public async Task HandleAsync(RequestPasswordResetCommand command, CancellationToken cancellationToken)
     {
-        if (await userManager.FindByEmailAsync(command.Email) is { CanSignIn: true } user)
+        if (await userManager.FindByEmailAsync(command.Email) is { CanSignIn: true } user
+            && throttle.TryAcquire(user.Id, AccountEmail.PasswordReset))
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.PasswordReset));
             auditLog.Record(AuditActions.UserPasswordResetRequested, AuditSubject.User(user.Id));

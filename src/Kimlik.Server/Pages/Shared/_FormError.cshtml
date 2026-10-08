@@ -1,0 +1,13 @@
+@* Form-level errors (not tied to one field), shown only when there are any. *@
+@{
+    var errors = ViewData.ModelState[string.Empty]?.Errors;
+}
+@if (errors is { Count: > 0 })
+{
+    <div class="alert alert-error" role="alert">
+        @foreach (var error in errors)
+        {
+            <div>@error.ErrorMessage</div>
+        }
+    </div>
+}

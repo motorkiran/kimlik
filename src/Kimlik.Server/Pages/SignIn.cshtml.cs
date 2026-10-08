@@ -3,6 +3,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ namespace Kimlik.Server.Pages;
 public sealed class SignInModel(
     SignInManager<User> signInManager,
     PasswordHashTiming passwordHashTiming,
+    RequestThrottle throttle,
     IKimlikDbContext context,
     IAuditLog auditLog,
     TimeProvider timeProvider,
@@ -42,6 +44,13 @@ public sealed class SignInModel(
     {
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
             return Page();
         }
 

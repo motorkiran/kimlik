@@ -21,6 +21,7 @@ public sealed class RegisterUserHandler(
     IKimlikDbContext context,
     IAuditLog auditLog,
     IOutbox outbox,
+    IAccountEmailThrottle throttle,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
@@ -85,7 +86,9 @@ public sealed class RegisterUserHandler(
     /// </summary>
     private async Task NotifyExistingAccountAsync(string email, CancellationToken cancellationToken)
     {
-        if (options.Value.RequireVerifiedEmail && await userManager.FindByEmailAsync(email) is { } existing)
+        if (options.Value.RequireVerifiedEmail
+            && await userManager.FindByEmailAsync(email) is { } existing
+            && throttle.TryAcquire(existing.Id, AccountEmail.AlreadyRegistered))
         {
             outbox.Enqueue(new SendAccountEmail(existing.Id, AccountEmail.AlreadyRegistered));
             await context.SaveChangesAsync(cancellationToken);

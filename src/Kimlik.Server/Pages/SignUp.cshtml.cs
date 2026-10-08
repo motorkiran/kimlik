@@ -2,10 +2,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
@@ -14,6 +16,8 @@ public sealed class SignUpModel(
     RegisterUserHandler registerUser,
     SignInManager<User> signInManager,
     AccountErrorMessages errorMessages,
+    RequestThrottle throttle,
+    IStringLocalizer<SharedResource> localizer,
     IOptions<AccountOptions> accounts) : PageModel
 {
     [BindProperty]
@@ -34,6 +38,13 @@ public sealed class SignUpModel(
     {
         if (!IsOpen || !ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!throttle.TryAcquire(ThrottledAction.SignUp, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ModelState.AddModelError(string.Empty, localizer["Too many attempts. Wait a minute and try again."]);
             return Page();
         }
 

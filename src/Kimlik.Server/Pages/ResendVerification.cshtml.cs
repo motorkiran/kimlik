@@ -1,12 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 
 namespace Kimlik.Server.Pages;
 
-public sealed class ResendVerificationModel(ResendEmailVerificationHandler resendVerification) : PageModel
+public sealed class ResendVerificationModel(
+    ResendEmailVerificationHandler resendVerification,
+    RequestThrottle throttle,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
     [BindProperty]
     public EmailInput Input { get; set; } = new();
@@ -24,6 +29,13 @@ public sealed class ResendVerificationModel(ResendEmailVerificationHandler resen
     {
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!throttle.TryAcquire(ThrottledAction.EmailRequest, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ModelState.AddModelError(string.Empty, localizer["Too many attempts. Wait a minute and try again."]);
             return Page();
         }
 

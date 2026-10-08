@@ -1,0 +1,85 @@
+using System.Collections.Frozen;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.RateLimiting;
+using Microsoft.Extensions.Options;
+
+namespace Kimlik.Server.Hosting;
+
+public enum ThrottledAction
+{
+    SignIn,
+    SignUp,
+    EmailRequest,
+}
+
+/// <summary>
+/// Per-address limits for the hosted forms. Pages check them before doing any work, so a rejected attempt
+/// costs no password hashing and sends no email, and the person sees the reason on the form itself.
+/// </summary>
+public sealed class RequestThrottle : IDisposable
+{
+    private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
+
+    private readonly FrozenDictionary<ThrottledAction, PartitionedRateLimiter<string>> _limiters;
+
+    public RequestThrottle(IOptions<RateLimitOptions> options)
+    {
+        var limits = options.Value;
+        _limiters = new Dictionary<ThrottledAction, PartitionedRateLimiter<string>>
+        {
+            [ThrottledAction.SignIn] = CreateLimiter(limits.SignInsPerMinute),
+            [ThrottledAction.SignUp] = CreateLimiter(limits.SignUpsPerMinute),
+            [ThrottledAction.EmailRequest] = CreateLimiter(limits.EmailRequestsPerMinute),
+        }.ToFrozenDictionary();
+    }
+
+    public bool TryAcquire(ThrottledAction action, HttpContext context)
+    {
+        using var lease = _limiters[action].AttemptAcquire(PartitionKey(context));
+        return lease.IsAcquired;
+    }
+
+    /// <summary>The caller's address; IPv6 addresses are reduced to their /64 network.</summary>
+    public static string PartitionKey(HttpContext context)
+    {
+        var address = context.Connection.RemoteIpAddress;
+        if (address is null)
+        {
+            return "unknown";
+        }
+
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
+        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+        {
+            return address.ToString();
+        }
+
+        var bytes = address.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new IPAddress(bytes) + "/64";
+    }
+
+    public static SlidingWindowRateLimiterOptions PerMinute(int permits) => new()
+    {
+        PermitLimit = permits,
+        Window = Window,
+        SegmentsPerWindow = 6,
+        QueueLimit = 0,
+    };
+
+    public void Dispose()
+    {
+        foreach (var limiter in _limiters.Values)
+        {
+            limiter.Dispose();
+        }
+    }
+
+    private static PartitionedRateLimiter<string> CreateLimiter(int permitsPerMinute) =>
+        PartitionedRateLimiter.Create<string, string>(key => RateLimitPartition.GetSlidingWindowLimiter(key, _ => PerMinute(permitsPerMinute)));
+}

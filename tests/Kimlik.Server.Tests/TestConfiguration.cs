@@ -22,5 +22,10 @@ internal static class TestConfiguration
         // Any reuse of a refresh token counts as theft, so the tests need not wait out the leeway.
         ["Kimlik:Tokens:RefreshTokenReuseLeeway"] = "00:00:00",
         ["Kimlik:Outbox:PollingInterval"] = "00:00:00.200",
+        // Every test request comes from the same address; rate limiting has its own tests.
+        ["Kimlik:RateLimits:SignInsPerMinute"] = "100000",
+        ["Kimlik:RateLimits:SignUpsPerMinute"] = "100000",
+        ["Kimlik:RateLimits:EmailRequestsPerMinute"] = "100000",
+        ["Kimlik:RateLimits:ProtocolRequestsPerMinute"] = "100000",
     };
 }
