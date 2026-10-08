@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Kimlik.Application.Access;
+using Kimlik.Application.Plans;
 using Kimlik.Contracts;
+using Kimlik.Domain.Plans;
 using Kimlik.Domain.Users;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -16,7 +18,7 @@ namespace Kimlik.Server.Oidc;
 /// Builds the identity behind a user's tokens from the current state of the account, so every code
 /// exchange and refresh reflects profile changes.
 /// </summary>
-public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessResolver access)
+public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessResolver access, Entitlements entitlements)
 {
     /// <summary>
     /// Creates the identity for tokens issued to <paramref name="user"/>, acting in <paramref name="organizationId"/>
@@ -51,6 +53,9 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         identity.SetScopes(grantedScopes);
         identity.SetResources(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)]);
         AddAccess(identity, await access.ForUserAsync(user.Id, organizationId, cancellationToken));
+
+        var subscriber = organizationId is { } organization ? Subscriber.Organization(organization) : Subscriber.User(user.Id);
+        identity.SetClaim(KimlikClaimTypes.Plan, (await entitlements.PlanOfAsync(subscriber, cancellationToken))?.Key);
         identity.SetDestinations(GetDestinations);
 
         return identity;
@@ -113,7 +118,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             Claims.Email or Claims.EmailVerified when identity.HasScope(Scopes.Email)
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
-            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles => [Destinations.AccessToken],
+            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles or KimlikClaimTypes.Plan
+                => [Destinations.AccessToken],
 
             KimlikClaimTypes.OrganizationId => [Destinations.AccessToken, Destinations.IdentityToken],
 

@@ -27,5 +27,22 @@ public static class PlanErrors
 
     public static readonly Error PlanExists = Error.Conflict("plan.already_exists", "A plan with this key already exists.");
 
+    public static readonly Error PlanArchived = Error.Validation("plan.archived", "The plan is archived and takes no new subscribers.");
+
+    public static readonly Error SubscriptionNotFound = Error.NotFound("subscription.not_found", "The subscription does not exist.");
+
+    public static readonly Error SubscriptionExists = Error.Conflict(
+        "subscription.exists", "The subscriber already has a current subscription; change its plan instead.");
+
+    public static readonly Error SubscriptionEnded = Error.Validation("subscription.ended", "The subscription has ended or is already canceled.");
+
+    public static readonly Error InvalidSubscriptionStatus = Error.Validation(
+        "subscription.invalid_status", "A subscription can be set to trialing or active; cancel it to end it.");
+
+    public static readonly Error InvalidSubscription = Error.Validation(
+        "subscription.invalid", "A trial needs an end, a period must end after it starts, and an external reference is at most 200 characters.");
+
+    public static readonly Error SubscriberNotFound = Error.NotFound("subscription.subscriber_not_found", "The user or organization does not exist.");
+
     public static readonly Error PlanInUse = Error.Conflict("plan.in_use", "The plan has subscriptions; archive it instead.");
 }

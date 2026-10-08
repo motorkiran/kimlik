@@ -93,6 +93,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Provisioning__FilePath` | A provisioning file to apply at startup (see below) |
 | `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
 | `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
+| `Kimlik__Plans__DefaultUserPlan`, `Kimlik__Plans__DefaultOrganizationPlan` | The plan of users and organizations without a current subscription |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
 
 Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`.

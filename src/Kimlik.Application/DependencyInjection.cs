@@ -4,6 +4,7 @@ using Kimlik.Application.Accounts;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
 using Kimlik.Application.Organizations;
+using Kimlik.Application.Plans;
 using Kimlik.Application.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +30,11 @@ public static class DependencyInjection
             .Validate(options => options.InvitationLifetime > TimeSpan.Zero, $"{OrganizationOptions.SectionName}:InvitationLifetime must be positive.")
             .ValidateOnStart();
 
+        services.AddOptions<PlanOptions>()
+            .BindConfiguration(PlanOptions.SectionName)
+            .Validate(options => options.ExpirationInterval > TimeSpan.Zero, $"{PlanOptions.SectionName}:ExpirationInterval must be positive.")
+            .ValidateOnStart();
+
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)
             .ValidateDataAnnotations()
@@ -38,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<AccessResolver>();
         services.AddScoped<AccessGuard>();
         services.AddScoped<UserOrganizations>();
+        services.AddScoped<Entitlements>();
         services.AddScoped<OrganizationGuard>();
         services.AddScoped<MyOrganizations>();
         services.AddScoped<MyInvitations>();

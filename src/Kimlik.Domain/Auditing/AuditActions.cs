@@ -49,4 +49,8 @@ public static class AuditActions
     public const string PlanCreated = "plan.created";
     public const string PlanUpdated = "plan.updated";
     public const string PlanDeleted = "plan.deleted";
+    public const string SubscriptionCreated = "subscription.created";
+    public const string SubscriptionUpdated = "subscription.updated";
+    public const string SubscriptionCanceled = "subscription.canceled";
+    public const string SubscriptionExpired = "subscription.expired";
 }

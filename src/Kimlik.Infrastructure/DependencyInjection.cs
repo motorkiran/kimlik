@@ -7,6 +7,7 @@ using Kimlik.Infrastructure.Email;
 using Kimlik.Infrastructure.Identity;
 using Kimlik.Infrastructure.Outbox;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Infrastructure.Plans;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         AddEmail(services);
 
         services.AddScoped<IAuditLog, AuditLog>();
+        services.AddHostedService<SubscriptionExpirationService>();
 
         return services;
     }

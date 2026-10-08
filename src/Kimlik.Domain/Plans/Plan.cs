@@ -18,6 +18,9 @@ public sealed class Plan
     {
     }
 
+    /// <summary>No plan at all: every feature is off, or zero.</summary>
+    public static Plan None { get; } = new();
+
     public Guid Id { get; private init; }
 
     public string Key { get; private init; } = string.Empty;

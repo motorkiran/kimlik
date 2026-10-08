@@ -17,6 +17,12 @@ public static class KimlikClaimTypes
 
     /// <summary>Keys of the user's roles in the organization the token acts in.</summary>
     public const string OrganizationRoles = "org_roles";
+
+    /// <summary>
+    /// The key of the plan in effect: the organization's in an organization context, otherwise the user's. Feature
+    /// values come from the plan definitions, which keeps tokens small.
+    /// </summary>
+    public const string Plan = "plan";
 }
 
 /// <summary>Kimlik-specific parameters of authorization and token requests.</summary>

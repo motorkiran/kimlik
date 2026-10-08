@@ -148,6 +148,11 @@ public sealed class DeletePlanHandler(IKimlikDbContext context, IAuditLog auditL
             return PlanErrors.PlanNotFound;
         }
 
+        if (await context.Subscriptions.AnyAsync(subscription => subscription.PlanId == id, cancellationToken))
+        {
+            return PlanErrors.PlanInUse;
+        }
+
         context.Plans.Remove(plan);
         auditLog.Record(AuditActions.PlanDeleted, AuditSubject.Plan(id), new Dictionary<string, object?> { ["key"] = plan.Key });
         await context.SaveChangesAsync(cancellationToken);

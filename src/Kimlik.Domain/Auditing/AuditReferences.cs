@@ -32,4 +32,6 @@ public sealed record AuditSubject(string Type, string Id)
     public static AuditSubject Feature(Guid featureId) => new("feature", featureId.ToString());
 
     public static AuditSubject Plan(Guid planId) => new("plan", planId.ToString());
+
+    public static AuditSubject Subscription(Guid subscriptionId) => new("subscription", subscriptionId.ToString());
 }
