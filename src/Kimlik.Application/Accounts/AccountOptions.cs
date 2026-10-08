@@ -25,6 +25,12 @@ public sealed class AccountOptions
     /// <summary>How long a "remember me" sign-in session lasts without activity.</summary>
     public TimeSpan SessionLifetime { get; set; } = TimeSpan.FromDays(14);
 
+    /// <summary>
+    /// The global roles every new user gets, such as one for customers. They cannot carry system permissions, since anyone
+    /// who signs up gets them.
+    /// </summary>
+    public IReadOnlyList<string> DefaultRoles { get; set; } = [];
+
     /// <summary>Upper bound that keeps password hashing cost predictable.</summary>
     public const int PasswordMaximumLength = 128;
 }

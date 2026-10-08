@@ -34,6 +34,7 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 |---|---|---|
 | `Kimlik:Accounts:Registration` | `Open` | `Open` lets anyone create an account; `InviteOnly` leaves it to administrators and invitations; `Disabled` turns sign-up off. |
 | `Kimlik:Accounts:RequireVerifiedEmail` | `true` | People confirm their email address before they can sign in. |
+| `Kimlik:Accounts:DefaultRoles` | | Global roles every new user gets, such as `["customer"]`: people who sign up or first sign in with another provider, and users created through the Management API. They cannot carry system permissions. |
 | `Kimlik:Accounts:PasswordMinimumLength` | `12` | Between 8 and 128. Kimlik has no composition rules: length makes passwords strong (NIST SP 800-63B). |
 | `Kimlik:Accounts:MaxFailedSignInAttempts` | `5` | Wrong passwords or codes in a row before the account is locked. |
 | `Kimlik:Accounts:LockoutDuration` | `00:15:00` | How long a locked account stays locked, unless its password is reset. Sign-in answers a locked account like a wrong password, so the lockout reveals no account. |

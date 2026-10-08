@@ -23,6 +23,7 @@ public sealed class RegisterExternalUserHandler(
     IKimlikDbContext context,
     IAuditLog auditLog,
     IOutbox outbox,
+    DefaultUserRoles defaultRoles,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
@@ -60,6 +61,7 @@ public sealed class RegisterExternalUserHandler(
         var provider = new Dictionary<string, object?> { ["provider"] = command.Login.Provider };
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id), provider, AuditActor.User(user.Id));
         auditLog.Record(AuditActions.UserLoginLinked, AuditSubject.User(user.Id), provider, AuditActor.User(user.Id));
+        await defaultRoles.AssignAsync(user.Id, cancellationToken);
         if (!user.EmailConfirmed && options.Value.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));

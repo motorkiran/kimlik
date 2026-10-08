@@ -17,6 +17,7 @@ public sealed class CreateUserHandler(
     IKimlikDbContext context,
     IAuditLog auditLog,
     IOutbox outbox,
+    DefaultUserRoles defaultRoles,
     IOptions<AccountOptions> accounts,
     TimeProvider timeProvider)
 {
@@ -47,6 +48,7 @@ public sealed class CreateUserHandler(
         }
 
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id));
+        var roles = await defaultRoles.AssignAsync(user.Id, cancellationToken);
         if (!user.EmailConfirmed && accounts.Value.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification));
@@ -55,6 +57,6 @@ public sealed class CreateUserHandler(
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return user.ToResponse([]);
+        return user.ToResponse(roles);
     }
 }

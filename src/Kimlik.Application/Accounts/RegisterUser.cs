@@ -21,6 +21,7 @@ public sealed class RegisterUserHandler(
     IKimlikDbContext context,
     IAuditLog auditLog,
     IOutbox outbox,
+    DefaultUserRoles defaultRoles,
     IAccountEmailThrottle throttle,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
@@ -68,6 +69,7 @@ public sealed class RegisterUserHandler(
         }
 
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
+        await defaultRoles.AssignAsync(user.Id, cancellationToken);
         if (options.Value.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));
