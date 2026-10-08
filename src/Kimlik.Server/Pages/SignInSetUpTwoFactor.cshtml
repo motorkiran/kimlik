@@ -1,0 +1,45 @@
+@page "/signin/set-up-two-factor"
+@model SignInSetUpTwoFactorModel
+@{
+    ViewData["Title"] = L["Set up two-factor authentication"];
+}
+
+@if (Model.RecoveryCodes is not null)
+{
+    <h1 id="page-title">@L["Save your recovery codes"]</h1>
+    <p class="lead">@L["Two-factor authentication is on. If you lose your device, each of these codes signs you in once. Keep them somewhere safe; they are not shown again."]</p>
+    <ul class="codes" id="recovery-codes">
+        @foreach (var code in Model.RecoveryCodes)
+        {
+            <li><code>@code</code></li>
+        }
+    </ul>
+    <div class="actions">
+        <a class="button" href="@Model.ContinueUrl">@L["Continue"]</a>
+    </div>
+}
+else
+{
+    <h1 id="page-title">@L["Set up two-factor authentication"]</h1>
+    <p class="lead">@L["Your account needs a second step at sign-in. Scan the code with an authenticator app, such as Google Authenticator or Microsoft Authenticator, then enter the code it shows."]</p>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <div class="qr">
+        <img src="@Model.QrCode" alt="@L["QR code of your authenticator key"]" width="185" height="185" />
+    </div>
+    <p class="hint">@L["Can't scan it? Enter this key in the app instead:"] <code id="secret">@Model.Secret</code></p>
+
+    <form method="post" novalidate>
+        <input type="hidden" asp-for="ReturnUrl" />
+        <div class="field">
+            <label asp-for="Code"></label>
+            <input asp-for="Code" autocomplete="one-time-code" inputmode="numeric" autofocus />
+            <span asp-validation-for="Code" class="field-error"></span>
+        </div>
+        <button type="submit" class="button">@L["Turn on"]</button>
+    </form>
+}

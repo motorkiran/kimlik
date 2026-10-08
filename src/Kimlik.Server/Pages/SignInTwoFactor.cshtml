@@ -1,0 +1,45 @@
+@page "/signin/two-factor"
+@model SignInTwoFactorModel
+@{
+    ViewData["Title"] = L["Two-factor authentication"];
+}
+
+<h1 id="page-title">@L["Two-factor authentication"]</h1>
+<p class="lead">
+    @(Model.UseRecoveryCode
+        ? L["Enter one of the recovery codes you saved when you set up two-factor authentication."]
+        : L["Enter the code from your authenticator app."])
+</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post" novalidate>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <input type="hidden" asp-for="UseRecoveryCode" />
+    <div class="field">
+        <label asp-for="Input.Code">@(Model.UseRecoveryCode ? L["Recovery code"] : L["Code"])</label>
+        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="@(Model.UseRecoveryCode ? "text" : "numeric")" autofocus />
+        <span asp-validation-for="Input.Code" class="field-error"></span>
+    </div>
+    @if (Model.CanTrustBrowser && !Model.UseRecoveryCode)
+    {
+        <div class="row">
+            <label class="checkbox"><input asp-for="Input.TrustBrowser" /> @L["Don't ask again on this browser"]</label>
+        </div>
+    }
+    <button type="submit" class="button">@L["Verify"]</button>
+</form>
+
+<p class="switch">
+    @if (Model.UseRecoveryCode)
+    {
+        <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl">@L["Use your authenticator app"]</a>
+    }
+    else
+    {
+        <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl" asp-route-useRecoveryCode="true">@L["Lost your device? Use a recovery code"]</a>
+    }
+</p>

@@ -38,7 +38,10 @@ internal sealed class KimlikUserStore(KimlikDbContext context, ISecretProtector 
     public override Task<bool> RedeemCodeAsync(User user, string code, CancellationToken cancellationToken) =>
         base.RedeemCodeAsync(user, HashRecoveryCode(code), cancellationToken);
 
-    /// <summary>Codes are compared as uppercase without spaces, so they can be typed the way they are read.</summary>
-    private string HashRecoveryCode(string code) =>
-        Base64Url.EncodeToString(protector.Hash(Encoding.UTF8.GetBytes(code.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant()), RecoveryCodePurpose));
+    /// <summary>Codes are compared as uppercase without spaces or dashes, so they can be typed however they are read.</summary>
+    private string HashRecoveryCode(string code)
+    {
+        var normalized = code.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("-", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
+        return Base64Url.EncodeToString(protector.Hash(Encoding.UTF8.GetBytes(normalized), RecoveryCodePurpose));
+    }
 }

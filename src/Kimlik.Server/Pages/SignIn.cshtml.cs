@@ -8,7 +8,6 @@ using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
@@ -16,11 +15,11 @@ namespace Kimlik.Server.Pages;
 
 public sealed class SignInModel(
     SignInManager<User> signInManager,
+    SignInFlow signInFlow,
     PasswordHashTiming passwordHashTiming,
     RequestThrottle throttle,
     IKimlikDbContext context,
     IAuditLog auditLog,
-    TimeProvider timeProvider,
     IOptions<AccountOptions> accounts,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -66,18 +65,30 @@ public sealed class SignInModel(
             return await RejectAsync(user, "suspended", localizer["Invalid email or password."], cancellationToken);
         }
 
-        var result = await signInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+        var result = await signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
-            await context.Users
-                .Where(candidate => candidate.Id == user.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.LastSignInAt, timeProvider.GetUtcNow()), cancellationToken);
+            var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
 
-            auditLog.Record(AuditActions.UserSignedIn, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
-            await context.SaveChangesAsync(cancellationToken);
+            switch (await signInFlow.NextStepAsync(user, cancellationToken))
+            {
+                case SignInStep.Password:
+                    await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.PasswordMethod, cancellationToken);
+                    return LocalRedirect(returnUrl);
 
-            return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
+                case SignInStep.TrustedBrowser:
+                    await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.MultiFactorMethod, cancellationToken);
+                    return LocalRedirect(returnUrl);
+
+                case SignInStep.Verify:
+                    await signInFlow.DeferAsync(user, Input.RememberMe, SignInStep.Verify);
+                    return RedirectToPage("/SignInTwoFactor", new { returnUrl });
+
+                default:
+                    await signInFlow.DeferAsync(user, Input.RememberMe, SignInStep.SetUp);
+                    return RedirectToPage("/SignInSetUpTwoFactor", new { returnUrl });
+            }
         }
 
         if (result.IsLockedOut)

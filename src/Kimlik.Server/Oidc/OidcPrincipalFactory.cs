@@ -7,6 +7,7 @@ using Kimlik.Application.Plans;
 using Kimlik.Contracts;
 using Kimlik.Domain.Plans;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Identity;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
@@ -30,6 +31,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         ImmutableArray<string> grantedScopes,
         ImmutableArray<string>? resources,
         DateTimeOffset? authenticatedAt,
+        IReadOnlyList<string> authenticationMethods,
         Guid? organizationId,
         CancellationToken cancellationToken)
     {
@@ -49,6 +51,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         {
             identity.AddClaim(UnixTimeClaim(Claims.AuthenticationTime, authenticatedAt.Value));
         }
+
+        AddArrayClaim(identity, Claims.AuthenticationMethodReference, authenticationMethods);
 
         identity.SetScopes(grantedScopes);
         identity.SetResources(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)]);
@@ -97,6 +101,21 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         }
     }
 
+    /// <summary>
+    /// How the user signed in, as RFC 8176 method references: a password, and a one-time code when a second factor
+    /// was used (or the browser was trusted after one).
+    /// </summary>
+    public static IReadOnlyList<string> AuthenticationMethodsOf(ClaimsPrincipal session) =>
+        session.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod) ? ["pwd", "otp", "mfa"] : ["pwd"];
+
+    /// <summary>The authentication methods a previously issued token carries, one claim per value or one JSON array.</summary>
+    public static IReadOnlyList<string> GetAuthenticationMethods(ClaimsPrincipal principal) =>
+    [
+        .. principal.FindAll(Claims.AuthenticationMethodReference).SelectMany(claim => claim.ValueType == JsonClaimValueTypes.JsonArray
+            ? JsonSerializer.Deserialize<string[]>(claim.Value) ?? []
+            : [claim.Value]),
+    ];
+
     /// <summary>When the user authenticated, as carried by a previously issued token.</summary>
     public static DateTimeOffset? GetAuthenticationTime(ClaimsPrincipal principal) =>
         long.TryParse(principal.GetClaim(Claims.AuthenticationTime), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
@@ -110,7 +129,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
 
         return claim.Type switch
         {
-            Claims.Subject or Claims.AuthenticationTime => [Destinations.AccessToken, Destinations.IdentityToken],
+            Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference => [Destinations.AccessToken, Destinations.IdentityToken],
 
             Claims.Name or Claims.GivenName or Claims.FamilyName or Claims.Locale or Claims.UpdatedAt when identity.HasScope(Scopes.Profile)
                 => [Destinations.AccessToken, Destinations.IdentityToken],

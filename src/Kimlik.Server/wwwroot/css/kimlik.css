@@ -238,6 +238,32 @@ input[aria-invalid="true"],
     border-radius: var(--control-radius);
 }
 
+.qr {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 1rem;
+}
+
+.qr img {
+    image-rendering: pixelated;
+    border-radius: var(--control-radius);
+}
+
+.codes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.codes code,
+#secret {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.05em;
+}
+
 .choices {
     display: grid;
     gap: 0.5rem;

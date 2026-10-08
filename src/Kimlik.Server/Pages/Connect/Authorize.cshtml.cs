@@ -111,7 +111,7 @@ public sealed class AuthorizeModel(
             await antiforgery.ValidateRequestAsync(HttpContext);
 
             return decision == ConsentAccepted
-                ? await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, organizationId, cancellationToken)
+                ? await IssueCodeAsync(user, applicationId!, request, session, existingAuthorizations, organizationId, cancellationToken)
                 : ForbidWith(Errors.AccessDenied, "The user denied the request.");
         }
 
@@ -123,7 +123,7 @@ public sealed class AuthorizeModel(
             case ConsentTypes.Implicit:
             case ConsentTypes.External:
             case ConsentTypes.Explicit when existingAuthorizations.Count > 0 && !request.HasPromptValue(PromptValues.Consent):
-                return await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, organizationId, cancellationToken);
+                return await IssueCodeAsync(user, applicationId!, request, session, existingAuthorizations, organizationId, cancellationToken);
 
             case ConsentTypes.Explicit or ConsentTypes.Systematic when request.HasPromptValue(PromptValues.None):
                 return ForbidWith(Errors.ConsentRequired, "Interactive user consent is required.");
@@ -139,12 +139,19 @@ public sealed class AuthorizeModel(
         User user,
         string applicationId,
         OpenIddictRequest request,
-        AuthenticationProperties? session,
+        AuthenticateResult session,
         List<object> existingAuthorizations,
         Guid? organizationId,
         CancellationToken cancellationToken)
     {
-        var identity = await principalFactory.CreateAsync(user, request.GetScopes(), resources: null, session?.IssuedUtc, organizationId, cancellationToken);
+        var identity = await principalFactory.CreateAsync(
+            user,
+            request.GetScopes(),
+            resources: null,
+            session.Properties?.IssuedUtc,
+            OidcPrincipalFactory.AuthenticationMethodsOf(session.Principal!),
+            organizationId,
+            cancellationToken);
 
         // A permanent authorization records the consent and ties together every token issued under it.
         var authorization = existingAuthorizations.LastOrDefault()

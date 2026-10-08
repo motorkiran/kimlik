@@ -277,4 +277,58 @@
   <data name="The invitation was sent to {0}, but you are signed in as {1}. Sign out and sign in with the invited address." xml:space="preserve">
     <value>Davet {0} adresine gönderildi, ancak {1} olarak giriş yaptınız. Çıkış yapıp davet edilen adresle giriş yapın.</value>
   </data>
+  <data name="Two-factor authentication" xml:space="preserve">
+    <value>İki adımlı doğrulama</value>
+  </data>
+  <data name="Enter one of the recovery codes you saved when you set up two-factor authentication." xml:space="preserve">
+    <value>İki adımlı doğrulamayı kurarken kaydettiğiniz kurtarma kodlarından birini girin.</value>
+  </data>
+  <data name="Enter the code from your authenticator app." xml:space="preserve">
+    <value>Doğrulama uygulamanızdaki kodu girin.</value>
+  </data>
+  <data name="Recovery code" xml:space="preserve">
+    <value>Kurtarma kodu</value>
+  </data>
+  <data name="Code" xml:space="preserve">
+    <value>Kod</value>
+  </data>
+  <data name="Don't ask again on this browser" xml:space="preserve">
+    <value>Bu tarayıcıda tekrar sorma</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Doğrula</value>
+  </data>
+  <data name="Use your authenticator app" xml:space="preserve">
+    <value>Doğrulama uygulamanızı kullanın</value>
+  </data>
+  <data name="Lost your device? Use a recovery code" xml:space="preserve">
+    <value>Cihazınızı mı kaybettiniz? Kurtarma kodu kullanın</value>
+  </data>
+  <data name="That code is not right. Check it and try again." xml:space="preserve">
+    <value>Kod doğru değil. Kontrol edip yeniden deneyin.</value>
+  </data>
+  <data name="Enter the code." xml:space="preserve">
+    <value>Kodu girin.</value>
+  </data>
+  <data name="Set up two-factor authentication" xml:space="preserve">
+    <value>İki adımlı doğrulamayı kurun</value>
+  </data>
+  <data name="Save your recovery codes" xml:space="preserve">
+    <value>Kurtarma kodlarınızı kaydedin</value>
+  </data>
+  <data name="Two-factor authentication is on. If you lose your device, each of these codes signs you in once. Keep them somewhere safe; they are not shown again." xml:space="preserve">
+    <value>İki adımlı doğrulama açık. Cihazınızı kaybederseniz bu kodların her biri bir kez giriş yapmanızı sağlar. Güvenli bir yerde saklayın; bir daha gösterilmeyecekler.</value>
+  </data>
+  <data name="Your account needs a second step at sign-in. Scan the code with an authenticator app, such as Google Authenticator or Microsoft Authenticator, then enter the code it shows." xml:space="preserve">
+    <value>Hesabınız girişte ikinci bir adım gerektiriyor. Kodu Google Authenticator veya Microsoft Authenticator gibi bir doğrulama uygulamasıyla tarayın, ardından uygulamanın gösterdiği kodu girin.</value>
+  </data>
+  <data name="QR code of your authenticator key" xml:space="preserve">
+    <value>Doğrulama anahtarınızın QR kodu</value>
+  </data>
+  <data name="Can't scan it? Enter this key in the app instead:" xml:space="preserve">
+    <value>Tarayamıyor musunuz? Bunun yerine bu anahtarı uygulamaya girin:</value>
+  </data>
+  <data name="Turn on" xml:space="preserve">
+    <value>Aç</value>
+  </data>
 </root>

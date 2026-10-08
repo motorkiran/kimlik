@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Mfa;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -25,34 +26,52 @@ internal static class IdentityServiceCollectionExtensions
         services.AddScoped<IRequestContext, HttpRequestContext>();
         services.AddScoped<PasswordHashTiming>();
         services.AddScoped<SignOutService>();
+        services.AddScoped<SignInFlow>();
         services.AddScoped<AccountErrorMessages>();
         services.AddSingleton<IAccountLinks, AccountLinks>();
 
         return services;
     }
 
-    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts)
+    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts, IOptions<MfaOptions> mfa)
         : IConfigureNamedOptions<CookieAuthenticationOptions>
     {
         public void Configure(string? name, CookieAuthenticationOptions options)
         {
-            if (name != IdentityConstants.ApplicationScheme)
+            if (name == IdentityConstants.ApplicationScheme)
             {
-                return;
+                Secure(options, "session");
+                options.ExpireTimeSpan = accounts.Value.SessionLifetime;
+                options.SlidingExpiration = true;
+                options.LoginPath = "/signin";
+                options.LogoutPath = "/signout";
+                options.AccessDeniedPath = "/error";
             }
-
-            // The __Host- prefix pins the cookie to this host and path and requires HTTPS.
-            options.Cookie.Name = server.Value.RequireHttps ? "__Host-kimlik.session" : "kimlik.session";
-            options.Cookie.HttpOnly = true;
-            options.Cookie.SameSite = SameSiteMode.Lax;
-            options.Cookie.SecurePolicy = server.Value.RequireHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
-            options.ExpireTimeSpan = accounts.Value.SessionLifetime;
-            options.SlidingExpiration = true;
-            options.LoginPath = "/signin";
-            options.LogoutPath = "/signout";
-            options.AccessDeniedPath = "/error";
+            else if (name == IdentityConstants.TwoFactorUserIdScheme)
+            {
+                // A sign-in waiting for its second factor.
+                Secure(options, "mfa-pending");
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+                options.SlidingExpiration = false;
+            }
+            else if (name == IdentityConstants.TwoFactorRememberMeScheme)
+            {
+                // A browser the user trusts to skip the second factor.
+                Secure(options, "mfa-trusted");
+                options.ExpireTimeSpan = mfa.Value.RememberBrowserFor;
+                options.SlidingExpiration = false;
+            }
         }
 
         public void Configure(CookieAuthenticationOptions options) => Configure(Options.DefaultName, options);
+
+        /// <summary>The __Host- prefix pins a cookie to this host and path and requires HTTPS.</summary>
+        private void Secure(CookieAuthenticationOptions options, string name)
+        {
+            options.Cookie.Name = server.Value.RequireHttps ? $"__Host-kimlik.{name}" : $"kimlik.{name}";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = server.Value.RequireHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+        }
     }
 }

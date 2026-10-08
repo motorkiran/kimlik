@@ -93,6 +93,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Email__FromAddress`, `Kimlik__Email__Smtp__Host` | Sender and SMTP relay for verification and reset emails |
 | `Kimlik__Provisioning__FilePath` | A provisioning file to apply at startup (see below) |
 | `Kimlik__Accounts__*` | Registration mode, email verification, password length, lockout |
+| `Kimlik__Mfa__*` | Who must use a second factor (administrators by default, or everyone) and how long a trusted browser may skip it |
 | `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
 | `Kimlik__Plans__DefaultUserPlan`, `Kimlik__Plans__DefaultOrganizationPlan` | The plan of users and organizations without a current subscription |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |

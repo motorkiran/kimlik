@@ -102,7 +102,14 @@ internal static class TokenEndpoint
         }
 
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
-            .CreateAsync(user, principal.GetScopes(), principal.GetResources(), authenticatedAt, organization.Value, cancellationToken);
+            .CreateAsync(
+                user,
+                principal.GetScopes(),
+                principal.GetResources(),
+                authenticatedAt,
+                OidcPrincipalFactory.GetAuthenticationMethods(principal),
+                organization.Value,
+                cancellationToken);
         identity.SetAuthorizationId(principal.GetAuthorizationId());
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
