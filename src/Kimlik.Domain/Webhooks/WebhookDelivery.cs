@@ -67,6 +67,13 @@ public sealed class WebhookDelivery
         NextAttemptAt = leaseUntil;
     }
 
+    /// <summary>Hands back an attempt that was not made, such as when the instance stops, so that one is made now.</summary>
+    public void AbandonAttempt(DateTimeOffset now)
+    {
+        Attempts--;
+        NextAttemptAt = now;
+    }
+
     public void Succeed(int statusCode, string? responseBody)
     {
         Status = WebhookDeliveryStatus.Succeeded;

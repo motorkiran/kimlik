@@ -15,8 +15,8 @@ namespace Kimlik.Infrastructure.Webhooks;
 /// <summary>
 /// Sends due webhook deliveries and retries failed ones with growing delays. A batch is claimed in a short
 /// transaction that leases its deliveries (<c>FOR UPDATE SKIP LOCKED</c>), and sent outside of it, so any number of
-/// instances can share the work. If an instance stops while sending, the lease runs out and another one retries:
-/// delivery is at least once.
+/// instances can share the work. An instance that stops hands back what it has not sent; if one stops without that,
+/// such as in a crash, the lease runs out and another one retries: delivery is at least once.
 /// </summary>
 internal sealed partial class WebhookDeliveryService(
     IServiceScopeFactory scopeFactory,
@@ -68,16 +68,35 @@ internal sealed partial class WebhookDeliveryService(
         var sender = scope.ServiceProvider.GetRequiredService<WebhookSender>();
         var encryption = scope.ServiceProvider.GetRequiredService<ISecretEncryption>();
 
-        var attempts = await Task.WhenAll(deliveries.Select(async delivery =>
-            (Delivery: delivery, Attempt: await AttemptAsync(delivery, endpoints[delivery.EndpointId], sender, encryption, cancellationToken))));
-
-        var now = timeProvider.GetUtcNow();
-        foreach (var (delivery, attempt) in attempts)
+        var sends = deliveries
+            .Select(delivery => (Delivery: delivery, Attempt: AttemptAsync(delivery, endpoints[delivery.EndpointId], sender, encryption, cancellationToken)))
+            .ToList();
+        try
         {
-            Record(delivery, endpoints[delivery.EndpointId], attempt, now);
+            await Task.WhenAll(sends.Select(send => send.Attempt));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The instance is stopping; what was not sent is handed back below.
         }
 
-        await context.SaveChangesAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        foreach (var (delivery, attempt) in sends)
+        {
+            if (attempt.IsCompletedSuccessfully)
+            {
+                Record(delivery, endpoints[delivery.EndpointId], attempt.Result, now);
+            }
+            else
+            {
+                // Another instance makes the attempt now, instead of when the lease runs out.
+                delivery.AbandonAttempt(now);
+            }
+        }
+
+        // Saved even while stopping, so that neither the outcomes nor the handed-back deliveries are lost.
+        await context.SaveChangesAsync(CancellationToken.None);
+        cancellationToken.ThrowIfCancellationRequested();
         return deliveries.Count;
     }
 
