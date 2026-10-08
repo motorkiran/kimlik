@@ -1,4 +1,4 @@
-# Kimlik: Project Design Document
+| `/provisioning` | Import and export the access model |# Kimlik: Project Design Document
 
 > **Status:** Draft for review · **Last updated:** 2026-10-07 · **License:** Apache-2.0
 
@@ -145,7 +145,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 - A consent screen for third-party clients. First-party clients skip consent.
 - An organization picker for clients that require an organization context.
 - Account pages for profile, password, two-factor authentication, connected social accounts, active sessions and account deletion.
-- Localization in English and Turkish. Theming through settings: product name, logo, colors and custom CSS.
+- Localization in English and Turkish. Theming through configuration: product name, logo and primary color.
 
 **OpenID Connect / OAuth (OpenIddict)**
 
@@ -207,7 +207,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 **Admin panel (Blazor)**
 
-- Screens for users, organizations, roles and permissions (with a matrix view), features and plans, subscriptions, clients, API keys, webhooks and deliveries, the audit log, and settings.
+- Screens for users, organizations, roles and permissions (with a matrix view), features and plans, subscriptions, clients, API keys, webhooks and deliveries, and the audit log.
 
 **Provisioning (configuration as code)**
 
@@ -239,7 +239,7 @@ The backlog, roughly in priority order:
 10. Breached-password checks, CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`, `max_age`).
 11. Personal data export (KVKK/GDPR).
 12. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
-13. Social providers configured at runtime from the admin panel.
+13. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file, with custom CSS for the hosted pages.
 14. A JavaScript/TypeScript SDK and a Helm chart.
 15. OpenID Foundation certification.
 
@@ -429,7 +429,7 @@ Principles:
 
 - Razor Pages, rendered on the server with minimal JavaScript (progressive enhancement).
 - Anti-forgery tokens on every form and a strict Content Security Policy with nonces.
-- Localization through resource files, and theming through CSS custom properties driven by settings.
+- Localization through resource files, and theming through CSS custom properties driven by configuration.
 - Accessibility target: WCAG 2.2 AA.
 
 ### 6.5 Admin panel
@@ -462,7 +462,7 @@ HybridCache provides an in-memory layer, plus an optional layer on Redis (or a c
 ### 6.8 Configuration
 
 - **Infrastructure configuration** comes from standard .NET configuration: `appsettings.json` and environment variables named `Kimlik__Section__Key`. This covers the connection string, master key, SMTP, social provider credentials and bootstrap admin. Options are validated at startup.
-- **Product settings** live in the database and are edited through the admin panel, the API or the provisioning file. These include branding, registration mode, password and MFA policies, token lifetimes and default plans.
+- **Product settings** come from the same configuration, in their own sections: branding, registration mode, password and MFA policies, token lifetimes and default plans. Changing one takes a restart. Keeping them in the database, to edit them in the admin panel, the API or the provisioning file, is a later phase ([ADR 0001](adr/0001-product-settings-from-configuration.md)).
 
 ### 6.9 Observability
 
@@ -537,7 +537,6 @@ erDiagram
 | | `webhook_endpoints` | `url`, encrypted secret, `event_types`, `is_enabled` |
 | | `webhook_deliveries` | `endpoint_id`, `event_id`, `status`, `attempts`, `next_attempt_at`, last response |
 | | `audit_events` | `occurred_at`, `action`, actor (type, id), subject (type, id), `organization_id`, `ip_address`, `user_agent`, `correlation_id`, `data` |
-| Settings | `settings` | `key`, `value` (`jsonb`) |
 
 ---
 
@@ -660,14 +659,14 @@ erDiagram
 | `/api-keys`, `/api-keys/verify` | List and revoke; verify (for resource servers) |
 | `/webhooks/endpoints`, `/webhooks/deliveries` | Manage endpoints, inspect and redeliver |
 | `/audit-events` | Query |
-| `/settings`, `/provisioning` | Read and update settings, import and export |
+| `/provisioning` | Import and export the access model |
 
 Every operation requires a system permission, for example:
 
 - `kimlik.users:read` and `kimlik.users:write`
 - `kimlik.roles:write`, `kimlik.clients:write` and `kimlik.plans:write`
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
-- `kimlik.webhooks:read`, `kimlik.webhooks:write`, `kimlik.audit:read` and `kimlik.settings:write`
+- `kimlik.webhooks:read`, `kimlik.webhooks:write` and `kimlik.audit:read`
 - `kimlik.api_keys:read` and `kimlik.api_keys:write`
 - `kimlik.api_keys:verify`
 
@@ -688,7 +687,7 @@ Event names follow `<resource>.<past_tense_verb>`.
   - Invitations: `invitation.created`, `invitation.accepted`
   - Subscriptions: `subscription.created`, `subscription.updated`, `subscription.canceled`, `subscription.expired`
   - API keys: `api_key.created`, `api_key.revoked`
-- **Audit-only examples:** `user.signed_in`, `user.sign_in_failed`, `user.locked_out`, `user.password_changed`, `user.password_reset`, `user.email_verified`, `user.login_linked`, `user.mfa_challenge_failed`, `user.recovery_code_used`, `user.mfa_reset`, `role.assigned`, `client.secret_regenerated`, `settings.updated`.
+- **Audit-only examples:** `user.signed_in`, `user.sign_in_failed`, `user.locked_out`, `user.password_changed`, `user.password_reset`, `user.email_verified`, `user.login_linked`, `user.mfa_challenge_failed`, `user.recovery_code_used`, `user.mfa_reset`, `role.assigned`, `client.secret_regenerated`.
 
 Webhook delivery follows the Standard Webhooks specification (`webhook-id`, `webhook-timestamp` and `webhook-signature` headers, HMAC-SHA256):
 
@@ -964,8 +963,8 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M4: Plans and entitlements** | Features, plans, subscriptions, expiration job, `plan` claim, entitlements API, SDK `RequireFeature` and limits | The sample API gates a feature and enforces a limit ✅ |
 | **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests ✅ |
 | **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection ✅ |
-| **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI ✅ (product settings still come from configuration) |
-| **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image and NuGet publishing | v0.1.0 released |
+| **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI ✅ (product settings come from configuration, [ADR 0001](adr/0001-product-settings-from-configuration.md)) |
+| **M8: Hardening and v0.1.0** | Security review ✅, load tests ✅, documentation, samples, container image. NuGet publishing waits until the `Kimlik.*` prefix is reserved ([§17.1](#171-open-questions)) | v0.1.0 released |
 
 ---
 
@@ -974,7 +973,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 ### 17.1 Open questions
 
 1. **Names and namespaces.** The GitHub organization, reserving the `Kimlik.*` package ID prefix on NuGet, and the documentation domain.
-2. **Hosted UI customization.** The MVP offers theming through settings. Are template overrides needed early?
+2. **Hosted UI customization.** The MVP offers theming through configuration. Are template overrides needed early?
 3. **Defaults.** Should registration default to open or invite-only? Should any user be able to create organizations, or only admins?
 4. **Network separation.** Should the Management API and admin panel be bindable to a separate port, so they can be exposed internally only?
 
