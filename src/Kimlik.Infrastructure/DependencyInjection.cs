@@ -95,8 +95,10 @@ public static class DependencyInjection
     {
         services.AddIdentityCore<User>()
             .AddEntityFrameworkStores<KimlikDbContext>()
+            .AddUserStore<KimlikUserStore>()
             .AddDefaultTokenProviders()
             .AddTokenProvider<PasswordResetTokenProvider<User>>(PasswordResetTokenProviderOptions.ProviderName)
+            .AddTokenProvider<TotpTokenProvider>(TokenOptions.DefaultAuthenticatorProvider)
             .AddPasswordValidator<MaximumLengthPasswordValidator<User>>();
 
         services.AddSingleton<ConfigureIdentity>();

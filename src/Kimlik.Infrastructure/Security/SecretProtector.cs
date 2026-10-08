@@ -57,6 +57,8 @@ internal sealed class SecretProtector : ISecretProtector
         return plaintext;
     }
 
+    public byte[] Hash(ReadOnlySpan<byte> data, string purpose) => HMACSHA256.HashData(GetPurposeKey(purpose), data);
+
     private byte[] GetPurposeKey(string purpose)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(purpose);
