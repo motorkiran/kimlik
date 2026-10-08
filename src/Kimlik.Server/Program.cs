@@ -16,6 +16,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddSignInSession();
 builder.Services.AddOidcServer();
+builder.Services.AddBrowserClientCors();
 builder.Services.AddManagementApi();
 builder.Services.AddHostedUi();
 builder.Services.AddKimlikRateLimiting();
@@ -47,6 +48,7 @@ app.UseHealthProbes();
 app.UseReadinessGate();
 
 app.UseRequestLocalization();
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

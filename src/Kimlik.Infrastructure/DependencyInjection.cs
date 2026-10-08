@@ -2,6 +2,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Auditing;
+using Kimlik.Infrastructure.Clients;
 using Kimlik.Infrastructure.Email;
 using Kimlik.Infrastructure.Identity;
 using Kimlik.Infrastructure.Outbox;
@@ -54,9 +55,13 @@ public static class DependencyInjection
                 GetConnectionString(serviceProvider.GetRequiredService<IConfiguration>()),
                 npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, KimlikDbContext.Schema))
             .UseSnakeCaseNamingConvention()
-            .AddInterceptors(serviceProvider.GetRequiredService<OutboxSignalInterceptor>()));
+            .AddInterceptors(
+                serviceProvider.GetRequiredService<OutboxSignalInterceptor>(),
+                serviceProvider.GetRequiredService<ClientChangeInterceptor>()));
 
         services.AddScoped<IKimlikDbContext>(provider => provider.GetRequiredService<KimlikDbContext>());
+        services.AddSingleton<ClientChangeSignal>();
+        services.AddScoped<ClientChangeInterceptor>();
         services.AddScoped<SystemCatalog>();
         services.AddScoped<DatabasePreparation>();
 
