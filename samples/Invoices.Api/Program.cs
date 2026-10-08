@@ -72,6 +72,20 @@ api.MapGet("/invoices/export", (InvoiceStore invoices) =>
     .RequirePermission("invoices:read")
     .RequireFeature("export_pdf");
 
+// Kimlik's events, such as user.created, signed with the endpoint's secret. Register
+// http://localhost:5173/webhooks/kimlik as a webhook endpoint in Kimlik's admin panel, and put its secret in
+// Kimlik:WebhookSecret. Delivery is at least once, so a real handler does each webhook-id only once.
+app.MapPost("/webhooks/kimlik", async (HttpRequest request, ILogger<Program> logger) =>
+{
+    if (settings["WebhookSecret"] is not { Length: > 0 } secret || await KimlikWebhook.ReadAsync(request, secret, request.HttpContext.RequestAborted) is not { } webhookEvent)
+    {
+        return Results.Unauthorized();
+    }
+
+    Log.WebhookReceived(logger, webhookEvent.Type, webhookEvent.Data.SubjectType, webhookEvent.Data.SubjectId);
+    return Results.NoContent();
+});
+
 if (app.Environment.IsDevelopment())
 {
     // For the demo only: anyone signed in can become an accountant. The API holds kimlik.users:write through
@@ -120,6 +134,12 @@ if (app.Environment.IsDevelopment())
 }
 
 await app.RunAsync();
+
+internal static partial class Log
+{
+    [LoggerMessage(LogLevel.Information, "Kimlik: {Type} for {SubjectType} {SubjectId}")]
+    public static partial void WebhookReceived(ILogger logger, string type, string subjectType, string subjectId);
+}
 
 internal sealed record Invoice(Guid Id, string Customer, decimal Amount, string CreatedBy, DateTimeOffset CreatedAt);
 
