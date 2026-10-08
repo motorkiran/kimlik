@@ -25,7 +25,6 @@ public sealed class ListUsersHandler(IKimlikDbContext context, ILookupNormalizer
             return CommonErrors.InvalidParameter("status");
         }
 
-        var limit = Cursor.ClampLimit(query.Limit);
         var users = context.Users.AsNoTracking();
 
         if (after is { } afterId)
@@ -52,19 +51,10 @@ public sealed class ListUsersHandler(IKimlikDbContext context, ILookupNormalizer
             users = users.Where(user => user.Status == domainStatus);
         }
 
-        // One extra row tells whether there is a next page.
-        var page = await users.OrderBy(user => user.Id).Take(limit + 1).ToListAsync(cancellationToken);
-        var hasMore = page.Count > limit;
-        if (hasMore)
-        {
-            page.RemoveAt(limit);
-        }
-
+        var (page, nextCursor) = await Cursor.ReadPageAsync(users.OrderBy(user => user.Id), query.Limit, user => user.Id, cancellationToken);
         var roles = await context.RolesOfAsync([.. page.Select(user => user.Id)], cancellationToken);
 
-        return new Page<UserResponse>(
-            [.. page.Select(user => user.ToResponse(roles[user.Id]))],
-            hasMore ? Cursor.Encode(page[^1].Id) : null);
+        return new Page<UserResponse>([.. page.Select(user => user.ToResponse(roles[user.Id]))], nextCursor);
     }
 }
 

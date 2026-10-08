@@ -16,4 +16,11 @@ public static class AuditActions
     public const string UserEmailVerified = "user.email_verified";
     public const string UserPasswordResetRequested = "user.password_reset_requested";
     public const string UserPasswordReset = "user.password_reset";
+    public const string PermissionCreated = "permission.created";
+    public const string PermissionUpdated = "permission.updated";
+    public const string PermissionDeleted = "permission.deleted";
+    public const string RoleCreated = "role.created";
+    public const string RoleUpdated = "role.updated";
+    public const string RolePermissionsChanged = "role.permissions_changed";
+    public const string RoleDeleted = "role.deleted";
 }

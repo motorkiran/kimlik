@@ -102,13 +102,8 @@ internal static class UserEndpoints
     }
 
     private static async Task<Results<Created<UserResponse>, ProblemHttpResult>> CreateAsync(
-        CreateUserRequest request, CreateUserHandler handler, CancellationToken cancellationToken)
-    {
-        var result = await handler.HandleAsync(request, cancellationToken);
-        return result.IsSuccess
-            ? TypedResults.Created($"{ManagementApi.BasePath}/users/{result.Value.Id}", result.Value)
-            : ApiResults.Problem(result.Error);
-    }
+        CreateUserRequest request, CreateUserHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(request, cancellationToken)).ToCreated(user => $"{ManagementApi.BasePath}/users/{user.Id}");
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> GetAsync(
         Guid id, GetUserHandler handler, CancellationToken cancellationToken) =>

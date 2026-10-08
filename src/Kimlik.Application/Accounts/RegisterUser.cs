@@ -1,5 +1,5 @@
-using System.Data.Common;
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Common;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
@@ -25,8 +25,6 @@ public sealed class RegisterUserHandler(
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
-    private const string UniqueViolationSqlState = "23505";
-
     public async Task<Result<User>> HandleAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
         if (options.Value.Registration != RegistrationMode.Open)
@@ -63,7 +61,7 @@ public sealed class RegisterUserHandler(
                 return AccountErrors.FromIdentity(result.Errors);
             }
         }
-        catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: UniqueViolationSqlState })
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // Another sign-up with the same address won the race; the unique index caught it.
             return AccountErrors.EmailAlreadyRegistered;

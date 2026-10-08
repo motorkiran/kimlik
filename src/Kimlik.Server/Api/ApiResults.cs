@@ -9,6 +9,9 @@ internal static class ApiResults
     public static Results<Ok<T>, ProblemHttpResult> ToOk<T>(this Result<T> result) =>
         result.IsSuccess ? TypedResults.Ok(result.Value) : Problem(result.Error);
 
+    public static Results<Created<T>, ProblemHttpResult> ToCreated<T>(this Result<T> result, Func<T, string> location) =>
+        result.IsSuccess ? TypedResults.Created(location(result.Value), result.Value) : Problem(result.Error);
+
     public static Results<NoContent, ProblemHttpResult> ToNoContent(this Result result) =>
         result.IsSuccess ? TypedResults.NoContent() : Problem(result.Error);
 

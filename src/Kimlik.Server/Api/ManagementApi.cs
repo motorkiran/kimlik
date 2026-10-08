@@ -31,7 +31,9 @@ internal static class ManagementApi
 
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
-        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
+        // Enums travel as their camelCase names; numbers would tie clients to declaration order.
+        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
         services.Configure<ProblemDetailsOptions>(options => options.CustomizeProblemDetails = context =>
         {
             // Malformed requests get a code too, like every other API error.
@@ -54,7 +56,10 @@ internal static class ManagementApi
 
     public static IEndpointRouteBuilder MapManagementApi(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGroup(BasePath).MapUserEndpoints();
+        endpoints.MapGroup(BasePath)
+            .MapUserEndpoints()
+            .MapPermissionEndpoints()
+            .MapRoleEndpoints();
 
         endpoints.MapOpenApi();
         endpoints.MapScalarApiReference(options => options.WithTitle("Kimlik API"));

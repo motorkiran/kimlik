@@ -16,4 +16,8 @@ public sealed record AuditActor(AuditActorType Type, string? Id)
 public sealed record AuditSubject(string Type, string Id)
 {
     public static AuditSubject User(Guid userId) => new("user", userId.ToString());
+
+    public static AuditSubject Permission(Guid permissionId) => new("permission", permissionId.ToString());
+
+    public static AuditSubject Role(Guid roleId) => new("role", roleId.ToString());
 }

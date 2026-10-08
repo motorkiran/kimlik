@@ -1,6 +1,6 @@
-using System.Data.Common;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Common;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
@@ -20,8 +20,6 @@ public sealed class CreateUserHandler(
     IOptions<AccountOptions> accounts,
     TimeProvider timeProvider)
 {
-    private const string UniqueViolationSqlState = "23505";
-
     public async Task<Result<UserResponse>> HandleAsync(CreateUserRequest request, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
@@ -43,7 +41,7 @@ public sealed class CreateUserHandler(
                 return AccountErrors.FromIdentity(result.Errors);
             }
         }
-        catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: UniqueViolationSqlState })
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             return AccountErrors.EmailAlreadyRegistered;
         }
