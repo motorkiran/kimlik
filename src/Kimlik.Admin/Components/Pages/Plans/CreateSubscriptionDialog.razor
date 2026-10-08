@@ -12,11 +12,13 @@
         </MudSelect>
         @if (_type == SubscriberType.User)
         {
-            <MudAutocomplete T="UserResponse" Label="User" SearchFunc="SearchUsersAsync" ToStringFunc="user => user?.Email" @bind-Value="_user" DebounceInterval="300" />
+            <MudAutocomplete T="UserResponse" Label="User" SearchFunc="SearchUsersAsync" ToStringFunc="user => user?.Email" @bind-Value="_user" DebounceInterval="300"
+                             Disabled="!Session.Has(SystemPermissions.UsersRead)" HelperText="@MissingToFind("users", SystemPermissions.UsersRead)" />
         }
         else
         {
-            <MudAutocomplete T="OrganizationResponse" Label="Organization" SearchFunc="SearchOrganizationsAsync" ToStringFunc="organization => organization?.Name" @bind-Value="_organization" DebounceInterval="300" />
+            <MudAutocomplete T="OrganizationResponse" Label="Organization" SearchFunc="SearchOrganizationsAsync" ToStringFunc="organization => organization?.Name" @bind-Value="_organization"
+                             DebounceInterval="300" Disabled="!Session.Has(SystemPermissions.OrganizationsRead)" HelperText="@MissingToFind("organizations", SystemPermissions.OrganizationsRead)" />
         }
         <MudSelect T="string" @bind-Value="_plan" Label="Plan">
             @foreach (var plan in Plans)
@@ -51,17 +53,20 @@
 
     private Guid? SubscriberId => _type == SubscriberType.User ? _user?.Id : _organization?.Id;
 
+    // Finding a subscriber lists users or organizations, so it takes the right to see them, not only subscriptions.
+    private string? MissingToFind(string subscribers, string permission) => Session.Has(permission) ? null : $"Finding {subscribers} takes {permission}.";
+
     private async Task<IEnumerable<UserResponse>> SearchUsersAsync(string? search, CancellationToken cancellationToken)
     {
         var users = await Operations.RunAsync<ListUsersHandler, Result<Page<UserResponse>>>(
-            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListUsersQuery(search, null, null, 10), cancellationToken));
+            SystemPermissions.UsersRead, handler => handler.HandleAsync(new ListUsersQuery(search, null, null, 10), cancellationToken));
         return users.IsSuccess ? users.Value.Items : [];
     }
 
     private async Task<IEnumerable<OrganizationResponse>> SearchOrganizationsAsync(string? search, CancellationToken cancellationToken)
     {
         var organizations = await Operations.RunAsync<ListOrganizationsHandler, Result<Page<OrganizationResponse>>>(
-            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListOrganizationsQuery(search, null, 10), cancellationToken));
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListOrganizationsQuery(search, null, 10), cancellationToken));
         return organizations.IsSuccess ? organizations.Value.Items : [];
     }
 

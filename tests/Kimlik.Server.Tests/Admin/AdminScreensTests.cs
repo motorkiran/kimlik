@@ -110,6 +110,19 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task NewSubscription_FindsSubscribers_OnlyWithTheRightToSeeThem()
+    {
+        await using var admin = new AdminComponents(
+            server, Guid.NewGuid(), new HashSet<string>(StringComparer.Ordinal) { SystemPermissions.SubscriptionsRead, SystemPermissions.SubscriptionsWrite });
+        var page = admin.Render<Subscriptions>();
+
+        page.WaitForElement("button").Click();
+
+        admin.Dialogs.WaitForAssertion(() => admin.Dialogs.Markup.ShouldContain($"Finding users takes {SystemPermissions.UsersRead}."));
+        admin.Dialogs.FindComponent<MudAutocomplete<Kimlik.Contracts.Management.UserResponse>>().Instance.Disabled.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task PlanEditor_SavesFeatureValues()
     {
         var (planId, flag, limit) = await server.QueryDatabaseAsync(async context =>
