@@ -1,0 +1,27 @@
+@page "/signin/passkey"
+@using Kimlik.Server.Hosting
+@model SignInPasskeyOfferModel
+@{
+    ViewData["Title"] = L["Sign in faster with a passkey"];
+}
+
+<h1 id="page-title">@L["Sign in faster with a passkey"]</h1>
+<p class="lead">@L["Next time, sign in with your fingerprint, face or screen lock instead of your password. Passkeys cannot be phished."]</p>
+
+<form method="post" asp-page="/Account/Passkeys" asp-page-handler="Add" id="add-passkey" data-passkey="create"
+      data-options="@Url.Page("/Account/Passkeys", "Options")" hidden>
+    <input type="hidden" name="Credential" />
+    <input type="hidden" name="State" />
+    <input type="hidden" name="ReturnUrl" value="@Model.ContinueUrl" />
+    <p class="field-error" data-passkey-error hidden>@L["The passkey could not be added. Try again."]</p>
+    <button type="submit" class="button">@L["Add a passkey"]</button>
+</form>
+<p class="hint" data-passkey-unsupported>@L["This browser cannot add passkeys."]</p>
+
+<div class="actions">
+    <a class="button button-secondary" href="@Model.ContinueUrl" id="not-now">@L["Not now"]</a>
+</div>
+
+@section Scripts {
+    <script src="~/js/passkeys.js" asp-append-version="true" nonce="@HttpContext.GetCspNonce()" defer></script>
+}

@@ -94,9 +94,11 @@ public sealed class InvitationTests(KimlikServerFixture server)
         emailField.GetAttribute("value").ShouldBe(email);
         emailField.HasAttribute("readonly").ShouldBeTrue();
 
-        // The link reached the invited inbox, so the new account needs no verification email and goes straight back.
+        // The link reached the invited inbox, so the new account needs no verification email and goes straight back,
+        // after the offer to add a passkey.
         using var signedUp = await browser.SubmitAsync(signUp, new Dictionary<string, string> { ["Input.Password"] = TestUsers.Password });
-        signedUp.Headers.Location!.OriginalString.ShouldBe(link);
+        signedUp.Headers.Location!.OriginalString.ShouldBe($"/signin/passkey?returnUrl={Uri.EscapeDataString(link)}");
+        (await browser.GetPageAsync(signedUp.Headers.Location.OriginalString)).Document.QuerySelector("#not-now")!.GetAttribute("href").ShouldBe(link);
         var accept = await browser.GetPageAsync(link);
         var joined = await Browser.ReadPageAsync(await browser.SubmitAsync(accept));
 

@@ -79,7 +79,8 @@ public sealed class SignInTwoFactorModel(
             }
 
             await signInFlow.RecordAsync(user, SignInFlow.MultiFactorMethod, provider, cancellationToken);
-            return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
+            var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
+            return LocalRedirect(provider is null ? await signInFlow.OfferPasskeyAsync(user, returnUrl) : returnUrl);
         }
 
         auditLog.Record(

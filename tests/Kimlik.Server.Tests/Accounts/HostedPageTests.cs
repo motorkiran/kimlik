@@ -57,7 +57,7 @@ public sealed class HostedPageTests(KimlikServerFixture server)
         var policy = signIn.Headers.GetValues("Content-Security-Policy").Single();
         var nonce = Regex.Match(policy, "script-src 'nonce-([A-Za-z0-9+/=]+)'");
         nonce.Success.ShouldBeTrue();
-        (await signIn.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain($"nonce=\"{nonce.Groups[1].Value}\"");
+        (await Browser.ReadPageAsync(signIn)).Document.QuerySelector("script[src*=passkeys]")!.GetAttribute("nonce").ShouldBe(nonce.Groups[1].Value);
         signUp.Headers.GetValues("Content-Security-Policy").Single().ShouldContain("script-src 'none'");
     }
 

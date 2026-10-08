@@ -25,7 +25,7 @@ public sealed class BootstrapAdministratorTests(KimlikServerFixture server)
 
         using var browser = new Browser(kimlik);
         using var signIn = await browser.SignInAsync(email, Password);
-        signIn.Headers.Location!.ToString().ShouldBe("/");
+        signIn.Headers.Location!.ToString().ShouldBe("/signin/passkey?returnUrl=%2F");
         (await AdministratorsAsync(kimlik)).ShouldBe([email]);
     }
 

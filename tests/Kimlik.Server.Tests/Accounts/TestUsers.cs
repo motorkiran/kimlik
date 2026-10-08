@@ -10,13 +10,20 @@ internal static class TestUsers
 {
     public const string Password = "correct horse battery staple";
 
-    /// <summary>Creates an account directly, bypassing sign-up, with a unique email address.</summary>
-    public static Task<TestUser> CreateUserAsync(this KimlikServerFixture server, bool emailConfirmed = true) =>
+    /// <summary>
+    /// Creates an account directly, bypassing sign-up, with a unique email address. Unless <paramref name="passkeyOffered"/>
+    /// is false, the user has already been offered to add a passkey, so that signing in goes straight on.
+    /// </summary>
+    public static Task<TestUser> CreateUserAsync(this KimlikServerFixture server, bool emailConfirmed = true, bool passkeyOffered = true) =>
         server.WithServicesAsync(async services =>
         {
             var email = $"user-{Guid.NewGuid():N}@example.com";
             var user = User.Create(email, "Ada", "Lovelace", "en", DateTimeOffset.UtcNow);
             user.EmailConfirmed = emailConfirmed;
+            if (passkeyOffered)
+            {
+                user.MarkPasskeyOffered(DateTimeOffset.UtcNow);
+            }
 
             var result = await services.GetRequiredService<UserManager<User>>().CreateAsync(user, Password);
             result.Succeeded.ShouldBeTrue(string.Join(", ", result.Errors.Select(error => error.Code)));

@@ -82,7 +82,8 @@ public sealed class ConnectedAccountTests(KimlikServerFixture server)
         (await Browser.ReadPageAsync(disconnected)).Text.ShouldContain("The account was disconnected.");
 
         using var withPassword = new Browser(provider.Kimlik);
-        (await withPassword.SignInAsync(profile.Email!, "a password of my own")).Headers.Location!.OriginalString.ShouldBe("/");
+        // New accounts are offered a passkey after their first password sign-in.
+        (await withPassword.SignInAsync(profile.Email!, "a password of my own")).Headers.Location!.OriginalString.ShouldBe("/signin/passkey?returnUrl=%2F");
     }
 
     [Fact]

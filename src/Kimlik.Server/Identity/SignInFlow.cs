@@ -94,11 +94,11 @@ public sealed class SignInFlow(
         {
             case SignInStep.FirstFactor:
                 await CompleteAsync(user, persistent, provider is null ? PasswordMethod : FederatedMethod, provider, cancellationToken);
-                return returnUrl;
+                return provider is null ? await OfferPasskeyAsync(user, returnUrl) : returnUrl;
 
             case SignInStep.TrustedBrowser:
                 await CompleteAsync(user, persistent, MultiFactorMethod, provider, cancellationToken);
-                return returnUrl;
+                return provider is null ? await OfferPasskeyAsync(user, returnUrl) : returnUrl;
 
             default:
                 await DeferAsync(user, persistent, step, provider);
@@ -106,6 +106,15 @@ public sealed class SignInFlow(
                 return links.GetPathByPage(signInManager.Context, page, values: new { returnUrl })!;
         }
     }
+
+    /// <summary>
+    /// Where to go after a password sign-in: once per account, to the offer to add a passkey, for people who have none;
+    /// otherwise to <paramref name="returnUrl"/>.
+    /// </summary>
+    public async Task<string> OfferPasskeyAsync(User user, string returnUrl) =>
+        user.PasskeyOfferedAt is null && (await signInManager.UserManager.GetPasskeysAsync(user)).Count == 0
+            ? links.GetPathByPage(signInManager.Context, "/SignInPasskeyOffer", values: new { returnUrl })!
+            : returnUrl;
 
     /// <summary>Starts the session and records the sign-in.</summary>
     public async Task CompleteAsync(User user, bool persistent, string method, string? provider, CancellationToken cancellationToken)

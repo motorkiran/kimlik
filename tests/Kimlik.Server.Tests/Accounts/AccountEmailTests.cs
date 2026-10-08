@@ -22,7 +22,7 @@ public sealed class AccountEmailTests(KimlikServerFixture server)
         page.Text.ShouldContain("Your email address is confirmed.");
 
         using var signIn = await browser.SignInAsync(email, TestUsers.Password);
-        signIn.Headers.Location!.ToString().ShouldBe("/");
+        signIn.Headers.Location!.ToString().ShouldBe("/signin/passkey?returnUrl=%2F");
     }
 
     [Fact]

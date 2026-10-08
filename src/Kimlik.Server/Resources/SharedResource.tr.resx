@@ -619,4 +619,13 @@
   <data name="This account cannot sign in." xml:space="preserve">
     <value>Bu hesapla giriş yapılamıyor.</value>
   </data>
+  <data name="Sign in faster with a passkey" xml:space="preserve">
+    <value>Geçiş anahtarıyla daha hızlı giriş yapın</value>
+  </data>
+  <data name="Next time, sign in with your fingerprint, face or screen lock instead of your password. Passkeys cannot be phished." xml:space="preserve">
+    <value>Bir dahaki sefere şifreniz yerine parmak iziniz, yüzünüz veya ekran kilidinizle giriş yapın. Geçiş anahtarları oltalama yoluyla ele geçirilemez.</value>
+  </data>
+  <data name="Not now" xml:space="preserve">
+    <value>Şimdi değil</value>
+  </data>
 </root>

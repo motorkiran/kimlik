@@ -40,6 +40,9 @@ public sealed class User : IdentityUser<Guid>
 
     public DateTimeOffset? LastSignInAt { get; private set; }
 
+    /// <summary>When the user was offered to add a passkey after a password sign-in; they are offered only once.</summary>
+    public DateTimeOffset? PasskeyOfferedAt { get; private set; }
+
     /// <summary>A JSON object the application keeps about the user, which the user can read too.</summary>
     public string PublicMetadata { get; private set; } = EmptyMetadata;
 
@@ -94,6 +97,8 @@ public sealed class User : IdentityUser<Guid>
         PrivateMetadata = privateMetadata;
         UpdatedAt = now;
     }
+
+    public void MarkPasskeyOffered(DateTimeOffset now) => PasskeyOfferedAt = now;
 
     public void Suspend(DateTimeOffset now)
     {

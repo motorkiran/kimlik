@@ -46,6 +46,10 @@ public sealed class PasskeysModel(
     [BindProperty]
     public string? State { get; set; }
 
+    /// <summary>Where to continue once the passkey is added, as after the offer that follows a sign-in.</summary>
+    [BindProperty]
+    public string? ReturnUrl { get; set; }
+
     public async Task OnGetAsync() => await LoadAsync();
 
     /// <summary>The options for adding a passkey, with the state to post back; only after a recent sign-in.</summary>
@@ -79,6 +83,10 @@ public sealed class PasskeysModel(
         else if ((await passkeys.AddAsync(user, passkey, Name, cancellationToken)).IsFailure)
         {
             ErrorMessage = localizer["You have the most passkeys an account can have. Remove one to add another."];
+        }
+        else if (AccountLinks.IsLocalUrl(ReturnUrl))
+        {
+            return LocalRedirect(ReturnUrl!);
         }
         else
         {
