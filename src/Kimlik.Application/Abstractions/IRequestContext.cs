@@ -8,6 +8,9 @@ public interface IRequestContext
 {
     AuditActor Actor { get; }
 
+    /// <summary>The permissions of the caller, from its access token or session; empty for anonymous callers.</summary>
+    IReadOnlySet<string> Permissions { get; }
+
     IPAddress? IpAddress { get; }
 
     string? UserAgent { get; }

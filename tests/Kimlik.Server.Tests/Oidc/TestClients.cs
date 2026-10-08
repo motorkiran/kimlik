@@ -19,7 +19,8 @@ internal static class TestClients
     public const string ApiScope = "orders";
     public const string ApiResource = "orders-api";
 
-    public static Task<TestClient> CreateServiceClientAsync(this KimlikServerFixture server) =>
+    /// <summary>A confidential client using client credentials, allowed to request <paramref name="scope"/>.</summary>
+    public static Task<TestClient> CreateServiceClientAsync(this KimlikServerFixture server, string scope = ApiScope) =>
         server.WithServicesAsync(async services =>
         {
             var client = new TestClient($"service-{Guid.NewGuid():N}", Convert.ToBase64String(Guid.NewGuid().ToByteArray()));
@@ -35,7 +36,7 @@ internal static class TestClients
                     Permissions.Endpoints.Introspection,
                     Permissions.Endpoints.Revocation,
                     Permissions.GrantTypes.ClientCredentials,
-                    Permissions.Prefixes.Scope + ApiScope,
+                    Permissions.Prefixes.Scope + scope,
                 },
             });
 

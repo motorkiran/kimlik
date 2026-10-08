@@ -4,6 +4,11 @@ namespace Kimlik.Domain.Auditing;
 public static class AuditActions
 {
     public const string UserCreated = "user.created";
+    public const string UserUpdated = "user.updated";
+    public const string UserSuspended = "user.suspended";
+    public const string UserReactivated = "user.reactivated";
+    public const string UserDeleted = "user.deleted";
+    public const string UserRolesChanged = "user.roles_changed";
     public const string UserSignedIn = "user.signed_in";
     public const string UserSignInFailed = "user.sign_in_failed";
     public const string UserLockedOut = "user.locked_out";

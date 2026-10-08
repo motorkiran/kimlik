@@ -22,11 +22,11 @@ internal static class OidcClientExtensions
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
-    public static async Task<string> RequestClientCredentialsTokenAsync(this HttpClient client, TestClient serviceClient)
+    public static async Task<string> RequestClientCredentialsTokenAsync(this HttpClient client, TestClient serviceClient, string scope = TestClients.ApiScope)
     {
         using var response = await client.PostFormAsync(
             "/connect/token",
-            [new("grant_type", "client_credentials"), new("scope", TestClients.ApiScope)],
+            [new("grant_type", "client_credentials"), new("scope", scope)],
             serviceClient);
 
         var body = await response.ReadJsonAsync();

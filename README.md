@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. The foundation (milestone M0) is in place; identity features arrive from milestone M1 on. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages (milestone M1); access control and the Management API (milestone M2) are in progress. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -24,6 +24,7 @@ dotnet run --project src/Kimlik.Server
 |---|---|
 | http://localhost:5080/health/live | Liveness probe |
 | http://localhost:5080/health/ready | Readiness probe (checks the database) |
+| http://localhost:5080/scalar/v1 | Management API reference; the OpenAPI document is at `/openapi/v1.json` |
 | http://localhost:8025 | Mailpit inbox for development email |
 
 The development database listens on port 5433 so that it does not clash with a locally installed PostgreSQL. To use another port, set `KIMLIK_POSTGRES_PORT` and update `ConnectionStrings:Kimlik` in `src/Kimlik.Server/appsettings.Development.json`.
@@ -44,6 +45,8 @@ dotnet test
 ```
 
 Integration tests start a disposable PostgreSQL container with Testcontainers, so the container engine must be running.
+
+A snapshot of the OpenAPI document guards the Management API against accidental breaking changes. After an intended API change, update it with `KIMLIK_UPDATE_SNAPSHOTS=1 dotnet test` and commit the new snapshot.
 
 ### Configuration
 

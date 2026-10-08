@@ -1,4 +1,9 @@
+using System.Net;
+using Kimlik.Contracts;
+using Kimlik.Domain.Access;
 using Kimlik.Infrastructure.Security.TokenKeys;
+using Kimlik.Server.Tests.Access;
+using Kimlik.Server.Tests.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -49,5 +54,55 @@ public sealed class TokenKeyRotationTests(KimlikServerFixture server)
                 .ExecuteDeleteAsync(TestContext.Current.CancellationToken));
             await refresher.RefreshAsync(TestContext.Current.CancellationToken);
         }
+    }
+
+    [Fact]
+    public async Task NewActiveKey_IsTrustedByTheManagementApi()
+    {
+        var refresher = server.Services.GetRequiredService<TokenKeyRefresher>();
+        var serviceClient = await server.CreateServiceClientAsync(KimlikScopes.Api);
+        await server.AssignToClientAsync(serviceClient.ClientId, SystemRoles.Admin);
+
+        // The API has validated tokens before the rotation, so it has to pick up the new key, not just load it.
+        (await CallApiAsync(serviceClient)).ShouldBe(HttpStatusCode.OK);
+
+        // Activated after the current key, so it takes over signing with the next refresh.
+        var now = DateTimeOffset.UtcNow;
+        var newKey = server.Services.GetRequiredService<TokenKeyFactory>()
+            .Create(new TokenKeySchedule(TokenKeyUse.Signing, now, now.AddDays(90), now.AddDays(180)));
+
+        await server.QueryDatabaseAsync(context =>
+        {
+            context.TokenKeys.Add(newKey);
+            return context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        });
+
+        try
+        {
+            (await refresher.RefreshAsync(TestContext.Current.CancellationToken)).ShouldBeTrue();
+
+            (await CallApiAsync(serviceClient, expectedKeyId: newKey.KeyId)).ShouldBe(HttpStatusCode.OK);
+        }
+        finally
+        {
+            await server.QueryDatabaseAsync(context => context.TokenKeys
+                .Where(key => key.KeyId == newKey.KeyId)
+                .ExecuteDeleteAsync(TestContext.Current.CancellationToken));
+            await refresher.RefreshAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    private async Task<HttpStatusCode> CallApiAsync(TestClient serviceClient, string? expectedKeyId = null)
+    {
+        using var client = server.CreateClient();
+        var token = await client.RequestClientCredentialsTokenAsync(serviceClient, KimlikScopes.Api);
+        if (expectedKeyId is not null)
+        {
+            new JsonWebToken(token).Kid.ShouldBe(expectedKeyId);
+        }
+
+        using var api = server.WithToken(token);
+        using var response = await api.GetAsync("/api/v1/users", TestContext.Current.CancellationToken);
+        return response.StatusCode;
     }
 }

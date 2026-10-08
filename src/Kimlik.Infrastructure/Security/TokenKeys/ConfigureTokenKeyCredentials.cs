@@ -1,15 +1,16 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Server;
+using OpenIddict.Validation;
 
 namespace Kimlik.Infrastructure.Security.TokenKeys;
 
 /// <summary>
 /// Gives the OpenID Connect server every usable key: all of them validate, decrypt and appear in JWKS,
-/// and the active ones sign and encrypt new tokens.
+/// and the active ones sign and encrypt new tokens. The validation of Kimlik's own API gets the same keys.
 /// </summary>
 internal sealed class ConfigureTokenKeyCredentials(TokenKeyRing keyRing)
-    : IConfigureOptions<OpenIddictServerOptions>, IPostConfigureOptions<OpenIddictServerOptions>
+    : IConfigureOptions<OpenIddictServerOptions>, IPostConfigureOptions<OpenIddictServerOptions>, IPostConfigureOptions<OpenIddictValidationOptions>
 {
     public void Configure(OpenIddictServerOptions options)
     {
@@ -22,8 +23,7 @@ internal sealed class ConfigureTokenKeyCredentials(TokenKeyRing keyRing)
 
         foreach (var key in keys.EncryptionKeys)
         {
-            options.EncryptionCredentials.Add(new EncryptingCredentials(
-                key.SecurityKey, SecurityAlgorithms.Aes256KW, SecurityAlgorithms.Aes256CbcHmacSha512));
+            options.EncryptionCredentials.Add(EncryptingCredentials(key));
         }
     }
 
@@ -42,6 +42,28 @@ internal sealed class ConfigureTokenKeyCredentials(TokenKeyRing keyRing)
         MoveToFront(options.SigningCredentials, credentials => credentials.Key.KeyId == keys.ActiveKey(TokenKeyUse.Signing).KeyId);
         MoveToFront(options.EncryptionCredentials, credentials => credentials.Key.KeyId == keys.ActiveKey(TokenKeyUse.Encryption).KeyId);
     }
+
+    /// <summary>
+    /// The local validation copies its keys from the server options, but both options are rebuilt when the
+    /// keys change, in no particular order, so the copy may be of the previous keys. The key ring is the
+    /// source of truth for both.
+    /// </summary>
+    public void PostConfigure(string? name, OpenIddictValidationOptions options)
+    {
+        if (keyRing.Current is not { } keys || options.Configuration is null)
+        {
+            return;
+        }
+
+        options.Configuration.SigningKeys.Clear();
+        options.Configuration.SigningKeys.AddRange(keys.SigningKeys.Select(key => key.SecurityKey));
+
+        options.EncryptionCredentials.Clear();
+        options.EncryptionCredentials.AddRange(keys.EncryptionKeys.Select(EncryptingCredentials));
+    }
+
+    private static EncryptingCredentials EncryptingCredentials(LoadedTokenKey key) =>
+        new(key.SecurityKey, SecurityAlgorithms.Aes256KW, SecurityAlgorithms.Aes256CbcHmacSha512);
 
     private static void MoveToFront<T>(List<T> credentials, Predicate<T> isActive)
     {

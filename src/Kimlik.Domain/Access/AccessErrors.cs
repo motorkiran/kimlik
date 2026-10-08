@@ -18,5 +18,18 @@ public static class AccessErrors
 
     public static readonly Error InvalidName = Error.Validation("access.invalid_name", "A name is required and is at most 100 characters.");
 
+    public static readonly Error UnknownRole = Error.Validation("access.unknown_role", "One or more roles do not exist.");
+
+    public static readonly Error UnknownPermission = Error.Validation("access.unknown_permission", "One or more permissions do not exist.");
+
+    public static readonly Error OrganizationRoleNotAssignable = Error.Validation(
+        "access.organization_role_not_assignable", "Organization roles are assigned through organization memberships.");
+
+    /// <summary>
+    /// Nobody can hand out access to Kimlik itself that they do not have, or act on an account that has more of it.
+    /// </summary>
+    public static readonly Error PrivilegeEscalation = Error.Forbidden(
+        "access.privilege_escalation", "Granting system permissions, or managing an account that holds them, requires holding them yourself.");
+
     public static readonly Error InvalidDescription = Error.Validation("access.invalid_description", "A description is at most 256 characters.");
 }

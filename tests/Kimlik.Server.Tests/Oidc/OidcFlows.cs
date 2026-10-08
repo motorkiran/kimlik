@@ -8,13 +8,14 @@ namespace Kimlik.Server.Tests.Oidc;
 internal static class OidcFlows
 {
     /// <summary>Signs the user in through the hosted pages and redeems an authorization code for a new web client.</summary>
-    public static async Task<(Browser Browser, TestWebClient Client, JsonElement Tokens)> SignInAndRedeemAsync(this KimlikServerFixture server, TestUser user)
+    public static async Task<(Browser Browser, TestWebClient Client, JsonElement Tokens)> SignInAndRedeemAsync(
+        this KimlikServerFixture server, TestUser user, string? scope = null)
     {
         var client = await server.CreateWebClientAsync();
         var browser = new Browser(server);
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
 
-        var request = new AuthorizationRequest(client.ClientId);
+        var request = scope is null ? new AuthorizationRequest(client.ClientId) : new AuthorizationRequest(client.ClientId) { Scope = scope };
         using var callback = await browser.GetAsync(request.Url);
         var tokens = await RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
 

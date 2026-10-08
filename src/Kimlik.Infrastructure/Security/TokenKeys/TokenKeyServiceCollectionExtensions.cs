@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using OpenIddict.Server;
+using OpenIddict.Validation;
 
 namespace Kimlik.Infrastructure.Security.TokenKeys;
 
@@ -27,11 +28,13 @@ public static class TokenKeyServiceCollectionExtensions
         services.AddSingleton<TokenKeyRefresher>();
         services.AddSingleton<TokenKeyChangeSignal>();
         services.AddSingleton<IOptionsChangeTokenSource<OpenIddictServerOptions>, TokenKeyOptionsChangeTokenSource<OpenIddictServerOptions>>();
+        services.AddSingleton<IOptionsChangeTokenSource<OpenIddictValidationOptions>, TokenKeyOptionsChangeTokenSource<OpenIddictValidationOptions>>();
         services.AddHostedService<TokenKeyRefreshService>();
 
         services.AddSingleton<ConfigureTokenKeyCredentials>();
         services.AddSingleton<IConfigureOptions<OpenIddictServerOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
         services.AddSingleton<IPostConfigureOptions<OpenIddictServerOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
+        services.AddSingleton<IPostConfigureOptions<OpenIddictValidationOptions>>(provider => provider.GetRequiredService<ConfigureTokenKeyCredentials>());
 
         services.AddHealthChecks().AddCheck<TokenKeysHealthCheck>("token-keys", HealthStatus.Unhealthy, healthCheckTags);
 

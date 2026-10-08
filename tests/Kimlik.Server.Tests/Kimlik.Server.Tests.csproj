@@ -21,4 +21,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Snapshot tests read and rewrite their snapshots in the source tree. Caller file paths do not work
+         for this: CI builds map source paths to /_/. -->
+    <AssemblyMetadata Include="ProjectDirectory" Value="$(MSBuildProjectDirectory)" />
+  </ItemGroup>
+
 </Project>

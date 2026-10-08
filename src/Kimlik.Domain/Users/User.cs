@@ -61,5 +61,31 @@ public sealed class User : IdentityUser<Guid>
 
     public bool CanSignIn => Status == UserStatus.Active;
 
+    public void UpdateProfile(string? givenName, string? familyName, string? locale, DateTimeOffset now)
+    {
+        GivenName = NullIfBlank(givenName);
+        FamilyName = NullIfBlank(familyName);
+        Locale = NullIfBlank(locale);
+        UpdatedAt = now;
+    }
+
+    public void Suspend(DateTimeOffset now)
+    {
+        Status = UserStatus.Suspended;
+        UpdatedAt = now;
+    }
+
+    public void Reactivate(DateTimeOffset now)
+    {
+        Status = UserStatus.Active;
+        UpdatedAt = now;
+    }
+
+    public void MarkEmailVerified(DateTimeOffset now)
+    {
+        EmailConfirmed = true;
+        UpdatedAt = now;
+    }
+
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

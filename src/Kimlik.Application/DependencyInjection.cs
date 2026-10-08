@@ -22,6 +22,7 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddScoped<AccessResolver>();
+        services.AddScoped<AccessGuard>();
 
         // Use case handlers are plain classes, one per use case, resolved directly by their callers;
         // outbox message handlers are also registered under their handler interface.

@@ -1,6 +1,7 @@
 using Kimlik.Application;
 using Kimlik.Infrastructure;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Server.Api;
 using Kimlik.Server.Diagnostics;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
@@ -15,6 +16,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddSignInSession();
 builder.Services.AddOidcServer();
+builder.Services.AddManagementApi();
 builder.Services.AddHostedUi();
 builder.Services.AddKimlikRateLimiting();
 builder.Services.AddAuthorization();
@@ -54,5 +56,6 @@ app.MapRazorPages().WithStaticAssets();
 app.MapCultureSwitch();
 app.MapTokenEndpoint();
 app.MapUserInfoEndpoint();
+app.MapManagementApi();
 
 await app.RunAsync();

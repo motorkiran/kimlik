@@ -30,6 +30,18 @@ internal static class TestAccess
         });
     }
 
+    /// <summary>Creates a global role holding existing permissions, such as system permissions.</summary>
+    public static Task<string> CreateRoleWithAsync(this KimlikServerFixture server, params string[] permissionKeys) =>
+        server.QueryDatabaseAsync(async context =>
+        {
+            var role = Role.Create($"role-{Guid.NewGuid():N}", "Test role", null, RoleScope.Global, DateTimeOffset.UtcNow).Value;
+            role.SetPermissions(await context.Permissions.Where(permission => permissionKeys.Contains(permission.Key)).ToListAsync(), DateTimeOffset.UtcNow);
+
+            context.Roles.Add(role);
+            await context.SaveChangesAsync();
+            return role.Key;
+        });
+
     public static Task AssignToUserAsync(this KimlikServerFixture server, Guid userId, string roleKey) =>
         server.QueryDatabaseAsync(async context =>
         {
