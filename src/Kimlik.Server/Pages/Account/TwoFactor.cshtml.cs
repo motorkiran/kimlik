@@ -1,3 +1,4 @@
+using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
 using Kimlik.Contracts.Account;
 using Kimlik.Domain.Common;
@@ -139,6 +140,7 @@ public sealed class TwoFactorModel(
     {
         _ when error == MfaErrors.InvalidCode => localizer["That code is not right. Check it and try again."],
         _ when error == MfaErrors.Required => localizer["Your account requires two-factor authentication, so it cannot be turned off."],
+        _ when error == AccountErrors.LockedOut => localizer["Too many failed attempts. Try again later."],
         _ => localizer["Something went wrong. Try again."],
     };
 

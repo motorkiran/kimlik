@@ -19,8 +19,8 @@ public static class AccountErrors
 
     public static readonly Error WrongPassword = Error.Validation("account.wrong_password", "The password is not right.");
 
-    /// <summary>Too many wrong passwords in a row; the account accepts none until the lockout ends.</summary>
-    public static readonly Error LockedOut = Error.Forbidden("account.locked_out", "Too many wrong passwords. Try again later.");
+    /// <summary>Too many wrong passwords or codes in a row; the account accepts none until the lockout ends.</summary>
+    public static readonly Error LockedOut = Error.Forbidden("account.locked_out", "Too many failed attempts. Try again later.");
 
     public static readonly Error SessionNotFound = Error.NotFound("account.session_not_found", "The session does not exist.");
 

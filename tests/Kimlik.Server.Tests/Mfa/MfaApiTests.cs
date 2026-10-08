@@ -49,6 +49,28 @@ public sealed class MfaApiTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task WrongCodes_LockTheAccount_AsAtSignIn()
+    {
+        var user = await server.CreateUserAsync();
+        using var me = server.WithToken(await server.UserAccessTokenAsync(user));
+        var factor = await server.EnableMfaAsync(user.Id);
+        var wrong = new AuthenticatorCodeRequest { Code = "000000" };
+
+        for (var attempt = 1; attempt < 5; attempt++)
+        {
+            using var refused = await me.PostJsonAsync("/api/v1/me/mfa/disable", wrong);
+            (await refused.ReadProblemCodeAsync()).ShouldBe("mfa.invalid_code");
+        }
+
+        using var fifth = await me.PostJsonAsync("/api/v1/me/mfa/recovery-codes", wrong);
+        (await fifth.ReadProblemCodeAsync()).ShouldBe("account.locked_out");
+
+        var codes = await TotpCodes.NextThreeAsync(factor.Secret);
+        using var right = await me.PostJsonAsync("/api/v1/me/mfa/disable", new AuthenticatorCodeRequest { Code = codes[1] });
+        (await right.ReadProblemCodeAsync()).ShouldBe("account.locked_out");
+    }
+
+    [Fact]
     public async Task Administrators_CannotTurnItOff_WhenThePolicyRequiresIt()
     {
         await using var kimlik = await StartWithAdministratorPolicyAsync();

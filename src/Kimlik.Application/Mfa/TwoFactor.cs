@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
+using Kimlik.Application.Accounts;
 using Kimlik.Application.Branding;
 using Kimlik.Application.Users;
 using Kimlik.Contracts.Account;
@@ -144,7 +145,20 @@ public sealed class TwoFactor(
             return MfaErrors.NotEnabled;
         }
 
-        return await userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code) ? user : MfaErrors.InvalidCode;
+        // Like at sign-in, wrong codes count toward the lockout, and a locked-out account accepts none.
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return AccountErrors.LockedOut;
+        }
+
+        if (await userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code))
+        {
+            await userManager.ResetAccessFailedCountAsync(user);
+            return user;
+        }
+
+        await userManager.AccessFailedAsync(user);
+        return await userManager.IsLockedOutAsync(user) ? AccountErrors.LockedOut : MfaErrors.InvalidCode;
     }
 
     /// <summary>
