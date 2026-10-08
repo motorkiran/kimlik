@@ -1,4 +1,5 @@
 using Kimlik.Domain.Access;
+using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -26,6 +27,9 @@ public interface IKimlikDbContext
 
     /// <summary>Scopes, for queries. Change them through <c>IOpenIddictScopeManager</c>.</summary>
     IQueryable<OpenIddictEntityFrameworkCoreScope<Guid>> Scopes { get; }
+
+    /// <summary>The audit trail, for queries. Record events through <see cref="IAuditLog"/>.</summary>
+    IQueryable<AuditEvent> AuditEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

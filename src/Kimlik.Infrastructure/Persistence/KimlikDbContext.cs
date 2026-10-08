@@ -33,6 +33,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
+    IQueryable<AuditEvent> IKimlikDbContext.AuditEvents => AuditEvents;
+
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public DbSet<TokenKey> TokenKeys => Set<TokenKey>();

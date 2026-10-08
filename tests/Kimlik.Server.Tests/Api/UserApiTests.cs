@@ -6,6 +6,7 @@ using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.EntityFrameworkCore;
+using AuditActorType = Kimlik.Domain.Auditing.AuditActorType;
 
 namespace Kimlik.Server.Tests.Api;
 
