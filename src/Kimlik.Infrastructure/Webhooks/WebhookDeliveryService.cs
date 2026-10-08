@@ -63,8 +63,9 @@ internal sealed partial class WebhookDeliveryService(
             return 0;
         }
 
+        // The batch is leased now: only the sends stop when the instance does, so that the rest is handed back below.
         var endpointIds = deliveries.Select(delivery => delivery.EndpointId).Distinct().ToList();
-        var endpoints = await context.WebhookEndpoints.Where(endpoint => endpointIds.Contains(endpoint.Id)).ToDictionaryAsync(endpoint => endpoint.Id, cancellationToken);
+        var endpoints = await context.WebhookEndpoints.Where(endpoint => endpointIds.Contains(endpoint.Id)).ToDictionaryAsync(endpoint => endpoint.Id, CancellationToken.None);
         var sender = scope.ServiceProvider.GetRequiredService<WebhookSender>();
         var encryption = scope.ServiceProvider.GetRequiredService<ISecretEncryption>();
 
@@ -122,8 +123,9 @@ internal sealed partial class WebhookDeliveryService(
             delivery.BeginAttempt(now, leaseUntil);
         }
 
+        // Committed whatever happens, so that a lease is either taken, and handed back if the instance stops, or not taken.
         await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        await transaction.CommitAsync(CancellationToken.None);
         return deliveries;
     }
 
