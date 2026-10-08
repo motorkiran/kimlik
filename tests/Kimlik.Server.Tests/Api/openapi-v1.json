@@ -1586,6 +1586,450 @@
           }
         ]
       }
+    },
+    "/api/v1/clients": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List clients",
+        "description": "Lists clients in creation order.\n\nRequires the `kimlik.clients:read` permission.",
+        "operationId": "ListClients",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Part of the client ID or display name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Register a client",
+        "description": "The response carries the secret of a web or service client; it is not shown again.\n\nRequires the `kimlik.clients:write` permission.",
+        "operationId": "CreateClient",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/clients/{id}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Get a client",
+        "description": "Requires the `kimlik.clients:read` permission.",
+        "operationId": "GetClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Update a client",
+        "description": "JSON Merge Patch: omitted properties keep their value, and lists are replaced as a whole.\n\nRequires the `kimlik.clients:write` permission.",
+        "operationId": "UpdateClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete a client",
+        "description": "Also revokes everything issued to it.\n\nRequires the `kimlik.clients:write` permission.",
+        "operationId": "DeleteClient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/clients/{id}/secret": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Regenerate a client's secret",
+        "description": "The previous secret stops working at once. Tokens already issued stay valid until they expire.\n\nRequires the `kimlik.clients:write` permission.",
+        "operationId": "RegenerateClientSecret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientSecretResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/clients/{id}/roles": {
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace a service client's roles",
+        "description": "Granting system permissions requires holding them.\n\nRequires the `kimlik.clients:write` permission.",
+        "operationId": "SetClientRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRolesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.clients:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1629,6 +2073,87 @@
         },
         "description": "An API protected by Kimlik tokens. Clients request its `scope`; the access tokens they get name its\n`audience`, which the API checks. The system resource `kimlik` is Kimlik's own API."
       },
+      "ClientResponse": {
+        "required": [
+          "id",
+          "clientId",
+          "displayName",
+          "type",
+          "firstParty",
+          "redirectUris",
+          "postLogoutRedirectUris",
+          "scopes",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClientType"
+          },
+          "firstParty": {
+            "type": "boolean"
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postLogoutRedirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client."
+      },
+      "ClientSecretResponse": {
+        "required": [
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "description": "A new client secret, shown only this once. The previous secret stops working at once."
+      },
+      "ClientType": {
+        "enum": [
+          "spa",
+          "native",
+          "web",
+          "service"
+        ],
+        "description": "The kind of application, which decides how it gets tokens."
+      },
       "CreateApiResourceRequest": {
         "required": [
           "scope"
@@ -1668,6 +2193,86 @@
             ]
           }
         }
+      },
+      "CreateClientRequest": {
+        "required": [
+          "clientId",
+          "displayName",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Letters, digits, `.`, `_` and `-`, such as `web` or `billing-worker`. It cannot be changed later."
+          },
+          "displayName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "type": {
+            "description": "It cannot be changed later.",
+            "$ref": "#/components/schemas/ClientType"
+          },
+          "firstParty": {
+            "type": "boolean",
+            "description": "First-party apps are your own and skip the consent screen; third-party apps ask users for consent."
+          },
+          "redirectUris": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Where users return after signing in; required for apps that sign users in, and matched exactly."
+          },
+          "postLogoutRedirectUris": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Where users may return after signing out."
+          },
+          "scopes": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the client may request: `openid`, `profile`, `email` and `offline_access` for apps\nthat sign users in, and the scopes of API resources."
+          },
+          "roles": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys of the global roles of a service client."
+          }
+        }
+      },
+      "CreatedClientResponse": {
+        "required": [
+          "client",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ClientResponse"
+          },
+          "clientSecret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A new client and, for web and service clients, its secret. The secret is shown only this once."
       },
       "CreatePermissionRequest": {
         "required": [
@@ -1838,6 +2443,28 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApiResourceResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfClientResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientResponse"
             }
           },
           "nextCursor": {
@@ -2098,6 +2725,57 @@
         },
         "description": "Changes an API resource with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
       },
+      "UpdateClientRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The new name; a client always has one, so it cannot be cleared."
+          },
+          "firstParty": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "redirectUris": {
+            "maxItems": 20,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "postLogoutRedirectUris": {
+            "maxItems": 20,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "maxItems": 50,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and `null` empties\na list. Lists are replaced as a whole."
+      },
       "UpdatePermissionRequest": {
         "type": "object",
         "properties": {
@@ -2273,6 +2951,9 @@
     },
     {
       "name": "API resources"
+    },
+    {
+      "name": "Clients"
     }
   ]
 }

@@ -8,7 +8,7 @@ namespace Kimlik.Application.Access;
 
 /// <summary>
 /// Keeps callers within their own access to Kimlik: they cannot hand out system permissions they do not hold,
-/// nor change, suspend or delete an account or a role that holds such permissions.
+/// nor change, suspend or delete an account, a client or a role that holds such permissions.
 /// </summary>
 public sealed class AccessGuard(IKimlikDbContext context, IRequestContext request)
 {
@@ -20,6 +20,12 @@ public sealed class AccessGuard(IKimlikDbContext context, IRequestContext reques
     public Task<Result> EnsureCanManageUserAsync(Guid userId, CancellationToken cancellationToken) =>
         EnsureHoldsAsync(
             link => context.UserRoles.Any(assignment => assignment.UserId == userId && assignment.RoleId == link.RoleId),
+            cancellationToken);
+
+    /// <summary>Fails when the client has a system permission the caller does not have.</summary>
+    public Task<Result> EnsureCanManageClientAsync(Guid applicationId, CancellationToken cancellationToken) =>
+        EnsureHoldsAsync(
+            link => context.ClientRoles.Any(assignment => assignment.ApplicationId == applicationId && assignment.RoleId == link.RoleId),
             cancellationToken);
 
     /// <summary>Fails when the role carries a system permission the caller does not have.</summary>

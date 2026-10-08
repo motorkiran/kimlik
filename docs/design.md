@@ -511,7 +511,7 @@ erDiagram
 | Identity | `users` | ASP.NET Core Identity columns (email, normalized email, password hash, security stamp, lockout) plus `given_name`, `family_name`, `picture_url`, `locale`, `time_zone`, `status` (active/suspended), `public_metadata`, `private_metadata`, `last_sign_in_at` |
 | | `user_logins` | External provider links (`login_provider`, `provider_key`) |
 | | `user_tokens`, `user_claims` | Identity internals: the encrypted TOTP secret, hashed recovery codes and the last accepted TOTP time step |
-| Protocol | `oidc_applications`, `oidc_authorizations`, `oidc_scopes`, `oidc_tokens` | OpenIddict entities with UUID keys. Applications are extended with Kimlik properties such as a first-party flag. |
+| Protocol | `oidc_applications`, `oidc_authorizations`, `oidc_scopes`, `oidc_tokens` | OpenIddict entities with UUID keys. A client's type (preset) and first-party flag map onto OpenIddict's own settings (client type, application type, grant types and consent type), so they need no extra columns and cannot drift from them. An API resource is a scope with one audience. |
 | Access | `permissions` | `key` (unique), `description`, `is_system` |
 | | `roles` | `key`, `name`, `description`, `scope` (global/organization), `is_system`. Unique on (`scope`, `key`). |
 | | `role_permissions`, `user_roles`, `client_roles` | Join tables. `user_roles` and `client_roles` accept global roles only. |
@@ -649,6 +649,7 @@ erDiagram
 | `/features`, `/plans`, `/subscriptions` | Manage the feature catalog and plans; subscribe, change plan, cancel |
 | `/entitlements/{subscriberType}/{id}` | Effective features and limits |
 | `/clients` | Create (with presets), update, regenerate secret, assign roles |
+| `/api-resources` | List, register, describe and delete the APIs that accept Kimlik tokens |
 | `/api-keys`, `/api-keys/verify` | List and revoke; verify (for resource servers) |
 | `/webhooks/endpoints`, `/webhooks/deliveries` | Manage endpoints, inspect and redeliver |
 | `/audit-events` | Query |

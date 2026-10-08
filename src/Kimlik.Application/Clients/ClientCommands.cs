@@ -1,0 +1,267 @@
+using Kimlik.Application.Abstractions;
+using Kimlik.Application.Access;
+using Kimlik.Application.Common;
+using Kimlik.Contracts.Management;
+using Kimlik.Domain.Access;
+using Kimlik.Domain.Auditing;
+using Kimlik.Domain.Common;
+using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
+
+namespace Kimlik.Application.Clients;
+
+/// <summary>Registers a client from a preset. Web and service clients get a secret, returned only here.</summary>
+public sealed class CreateClientHandler(
+    IKimlikDbContext context,
+    IOpenIddictApplicationManager applications,
+    AccessGuard guard,
+    IAuditLog auditLog,
+    TimeProvider timeProvider)
+{
+    public async Task<Result<CreatedClientResponse>> HandleAsync(CreateClientRequest request, CancellationToken cancellationToken)
+    {
+        var clientId = request.ClientId.Trim();
+        if (!ClientPresets.IsValidClientId(clientId))
+        {
+            return ClientErrors.InvalidClientId;
+        }
+
+        var settings = new ClientSettings(request.DisplayName, request.FirstParty, request.RedirectUris, request.PostLogoutRedirectUris, request.Scopes);
+        var validation = await ClientPresets.ValidateAsync(context, request.Type, settings, cancellationToken);
+        if (validation.IsFailure)
+        {
+            return validation.Error;
+        }
+
+        var roles = await ResolveRolesAsync(request, cancellationToken);
+        if (roles.IsFailure)
+        {
+            return roles.Error;
+        }
+
+        if (await applications.FindByClientIdAsync(clientId, cancellationToken) is not null)
+        {
+            return ClientErrors.AlreadyExists;
+        }
+
+        var secret = ClientPresets.IsConfidential(request.Type) ? ClientPresets.GenerateSecret() : null;
+        var descriptor = new OpenIddictApplicationDescriptor { ClientId = clientId, ClientSecret = secret };
+        ClientPresets.Apply(descriptor, request.Type, settings);
+
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
+
+        object application;
+        try
+        {
+            application = await applications.CreateAsync(descriptor, cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return ClientErrors.AlreadyExists;
+        }
+
+        var id = await applications.GetIdentifierAsync(application, cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        context.ClientRoles.AddRange(roles.Value.Select(role => new ClientRole(id, role.Id, now)));
+        auditLog.Record(AuditActions.ClientCreated, AuditSubject.Client(id), new Dictionary<string, object?>
+        {
+            ["clientId"] = clientId,
+            ["type"] = request.Type.ToString(),
+        });
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return new CreatedClientResponse(
+            await applications.ToResponseAsync(application, roles.Value.Select(role => role.Key), cancellationToken),
+            secret);
+    }
+
+    private async Task<Result<List<Role>>> ResolveRolesAsync(CreateClientRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Roles.Count == 0)
+        {
+            return new List<Role>();
+        }
+
+        if (request.Type != ClientType.Service)
+        {
+            return ClientErrors.RolesNotSupported;
+        }
+
+        var roles = await RoleSet.ResolveGlobalAsync(context, request.Roles, cancellationToken);
+        if (roles.IsFailure)
+        {
+            return roles;
+        }
+
+        var guardResult = await guard.EnsureCanGrantRolesAsync([.. roles.Value.Select(role => role.Id)], cancellationToken);
+        return guardResult.IsSuccess ? roles : guardResult.Error;
+    }
+}
+
+/// <summary>Changes the settings of a client; its client ID and type are fixed.</summary>
+public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
+{
+    public async Task<Result<ClientResponse>> HandleAsync(Guid id, UpdateClientRequest request, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
+        {
+            return ClientErrors.NotFound;
+        }
+
+        var guardResult = await guard.EnsureCanManageClientAsync(id, cancellationToken);
+        if (guardResult.IsFailure)
+        {
+            return guardResult.Error;
+        }
+
+        var current = await applications.ToResponseAsync(application, [], cancellationToken);
+        var settings = new ClientSettings(
+            request.HasDisplayName ? request.DisplayName ?? string.Empty : current.DisplayName ?? current.ClientId,
+            request.FirstParty ?? current.FirstParty,
+            request.HasRedirectUris ? request.RedirectUris ?? [] : current.RedirectUris,
+            request.HasPostLogoutRedirectUris ? request.PostLogoutRedirectUris ?? [] : current.PostLogoutRedirectUris,
+            request.HasScopes ? request.Scopes ?? [] : current.Scopes);
+
+        var validation = await ClientPresets.ValidateAsync(context, current.Type, settings, cancellationToken);
+        if (validation.IsFailure)
+        {
+            return validation.Error;
+        }
+
+        var descriptor = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(descriptor, application, cancellationToken);
+        ClientPresets.Apply(descriptor, current.Type, settings);
+
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
+        await applications.UpdateAsync(application, descriptor, cancellationToken);
+        auditLog.Record(AuditActions.ClientUpdated, AuditSubject.Client(id));
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return await applications.ToResponseAsync(context, application, cancellationToken);
+    }
+}
+
+/// <summary>
+/// Replaces the secret of a web or service client; the previous secret stops working at once. Tokens already
+/// issued stay valid until they expire.
+/// </summary>
+public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
+{
+    public async Task<Result<ClientSecretResponse>> HandleAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
+        {
+            return ClientErrors.NotFound;
+        }
+
+        if (!await applications.HasClientTypeAsync(application, OpenIddictConstants.ClientTypes.Confidential, cancellationToken))
+        {
+            return ClientErrors.NotConfidential;
+        }
+
+        var guardResult = await guard.EnsureCanManageClientAsync(id, cancellationToken);
+        if (guardResult.IsFailure)
+        {
+            return guardResult.Error;
+        }
+
+        var secret = ClientPresets.GenerateSecret();
+
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
+        await applications.UpdateAsync(application, secret, cancellationToken);
+        auditLog.Record(AuditActions.ClientSecretRegenerated, AuditSubject.Client(id));
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return new ClientSecretResponse(secret);
+    }
+}
+
+/// <summary>Replaces the global roles of a service client. Granting system permissions requires holding them.</summary>
+public sealed class SetClientRolesHandler(
+    IKimlikDbContext context,
+    IOpenIddictApplicationManager applications,
+    AccessGuard guard,
+    IAuditLog auditLog,
+    TimeProvider timeProvider)
+{
+    public async Task<Result<ClientResponse>> HandleAsync(Guid id, SetRolesRequest request, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
+        {
+            return ClientErrors.NotFound;
+        }
+
+        if (await applications.GetPresetAsync(application, cancellationToken) != ClientType.Service)
+        {
+            return ClientErrors.RolesNotSupported;
+        }
+
+        var targetGuard = await guard.EnsureCanManageClientAsync(id, cancellationToken);
+        if (targetGuard.IsFailure)
+        {
+            return targetGuard.Error;
+        }
+
+        var resolution = await RoleSet.ResolveGlobalAsync(context, request.Roles, cancellationToken);
+        if (resolution.IsFailure)
+        {
+            return resolution.Error;
+        }
+
+        var wanted = resolution.Value;
+        var current = await context.ClientRoles.Where(assignment => assignment.ApplicationId == id).ToListAsync(cancellationToken);
+        var added = wanted.Where(role => current.TrueForAll(assignment => assignment.RoleId != role.Id)).ToList();
+        var removed = current.Where(assignment => !wanted.Exists(role => role.Id == assignment.RoleId)).ToList();
+
+        var grantGuard = await guard.EnsureCanGrantRolesAsync([.. added.Select(role => role.Id)], cancellationToken);
+        if (grantGuard.IsFailure)
+        {
+            return grantGuard.Error;
+        }
+
+        if (added.Count > 0 || removed.Count > 0)
+        {
+            var now = timeProvider.GetUtcNow();
+            context.ClientRoles.AddRange(added.Select(role => new ClientRole(id, role.Id, now)));
+            context.ClientRoles.RemoveRange(removed);
+            auditLog.Record(AuditActions.ClientRolesChanged, AuditSubject.Client(id), new Dictionary<string, object?>
+            {
+                ["roles"] = wanted.Select(role => role.Key).Order(StringComparer.Ordinal).ToArray(),
+            });
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        return await applications.ToResponseAsync(application, wanted.Select(role => role.Key), cancellationToken);
+    }
+}
+
+/// <summary>Deletes a client with its authorizations, tokens and role assignments.</summary>
+public sealed class DeleteClientHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
+{
+    public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
+        {
+            return ClientErrors.NotFound;
+        }
+
+        var guardResult = await guard.EnsureCanManageClientAsync(id, cancellationToken);
+        if (guardResult.IsFailure)
+        {
+            return guardResult;
+        }
+
+        var clientId = await applications.GetClientIdAsync(application, cancellationToken);
+
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
+        await applications.DeleteAsync(application, cancellationToken);
+        auditLog.Record(AuditActions.ClientDeleted, AuditSubject.Client(id), new Dictionary<string, object?> { ["clientId"] = clientId });
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return Result.Success();
+    }
+}
