@@ -1,0 +1,42 @@
+# Local development environment (works with Docker Compose and `podman compose`).
+#   docker compose up -d                  PostgreSQL and Mailpit; run Kimlik from your IDE
+#   docker compose --profile app up -d    also runs the Kimlik image (build it first, see README)
+name: kimlik
+
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine
+    environment:
+      POSTGRES_DB: kimlik
+      POSTGRES_USER: kimlik
+      POSTGRES_PASSWORD: kimlik
+    ports:
+      # 5433 avoids clashing with a locally installed PostgreSQL.
+      - "${KIMLIK_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=kimlik --dbname=kimlik"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.31.4
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
+  kimlik:
+    image: kimlik:latest
+    profiles: [app]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Kimlik: Host=postgres;Database=kimlik;Username=kimlik;Password=kimlik
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:

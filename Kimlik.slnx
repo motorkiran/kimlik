@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Kimlik.Infrastructure/Kimlik.Infrastructure.csproj" />
+    <Project Path="src/Kimlik.Server/Kimlik.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kimlik.Server.Tests/Kimlik.Server.Tests.csproj" />
+  </Folder>
+</Solution>
