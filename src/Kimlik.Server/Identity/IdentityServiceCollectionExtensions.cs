@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
@@ -20,7 +21,11 @@ internal static class IdentityServiceCollectionExtensions
         services.AddSingleton<IConfigureOptions<CookieAuthenticationOptions>, ConfigureSessionCookie>();
 
         // Sessions notice a changed security stamp (password reset, suspension) within this interval.
-        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(5));
+        services.Configure<SecurityStampValidatorOptions>(options =>
+        {
+            options.ValidationInterval = TimeSpan.FromMinutes(5);
+            options.OnRefreshingPrincipal = KeepHowTheUserSignedIn;
+        });
 
         services.AddHttpContextAccessor();
         services.AddScoped<IRequestContext, HttpRequestContext>();
@@ -31,6 +36,22 @@ internal static class IdentityServiceCollectionExtensions
         services.AddSingleton<IAccountLinks, AccountLinks>();
 
         return services;
+    }
+
+    /// <summary>
+    /// The security stamp check rebuilds the session's claims from the user, which would drop how they signed in
+    /// (<see cref="SignInFlow.MethodClaim"/>) and the external provider, if any.
+    /// </summary>
+    private static Task KeepHowTheUserSignedIn(SecurityStampRefreshingPrincipalContext context)
+    {
+        if (context.NewPrincipal?.Identity is ClaimsIdentity identity && context.CurrentPrincipal is { } current)
+        {
+            identity.AddClaims(current.Claims
+                .Where(claim => claim.Type is SignInFlow.MethodClaim or ClaimTypes.AuthenticationMethod)
+                .Select(claim => new Claim(claim.Type, claim.Value)));
+        }
+
+        return Task.CompletedTask;
     }
 
     private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts, IOptions<MfaOptions> mfa)

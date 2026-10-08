@@ -2,6 +2,7 @@ using System.Net;
 using Kimlik.Application.Abstractions;
 using Kimlik.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -64,6 +65,19 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
         .ConfigureAppConfiguration((_, configuration) =>
             configuration.AddInMemoryCollection(TestConfiguration.Create(_postgres.GetConnectionString())))
         .ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));
+
+    /// <summary>
+    /// A host that checks the security stamp of sign-in sessions on every request instead of every few minutes, as
+    /// if each request came after the interval.
+    /// </summary>
+    public async Task<WebApplicationFactory<Program>> WithStrictSessionsAsync()
+    {
+        var strict = WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero)));
+
+        await WaitUntilReadyAsync(strict);
+        return strict;
+    }
 
     public override async ValueTask DisposeAsync()
     {

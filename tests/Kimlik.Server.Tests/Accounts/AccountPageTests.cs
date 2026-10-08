@@ -3,10 +3,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Kimlik.Server.Tests.Mfa;
 using Kimlik.Server.Tests.Oidc;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Server.Tests.Accounts;
 
@@ -51,7 +48,7 @@ public sealed class AccountPageTests(KimlikServerFixture server)
     [Fact]
     public async Task ChangingThePassword_KeepsThisBrowser_AndSignsOutTheRest()
     {
-        await using var strict = await StrictSessionsAsync();
+        await using var strict = await server.WithStrictSessionsAsync();
         var user = await server.CreateUserAsync();
         using var browser = await SignedInAsync(strict, user);
         using var elsewhere = await SignedInAsync(strict, user);
@@ -70,7 +67,7 @@ public sealed class AccountPageTests(KimlikServerFixture server)
     [Fact]
     public async Task TwoFactor_IsSetUp_GetsNewRecoveryCodes_AndIsTurnedOff()
     {
-        await using var strict = await StrictSessionsAsync();
+        await using var strict = await server.WithStrictSessionsAsync();
         var user = await server.CreateUserAsync();
         using var browser = await SignedInAsync(strict, user);
 
@@ -162,15 +159,5 @@ public sealed class AccountPageTests(KimlikServerFixture server)
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
         signIn.Headers.Location!.OriginalString.ShouldBe("/");
         return browser;
-    }
-
-    /// <summary>A host that checks the security stamp of sessions on every request, instead of every few minutes.</summary>
-    private async Task<WebApplicationFactory<Program>> StrictSessionsAsync()
-    {
-        var strict = server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
-            services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero)));
-
-        await KimlikServerFixture.WaitUntilReadyAsync(strict);
-        return strict;
     }
 }

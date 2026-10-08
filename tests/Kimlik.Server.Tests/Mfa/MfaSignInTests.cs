@@ -40,6 +40,27 @@ public sealed class MfaSignInTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task Session_KeepsHowTheUserSignedIn_WhenItsSecurityStampIsChecked()
+    {
+        await using var strict = await server.WithStrictSessionsAsync();
+        var user = await server.CreateUserAsync();
+        var factor = await server.EnableMfaAsync(user.Id);
+        var client = await server.CreateWebClientAsync();
+        using var browser = new Browser(strict);
+
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+        var challenge = await browser.GetPageAsync(signIn.Headers.Location!.OriginalString);
+        var codes = await TotpCodes.NextThreeAsync(factor.Secret);
+        using var verified = await browser.SubmitAsync(challenge, new Dictionary<string, string> { ["Input.Code"] = codes[1] });
+
+        var request = new AuthorizationRequest(client.ClientId);
+        using var callback = await browser.GetAsync(request.Url);
+        var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
+
+        Methods(tokens, "access_token").ShouldBe(["pwd", "otp", "mfa"]);
+    }
+
+    [Fact]
     public async Task PasswordOnlySignIn_SaysSoInTokens()
     {
         var user = await server.CreateUserAsync();
