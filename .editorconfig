@@ -91,6 +91,8 @@ dotnet_naming_rule.private_fields_are_underscore_camel_case.severity = warning
 # Analyzers
 # ASP.NET Core has no synchronization context, so ConfigureAwait(false) adds noise without benefit in the server.
 dotnet_diagnostic.CA2007.severity = none
+# "Permission" is a domain term here, unrelated to the legacy code access security types the suffix is reserved for.
+dotnet_code_quality.CA1711.allowed_suffixes = Permission
 
 # EF Core migrations are generated code.
 [**/Migrations/*.cs]

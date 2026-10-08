@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Outbox;
@@ -14,6 +15,16 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     : IdentityUserContext<User, Guid>(options), IKimlikDbContext, IDataProtectionKeyContext
 {
     public const string Schema = "kimlik";
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
+    public DbSet<ClientRole> ClientRoles => Set<ClientRole>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 

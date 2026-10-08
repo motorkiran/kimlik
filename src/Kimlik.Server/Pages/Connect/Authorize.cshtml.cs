@@ -133,7 +133,7 @@ public sealed class AuthorizeModel(
         List<object> existingAuthorizations,
         CancellationToken cancellationToken)
     {
-        var identity = await principalFactory.CreateAsync(user, request.GetScopes(), session?.IssuedUtc, cancellationToken);
+        var identity = await principalFactory.CreateAsync(user, request.GetScopes(), resources: null, session?.IssuedUtc, cancellationToken);
 
         // A permanent authorization records the consent and ties together every token issued under it.
         var authorization = existingAuthorizations.LastOrDefault()

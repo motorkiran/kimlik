@@ -1,3 +1,4 @@
+using Kimlik.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -66,6 +67,7 @@ internal static class TestClients
                     Permissions.Scopes.Profile,
                     Permissions.Prefixes.Scope + Scopes.OfflineAccess,
                     Permissions.Prefixes.Scope + ApiScope,
+                    Permissions.Prefixes.Scope + KimlikScopes.Api,
                 },
                 Requirements = { Requirements.Features.ProofKeyForCodeExchange },
             });

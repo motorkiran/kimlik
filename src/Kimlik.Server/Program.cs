@@ -28,13 +28,13 @@ app.Services.GetRequiredService<IStartupValidator>().Validate();
 
 if (args is ["migrate", ..])
 {
-    await app.Services.MigrateDatabaseAsync();
+    await app.Services.PrepareDatabaseAsync();
     return;
 }
 
 if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOnStartup)
 {
-    await app.Services.MigrateDatabaseAsync();
+    await app.Services.PrepareDatabaseAsync();
 }
 
 app.UseExceptionHandler();

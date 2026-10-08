@@ -11,7 +11,7 @@ public sealed class DatabaseOptions
     public const string ConnectionStringName = "Kimlik";
 
     /// <summary>
-    /// Applies pending migrations when the server starts. Disable it when migrations run
+    /// Applies pending migrations and the system catalog when the server starts. Disable it when this runs
     /// as a separate deployment step with the <c>migrate</c> command.
     /// </summary>
     public bool MigrateOnStartup { get; set; } = true;

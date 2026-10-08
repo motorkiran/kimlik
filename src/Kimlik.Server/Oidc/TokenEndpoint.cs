@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Kimlik.Application.Access;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -56,6 +57,9 @@ internal static class TokenEndpoint
 
         identity.SetScopes(request.GetScopes());
         identity.SetResources(await scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken).ToListAsync(cancellationToken));
+
+        var applicationId = Guid.Parse((await applications.GetIdAsync(application, cancellationToken))!);
+        OidcPrincipalFactory.AddAccess(identity, await services.GetRequiredService<AccessResolver>().ForClientAsync(applicationId, cancellationToken));
         identity.SetDestinations(static _ => [Destinations.AccessToken]);
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -89,8 +93,7 @@ internal static class TokenEndpoint
         }
 
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
-            .CreateAsync(user, principal.GetScopes(), authenticatedAt, cancellationToken);
-        identity.SetResources(principal.GetResources());
+            .CreateAsync(user, principal.GetScopes(), principal.GetResources(), authenticatedAt, cancellationToken);
         identity.SetAuthorizationId(principal.GetAuthorizationId());
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

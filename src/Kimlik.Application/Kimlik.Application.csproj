@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Kimlik.Contracts\Kimlik.Contracts.csproj" />
     <ProjectReference Include="..\Kimlik.Domain\Kimlik.Domain.csproj" />
   </ItemGroup>
 

@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Branding;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,8 @@ public static class DependencyInjection
             .BindConfiguration(BrandingOptions.SectionName)
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        services.AddScoped<AccessResolver>();
 
         // Use case handlers are plain classes, one per use case, resolved directly by their callers;
         // outbox message handlers are also registered under their handler interface.

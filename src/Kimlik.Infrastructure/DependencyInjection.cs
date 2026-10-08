@@ -56,6 +56,7 @@ public static class DependencyInjection
             .AddInterceptors(serviceProvider.GetRequiredService<OutboxSignalInterceptor>()));
 
         services.AddScoped<IKimlikDbContext>(provider => provider.GetRequiredService<KimlikDbContext>());
+        services.AddScoped<SystemCatalog>();
     }
 
     private static void AddSecurity(IServiceCollection services)

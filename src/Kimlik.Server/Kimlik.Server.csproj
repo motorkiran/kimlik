@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kimlik.Application\Kimlik.Application.csproj" />
+    <ProjectReference Include="..\Kimlik.Contracts\Kimlik.Contracts.csproj" />
     <ProjectReference Include="..\Kimlik.Infrastructure\Kimlik.Infrastructure.csproj" />
   </ItemGroup>
 
