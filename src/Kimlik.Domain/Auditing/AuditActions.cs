@@ -23,4 +23,12 @@ public static class AuditActions
     public const string RoleUpdated = "role.updated";
     public const string RolePermissionsChanged = "role.permissions_changed";
     public const string RoleDeleted = "role.deleted";
+    public const string ApiResourceCreated = "api_resource.created";
+    public const string ApiResourceUpdated = "api_resource.updated";
+    public const string ApiResourceDeleted = "api_resource.deleted";
+    public const string ClientCreated = "client.created";
+    public const string ClientUpdated = "client.updated";
+    public const string ClientSecretRegenerated = "client.secret_regenerated";
+    public const string ClientRolesChanged = "client.roles_changed";
+    public const string ClientDeleted = "client.deleted";
 }

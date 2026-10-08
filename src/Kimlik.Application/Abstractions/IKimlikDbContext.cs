@@ -2,6 +2,7 @@ using Kimlik.Domain.Access;
 using Kimlik.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using OpenIddict.EntityFrameworkCore.Models;
 
 namespace Kimlik.Application.Abstractions;
 
@@ -19,6 +20,12 @@ public interface IKimlikDbContext
     DbSet<UserRole> UserRoles { get; }
 
     DbSet<ClientRole> ClientRoles { get; }
+
+    /// <summary>OpenID Connect clients, for queries. Change them through <c>IOpenIddictApplicationManager</c>, which validates them and hashes secrets.</summary>
+    IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications { get; }
+
+    /// <summary>Scopes, for queries. Change them through <c>IOpenIddictScopeManager</c>.</summary>
+    IQueryable<OpenIddictEntityFrameworkCoreScope<Guid>> Scopes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

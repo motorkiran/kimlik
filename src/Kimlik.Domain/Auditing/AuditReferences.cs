@@ -20,4 +20,8 @@ public sealed record AuditSubject(string Type, string Id)
     public static AuditSubject Permission(Guid permissionId) => new("permission", permissionId.ToString());
 
     public static AuditSubject Role(Guid roleId) => new("role", roleId.ToString());
+
+    public static AuditSubject ApiResource(Guid scopeId) => new("api_resource", scopeId.ToString());
+
+    public static AuditSubject Client(Guid applicationId) => new("client", applicationId.ToString());
 }

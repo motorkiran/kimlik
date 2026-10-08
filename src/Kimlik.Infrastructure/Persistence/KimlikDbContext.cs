@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using OpenIddict.EntityFrameworkCore.Models;
 
 namespace Kimlik.Infrastructure.Persistence;
 
@@ -25,6 +26,10 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     public DbSet<ClientRole> ClientRoles => Set<ClientRole>();
+
+    public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
+
+    public IQueryable<OpenIddictEntityFrameworkCoreScope<Guid>> Scopes => Set<OpenIddictEntityFrameworkCoreScope<Guid>>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
