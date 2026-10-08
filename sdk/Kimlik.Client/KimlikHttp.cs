@@ -40,6 +40,7 @@ internal sealed class KimlikHttp(HttpClient http)
             {
                 null => null,
                 Enum enumValue => JsonNamingPolicy.CamelCase.ConvertName(enumValue.ToString()),
+                bool flag => flag ? "true" : "false",
                 DateTimeOffset time => time.ToString("O", CultureInfo.InvariantCulture),
                 IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString(),

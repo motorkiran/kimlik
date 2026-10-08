@@ -1,6 +1,7 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.ApiResources;
 using Kimlik.Application.Clients;
+using Kimlik.Application.Plans;
 using Kimlik.Application.Roles;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
@@ -33,6 +34,26 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
             Scope = role.Scope.ToContract(),
             Permissions = [.. rolePermissions[role.Id].Order(StringComparer.Ordinal)],
         }).ToList();
+
+        var featureEntities = await context.Features.AsNoTracking().OrderBy(feature => feature.Key).ToListAsync(cancellationToken);
+        var features = featureEntities.Select(feature => new ProvisionedFeature
+        {
+            Key = feature.Key,
+            Name = feature.Name,
+            Description = feature.Description,
+            Type = Enum.Parse<FeatureType>(feature.Type.ToString()),
+        }).ToList();
+
+        var plans = (await context.Plans.AsNoTracking().Include(plan => plan.Features).OrderBy(plan => plan.Key).ToListAsync(cancellationToken))
+            .Select(plan => new ProvisionedPlan
+            {
+                Key = plan.Key,
+                Name = plan.Name,
+                Description = plan.Description,
+                IsArchived = plan.IsArchived,
+                Features = FeatureValues.Describe(plan, featureEntities),
+            })
+            .ToList();
 
         var apiResources = new List<ProvisionedApiResource>();
         foreach (var scope in await context.Scopes.AsNoTracking().Where(scope => scope.Name != KimlikScopes.Api).OrderBy(scope => scope.Name).ToListAsync(cancellationToken))
@@ -67,6 +88,14 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
             });
         }
 
-        return new ProvisioningDocument { Permissions = permissions, Roles = roles, ApiResources = apiResources, Clients = clients };
+        return new ProvisioningDocument
+        {
+            Permissions = permissions,
+            Roles = roles,
+            Features = features,
+            Plans = plans,
+            ApiResources = apiResources,
+            Clients = clients,
+        };
     }
 }

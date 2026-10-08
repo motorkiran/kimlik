@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Management;
 
 /// <summary>
-/// The access model of an installation as one document: permissions, roles, API resources and clients.
+/// The access model of an installation as one document: permissions, roles, features, plans, API resources and clients.
 /// Applying it creates what is missing and updates what differs, and never deletes. Each item is described in
 /// full, except that role permissions, client roles and client secrets are left alone when omitted.
 /// </summary>
@@ -17,6 +18,10 @@ public sealed record ProvisioningDocument
     public IReadOnlyList<ProvisionedPermission>? Permissions { get; init; }
 
     public IReadOnlyList<ProvisionedRole>? Roles { get; init; }
+
+    public IReadOnlyList<ProvisionedFeature>? Features { get; init; }
+
+    public IReadOnlyList<ProvisionedPlan>? Plans { get; init; }
 
     public IReadOnlyList<ProvisionedApiResource>? ApiResources { get; init; }
 
@@ -51,6 +56,45 @@ public sealed record ProvisionedRole
 
     /// <summary>Keys of the role's permissions; when omitted, an existing role keeps its permissions.</summary>
     public IReadOnlyList<string>? Permissions { get; init; }
+}
+
+public sealed record ProvisionedFeature
+{
+    [Required]
+    [StringLength(64)]
+    public required string Key { get; init; }
+
+    [Required]
+    [StringLength(100)]
+    public required string Name { get; init; }
+
+    [StringLength(256)]
+    public string? Description { get; init; }
+
+    /// <summary>It cannot be changed once the feature exists.</summary>
+    public required FeatureType Type { get; init; }
+}
+
+public sealed record ProvisionedPlan
+{
+    [Required]
+    [StringLength(64)]
+    public required string Key { get; init; }
+
+    [Required]
+    [StringLength(100)]
+    public required string Name { get; init; }
+
+    [StringLength(256)]
+    public string? Description { get; init; }
+
+    public bool IsArchived { get; init; }
+
+    /// <summary>
+    /// Feature values by key: <c>true</c> or <c>false</c>, and a maximum or <c>null</c> (unlimited) for limits. Features
+    /// left out are off, or zero. When the property is omitted, an existing plan keeps its values.
+    /// </summary>
+    public IReadOnlyDictionary<string, JsonElement>? Features { get; init; }
 }
 
 public sealed record ProvisionedApiResource

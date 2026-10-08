@@ -76,6 +76,78 @@
         "additionalProperties": false
       }
     },
+    "features": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "boolean",
+              "limit"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "plans": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
     "apiResources": {
       "type": [
         "array",

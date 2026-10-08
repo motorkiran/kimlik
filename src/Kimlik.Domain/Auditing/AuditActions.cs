@@ -43,4 +43,10 @@ public static class AuditActions
     public const string InvitationRevoked = "invitation.revoked";
     public const string InvitationAccepted = "invitation.accepted";
     public const string InvitationDeclined = "invitation.declined";
+    public const string FeatureCreated = "feature.created";
+    public const string FeatureUpdated = "feature.updated";
+    public const string FeatureDeleted = "feature.deleted";
+    public const string PlanCreated = "plan.created";
+    public const string PlanUpdated = "plan.updated";
+    public const string PlanDeleted = "plan.deleted";
 }

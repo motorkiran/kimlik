@@ -2959,6 +2959,620 @@
         ]
       }
     },
+    "/api/v1/features": {
+      "get": {
+        "tags": [
+          "Features"
+        ],
+        "summary": "List features",
+        "description": "Requires the `kimlik.plans:read` permission.",
+        "operationId": "ListFeatures",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfFeatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Features"
+        ],
+        "summary": "Define a feature",
+        "description": "Requires the `kimlik.plans:write` permission.",
+        "operationId": "CreateFeature",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeatureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/features/{id}": {
+      "get": {
+        "tags": [
+          "Features"
+        ],
+        "summary": "Get a feature",
+        "description": "Requires the `kimlik.plans:read` permission.",
+        "operationId": "GetFeature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Features"
+        ],
+        "summary": "Rename or describe a feature",
+        "description": "Requires the `kimlik.plans:write` permission.",
+        "operationId": "UpdateFeature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFeatureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Features"
+        ],
+        "summary": "Delete a feature",
+        "description": "Also removes its value from every plan.\n\nRequires the `kimlik.plans:write` permission.",
+        "operationId": "DeleteFeature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "List plans",
+        "description": "Requires the `kimlik.plans:read` permission.",
+        "operationId": "ListPlans",
+        "parameters": [
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "Only archived plans, or only plans open to new subscribers.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "Define a plan",
+        "description": "Requires the `kimlik.plans:write` permission.",
+        "operationId": "CreatePlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/plans/{id}": {
+      "get": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "Get a plan",
+        "description": "Requires the `kimlik.plans:read` permission.",
+        "operationId": "GetPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "Change a plan",
+        "description": "New feature values apply to the plan's subscribers at once.\n\nRequires the `kimlik.plans:write` permission.",
+        "operationId": "UpdatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "Delete a plan",
+        "description": "Only a plan without subscriptions can be deleted; archive the others.\n\nRequires the `kimlik.plans:write` permission.",
+        "operationId": "DeletePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.plans:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/audit-events": {
       "get": {
         "tags": [
@@ -4468,6 +5082,39 @@
         },
         "description": "A new client and, for web and service clients, its secret. The secret is shown only this once."
       },
+      "CreateFeatureRequest": {
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "Lowercase letters, digits, `_` and `-`, such as `max_projects`. It cannot be changed later."
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "description": "It cannot be changed later.",
+            "$ref": "#/components/schemas/FeatureType"
+          }
+        }
+      },
       "CreateInvitationRequest": {
         "required": [
           "email"
@@ -4528,6 +5175,38 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CreatePlanRequest": {
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "Lowercase letters, digits, `_` and `-`, such as `pro`. It cannot be changed later."
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "features": {
+            "type": "object",
+            "description": "Feature values by key, such as `{ \"export_pdf\": true, \"max_projects\": 3 }`. Features left out are off, or zero."
           }
         }
       },
@@ -4619,6 +5298,54 @@
           }
         },
         "description": "Creates a user. Without a password, the user sets one through the password reset flow."
+      },
+      "FeatureResponse": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/FeatureType"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An entitlement the application defines; plans set a value for it."
+      },
+      "FeatureType": {
+        "enum": [
+          "boolean",
+          "limit"
+        ]
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -4924,6 +5651,28 @@
         },
         "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
       },
+      "PageOfFeatureResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatureResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
       "PageOfInvitationResponse": {
         "required": [
           "items",
@@ -5012,6 +5761,28 @@
         },
         "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
       },
+      "PageOfPlanResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
       "PageOfRoleResponse": {
         "required": [
           "items",
@@ -5088,6 +5859,52 @@
           }
         },
         "description": "A permission. System permissions (`kimlik.*`) guard Kimlik itself and cannot be changed."
+      },
+      "PlanResponse": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "isArchived",
+          "features",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": "object"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A plan and the value of every feature in it: `true` or `false` for boolean features, and a maximum\nfor limits, where `null` means unlimited."
       },
       "ProblemDetails": {
         "type": "object",
@@ -5237,6 +6054,38 @@
           }
         }
       },
+      "ProvisionedFeature": {
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "description": "It cannot be changed once the feature exists.",
+            "$ref": "#/components/schemas/FeatureType"
+          }
+        }
+      },
       "ProvisionedPermission": {
         "required": [
           "key"
@@ -5255,6 +6104,43 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ProvisionedPlan": {
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Feature values by key: `true` or `false`, and a maximum or `null` (unlimited) for limits. Features\nleft out are off, or zero. When the property is omitted, an existing plan keeps its values."
           }
         }
       },
@@ -5327,6 +6213,24 @@
               "$ref": "#/components/schemas/ProvisionedRole"
             }
           },
+          "features": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedFeature"
+            }
+          },
+          "plans": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionedPlan"
+            }
+          },
           "apiResources": {
             "type": [
               "null",
@@ -5346,7 +6250,7 @@
             }
           }
         },
-        "description": "The access model of an installation as one document: permissions, roles, API resources and clients.\nApplying it creates what is missing and updates what differs, and never deletes. Each item is described in\nfull, except that role permissions, client roles and client secrets are left alone when omitted."
+        "description": "The access model of an installation as one document: permissions, roles, features, plans, API resources and clients.\nApplying it creates what is missing and updates what differs, and never deletes. Each item is described in\nfull, except that role permissions, client roles and client secrets are left alone when omitted."
       },
       "ProvisioningResult": {
         "required": [
@@ -5552,6 +6456,28 @@
         },
         "description": "Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and `null` empties\na list. Lists are replaced as a whole."
       },
+      "UpdateFeatureRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Changes a feature with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
+      },
       "UpdateOrganizationRequest": {
         "type": "object",
         "properties": {
@@ -5588,6 +6514,41 @@
           }
         },
         "description": "Changes a permission with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
+      },
+      "UpdatePlanRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Archived plans keep their subscribers but take no new ones."
+          },
+          "features": {
+            "type": [
+              "null",
+              "object"
+            ]
+          }
+        },
+        "description": "Changes a plan with JSON Merge Patch semantics: an omitted property keeps its value; `features` replaces them all."
       },
       "UpdateRoleRequest": {
         "type": "object",
@@ -5756,6 +6717,12 @@
     },
     {
       "name": "Organizations"
+    },
+    {
+      "name": "Features"
+    },
+    {
+      "name": "Plans"
     },
     {
       "name": "Audit events"

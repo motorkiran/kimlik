@@ -14,6 +14,8 @@ public sealed class ApplyProvisioningHandler(
     IAuditLog auditLog,
     PermissionProvisioner permissions,
     RoleProvisioner roles,
+    FeatureProvisioner features,
+    PlanProvisioner plans,
     ApiResourceProvisioner apiResources,
     ClientProvisioner clients)
 {
@@ -22,9 +24,11 @@ public sealed class ApplyProvisioningHandler(
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         var changes = new List<ProvisioningChange>();
 
-        // In dependency order: roles name permissions, and clients name API resources and roles.
+        // In dependency order: roles name permissions, plans name features, and clients name API resources and roles.
         var error = await ApplyAsync("permissions", document.Permissions, item => item.Key, permissions.ApplyAsync, changes, cancellationToken)
             ?? await ApplyAsync("roles", document.Roles, item => item.Key, roles.ApplyAsync, changes, cancellationToken)
+            ?? await ApplyAsync("features", document.Features, item => item.Key, features.ApplyAsync, changes, cancellationToken)
+            ?? await ApplyAsync("plans", document.Plans, item => item.Key, plans.ApplyAsync, changes, cancellationToken)
             ?? await ApplyAsync("apiResources", document.ApiResources, item => item.Scope, apiResources.ApplyAsync, changes, cancellationToken)
             ?? await ApplyAsync("clients", document.Clients, item => item.ClientId, clients.ApplyAsync, changes, cancellationToken);
 

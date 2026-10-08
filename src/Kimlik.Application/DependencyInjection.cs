@@ -44,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<OrganizationSelfService>();
         services.AddScoped<PermissionProvisioner>();
         services.AddScoped<RoleProvisioner>();
+        services.AddScoped<FeatureProvisioner>();
+        services.AddScoped<PlanProvisioner>();
         services.AddScoped<ApiResourceProvisioner>();
         services.AddScoped<ClientProvisioner>();
 

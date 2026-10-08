@@ -18,6 +18,7 @@ public sealed class KimlikClient
         ApiResources = new ApiResourcesClient(http);
         Clients = new ClientsClient(http);
         Organizations = new OrganizationsClient(http);
+        Plans = new PlansClient(http);
         AuditEvents = new AuditEventsClient(http);
         Provisioning = new ProvisioningClient(http);
     }
@@ -33,6 +34,8 @@ public sealed class KimlikClient
     public ClientsClient Clients { get; }
 
     public OrganizationsClient Organizations { get; }
+
+    public PlansClient Plans { get; }
 
     public AuditEventsClient AuditEvents { get; }
 

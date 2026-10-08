@@ -12,6 +12,10 @@ public static class SystemPermissions
     public const string AuditRead = "kimlik.audit:read";
     public const string OrganizationsRead = "kimlik.organizations:read";
     public const string OrganizationsWrite = "kimlik.organizations:write";
+    public const string PlansRead = "kimlik.plans:read";
+    public const string PlansWrite = "kimlik.plans:write";
+    public const string SubscriptionsRead = "kimlik.subscriptions:read";
+    public const string SubscriptionsWrite = "kimlik.subscriptions:write";
 
     public const string OrganizationMembersRead = "kimlik.org.members:read";
     public const string OrganizationMembersWrite = "kimlik.org.members:write";
@@ -29,6 +33,10 @@ public static class SystemPermissions
         [AuditRead] = "Read the audit log.",
         [OrganizationsRead] = "View organizations and their members.",
         [OrganizationsWrite] = "Create, change and delete organizations and manage their members.",
+        [PlansRead] = "View features and plans.",
+        [PlansWrite] = "Define features and plans.",
+        [SubscriptionsRead] = "View subscriptions and entitlements.",
+        [SubscriptionsWrite] = "Subscribe users and organizations to plans, and change or cancel subscriptions.",
     };
 
     /// <summary>The system permissions that apply within one organization, held through organization roles.</summary>
