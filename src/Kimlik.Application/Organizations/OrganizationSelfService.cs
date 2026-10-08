@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
+using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Common;
@@ -24,10 +25,21 @@ public sealed class OrganizationSelfService(
     ResendInvitationHandler resendInvitation,
     RevokeInvitationHandler revokeInvitation)
 {
-    public async Task<Result<OrganizationResponse>> UpdateAsync(Guid callerId, Guid organizationId, UpdateOrganizationRequest request, CancellationToken cancellationToken)
+    public async Task<Result<MyOrganizationResponse>> UpdateAsync(Guid callerId, Guid organizationId, UpdateMyOrganizationRequest request, CancellationToken cancellationToken)
     {
         var caller = await guard.AuthorizeAsync(callerId, organizationId, SystemPermissions.OrganizationSettingsWrite, cancellationToken);
-        return caller.IsFailure ? caller.Error : await updateOrganization.HandleAsync(organizationId, request, cancellationToken);
+        if (caller.IsFailure)
+        {
+            return caller.Error;
+        }
+
+        // Only what the member sends is set, so that omitted properties keep their value.
+        var update = new UpdateOrganizationRequest { RequireMfa = request.RequireMfa };
+        update = request.HasName ? update with { Name = request.Name } : update;
+        update = request.HasSlug ? update with { Slug = request.Slug } : update;
+
+        var updated = await updateOrganization.HandleAsync(organizationId, update, cancellationToken);
+        return updated.IsFailure ? updated.Error : await myOrganizations.DescribeAsync(callerId, organizationId, cancellationToken);
     }
 
     public async Task<Result> DeleteAsync(Guid callerId, Guid organizationId, CancellationToken cancellationToken)

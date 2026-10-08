@@ -12,13 +12,22 @@ public sealed class CreateOrganizationHandler(IKimlikDbContext context, IAuditLo
 {
     public async Task<Result<OrganizationResponse>> HandleAsync(CreateOrganizationRequest request, CancellationToken cancellationToken)
     {
-        var created = Organization.Create(request.Name, request.Slug, request.RequireMfa, timeProvider.GetUtcNow());
+        var publicMetadata = Metadata.Serialize(request.PublicMetadata);
+        var privateMetadata = Metadata.Serialize(request.PrivateMetadata);
+        if (publicMetadata.IsFailure || privateMetadata.IsFailure)
+        {
+            return Metadata.TooLarge;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var created = Organization.Create(request.Name, request.Slug, request.RequireMfa, now);
         if (created.IsFailure)
         {
             return created.Error;
         }
 
         var organization = created.Value;
+        organization.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
         if (await context.Organizations.AnyAsync(existing => existing.Slug == organization.Slug, cancellationToken))
         {
             return OrganizationErrors.SlugTaken;
@@ -49,7 +58,7 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return OrganizationErrors.NotFound;
         }
 
-        if (!request.HasName && !request.HasSlug && request.RequireMfa is null)
+        if (!request.HasName && !request.HasSlug && request.RequireMfa is null && !request.HasPublicMetadata && !request.HasPrivateMetadata)
         {
             return organization.ToResponse();
         }
@@ -60,15 +69,25 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return OrganizationErrors.SlugTaken;
         }
 
+        var publicMetadata = request.HasPublicMetadata ? Metadata.Serialize(request.PublicMetadata) : organization.PublicMetadata;
+        var privateMetadata = request.HasPrivateMetadata ? Metadata.Serialize(request.PrivateMetadata) : organization.PrivateMetadata;
+        if (publicMetadata.IsFailure || privateMetadata.IsFailure)
+        {
+            return Metadata.TooLarge;
+        }
+
+        var now = timeProvider.GetUtcNow();
         var updated = organization.Update(
             request.HasName ? request.Name ?? string.Empty : organization.Name,
             slug,
             request.RequireMfa ?? organization.RequireMfa,
-            timeProvider.GetUtcNow());
+            now);
         if (updated.IsFailure)
         {
             return updated.Error;
         }
+
+        organization.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
 
         auditLog.Record(AuditActions.OrganizationUpdated, AuditSubject.Organization(id), organizationId: id);
 

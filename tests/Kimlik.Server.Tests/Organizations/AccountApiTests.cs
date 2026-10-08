@@ -19,9 +19,9 @@ public sealed class AccountApiTests(KimlikServerFixture server)
         using var signedIn = await SignedInUserAsync();
         var (user, me) = (signedIn.User, signedIn.Api);
 
-        using var created = await me.PostJsonAsync("/api/v1/me/organizations", new CreateOrganizationRequest { Name = "Acme", Slug = NewSlug() });
+        using var created = await me.PostJsonAsync("/api/v1/me/organizations", new CreateMyOrganizationRequest { Name = "Acme", Slug = NewSlug() });
         created.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var organization = await created.ReadAsync<OrganizationResponse>();
+        var organization = await created.ReadAsync<MyOrganizationResponse>();
 
         using var listed = await me.GetAsync("/api/v1/me/organizations", CancellationToken);
         var mine = (await listed.ReadAsync<List<MyOrganizationResponse>>()).ShouldHaveSingleItem();
@@ -30,10 +30,33 @@ public sealed class AccountApiTests(KimlikServerFixture server)
         mine.Permissions.ShouldBe(SystemPermissions.Organization.Keys, ignoreOrder: true);
 
         using var renamed = await me.SendJsonAsync(HttpMethod.Patch, $"/api/v1/me/organizations/{organization.Id}", """{ "name": "Acme Labs" }""");
-        (await renamed.ReadAsync<OrganizationResponse>()).Name.ShouldBe("Acme Labs");
+        (await renamed.ReadAsync<MyOrganizationResponse>()).Name.ShouldBe("Acme Labs");
 
         using var account = await me.GetAsync("/api/v1/me", CancellationToken);
         (await account.ReadAsync<ProfileResponse>()).Id.ShouldBe(user.Id);
+    }
+
+    [Fact]
+    public async Task Members_ReadThePublicMetadata_ButOnlyTheManagementApiSetsIt()
+    {
+        using var signedIn = await SignedInUserAsync();
+        var organization = await CreateOrganizationAsync(signedIn.Api);
+        using var api = await server.CreateApiClientAsync();
+        using var set = await api.Http.SendJsonAsync(
+            HttpMethod.Patch, $"/api/v1/organizations/{organization.Id}", """{ "publicMetadata": { "tier": "gold" }, "privateMetadata": { "crmId": "acc_9" } }""");
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var renamed = await signedIn.Api.SendJsonAsync(
+            HttpMethod.Patch, $"/api/v1/me/organizations/{organization.Id}", """{ "name": "Acme Labs", "publicMetadata": {}, "privateMetadata": {} }""");
+        var json = await renamed.Content.ReadAsStringAsync(CancellationToken);
+        var mine = await renamed.ReadAsync<MyOrganizationResponse>();
+
+        mine.Name.ShouldBe("Acme Labs");
+        mine.Slug.ShouldBe(organization.Slug);
+        mine.PublicMetadata["tier"]!.GetValue<string>().ShouldBe("gold");
+        json.ShouldNotContain("acc_9");
+        using var fetched = await api.Http.GetAsync($"/api/v1/organizations/{organization.Id}", CancellationToken);
+        (await fetched.ReadAsync<OrganizationResponse>()).PrivateMetadata["crmId"]!.GetValue<string>().ShouldBe("acc_9");
     }
 
     [Fact]
@@ -141,11 +164,11 @@ public sealed class AccountApiTests(KimlikServerFixture server)
         return new SignedInUser(user, server.WithToken(await server.UserAccessTokenAsync(user)));
     }
 
-    private static async Task<OrganizationResponse> CreateOrganizationAsync(HttpClient me)
+    private static async Task<MyOrganizationResponse> CreateOrganizationAsync(HttpClient me)
     {
-        using var created = await me.PostJsonAsync("/api/v1/me/organizations", new CreateOrganizationRequest { Name = "Acme", Slug = NewSlug() });
+        using var created = await me.PostJsonAsync("/api/v1/me/organizations", new CreateMyOrganizationRequest { Name = "Acme", Slug = NewSlug() });
         created.StatusCode.ShouldBe(HttpStatusCode.Created);
-        return await created.ReadAsync<OrganizationResponse>();
+        return await created.ReadAsync<MyOrganizationResponse>();
     }
 
     private async Task<string> CreateOrganizationRoleAsync(params string[] permissions)

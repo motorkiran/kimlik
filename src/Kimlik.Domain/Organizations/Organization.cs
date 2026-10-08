@@ -31,6 +31,12 @@ public sealed partial class Organization
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>A JSON object the application keeps about the organization, which its members can read too.</summary>
+    public string PublicMetadata { get; private set; } = "{}";
+
+    /// <summary>A JSON object the application keeps about the organization, for its backend only.</summary>
+    public string PrivateMetadata { get; private set; } = "{}";
+
     public static Result<Organization> Create(string name, string slug, bool requireMfa, DateTimeOffset now)
     {
         var validation = Validate(name, slug);
@@ -69,6 +75,14 @@ public sealed partial class Organization
     /// Lowercase letters, digits and inner hyphens. A slug never reads as an ID, so a reference to an organization
     /// is unambiguous.
     /// </summary>
+    /// <summary>Replaces the metadata; the caller has checked that each is a JSON object.</summary>
+    public void SetMetadata(string publicMetadata, string privateMetadata, DateTimeOffset now)
+    {
+        PublicMetadata = publicMetadata;
+        PrivateMetadata = privateMetadata;
+        UpdatedAt = now;
+    }
+
     public static bool IsValidSlug(string? slug) =>
         slug is { Length: > 0 and <= SlugMaxLength } && SlugPattern().IsMatch(slug) && !Guid.TryParse(slug, out _);
 

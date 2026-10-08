@@ -18,6 +18,7 @@ The first release: a self-hosted identity and access management server with a .N
 
 - Permissions and roles, global or per organization, carried in access tokens; system permissions guard Kimlik itself, and nobody can grant access they do not hold.
 - Organizations with members, roles and email invitations, and an organization context in tokens.
+- Public and private metadata (JSON) on users and organizations: users and members read the public metadata through the Account API, and only the Management API reads the private metadata or changes either.
 - Features, plans and subscriptions, with a `plan` claim and an entitlements API.
 - API keys for users and organizations, verified by resource servers.
 

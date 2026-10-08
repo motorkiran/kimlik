@@ -31,6 +31,10 @@ else if (_organization is { } organization)
                     </MudStack>
                 }
             </MudPaper>
+            <div class="mt-4">
+                <MetadataEditor PublicMetadata="organization.PublicMetadata" PrivateMetadata="organization.PrivateMetadata" ReadOnly="!CanWrite"
+                                PublicHelperText="Members can read it through the Account API." OnSave="SaveMetadataAsync" />
+            </div>
         </MudItem>
 
         <MudItem xs="12" md="7">
@@ -146,6 +150,16 @@ else if (_organization is { } organization)
         _requireMfa = organization.RequireMfa;
         _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
         _breadcrumbs.Add(new BreadcrumbItem(organization.Name, href: null, disabled: true));
+    }
+
+    private async Task SaveMetadataAsync(MetadataEditor.MetadataChange change)
+    {
+        var request = new UpdateOrganizationRequest { PublicMetadata = change.Public, PrivateMetadata = change.Private };
+        if (await ChangeAsync<UpdateOrganizationHandler, OrganizationResponse>(
+            SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The metadata was saved.") is { } organization)
+        {
+            Show(organization);
+        }
     }
 
     private async Task SaveAsync()

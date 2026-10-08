@@ -202,12 +202,12 @@ internal static class AccountEndpoints
         ClaimsPrincipal principal, MyOrganizations organizations, CancellationToken cancellationToken) =>
         TypedResults.Ok(await organizations.ListAsync(Caller(principal), cancellationToken));
 
-    private static async Task<Results<Created<OrganizationResponse>, ProblemHttpResult>> CreateOrganizationAsync(
-        ClaimsPrincipal principal, CreateOrganizationRequest request, MyOrganizations organizations, CancellationToken cancellationToken) =>
+    private static async Task<Results<Created<MyOrganizationResponse>, ProblemHttpResult>> CreateOrganizationAsync(
+        ClaimsPrincipal principal, CreateMyOrganizationRequest request, MyOrganizations organizations, CancellationToken cancellationToken) =>
         (await organizations.CreateAsync(Caller(principal), request, cancellationToken)).ToCreated(organization => $"{ManagementApi.BasePath}/me/organizations/{organization.Id}");
 
-    private static async Task<Results<Ok<OrganizationResponse>, ProblemHttpResult>> UpdateOrganizationAsync(
-        ClaimsPrincipal principal, Guid id, UpdateOrganizationRequest request, OrganizationSelfService service, CancellationToken cancellationToken) =>
+    private static async Task<Results<Ok<MyOrganizationResponse>, ProblemHttpResult>> UpdateOrganizationAsync(
+        ClaimsPrincipal principal, Guid id, UpdateMyOrganizationRequest request, OrganizationSelfService service, CancellationToken cancellationToken) =>
         (await service.UpdateAsync(Caller(principal), id, request, cancellationToken)).ToOk();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeleteOrganizationAsync(

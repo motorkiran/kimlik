@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Common;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,15 @@ namespace Kimlik.Application.Organizations;
 internal static class OrganizationMapping
 {
     public static OrganizationResponse ToResponse(this Organization organization) =>
-        new(organization.Id, organization.Name, organization.Slug, organization.RequireMfa, organization.CreatedAt, organization.UpdatedAt);
+        new(
+            organization.Id,
+            organization.Name,
+            organization.Slug,
+            organization.RequireMfa,
+            organization.CreatedAt,
+            organization.UpdatedAt,
+            Metadata.Parse(organization.PublicMetadata),
+            Metadata.Parse(organization.PrivateMetadata));
 
     /// <summary>Describes memberships with the members' email address, name and role keys.</summary>
     public static async Task<List<MemberResponse>> ToMemberResponsesAsync(

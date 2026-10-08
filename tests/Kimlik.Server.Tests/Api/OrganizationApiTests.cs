@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Accounts;
@@ -35,6 +36,29 @@ public sealed class OrganizationApiTests(KimlikServerFixture server)
         deleted.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         using var gone = await api.Http.GetAsync($"{Organizations}/{organization.Id}", CancellationToken);
         (await gone.ReadProblemCodeAsync()).ShouldBe("organization.not_found");
+    }
+
+    [Fact]
+    public async Task Metadata_IsSetOnCreation_AndReplacedOneByOne()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var created = await api.Http.PostJsonAsync(Organizations, new CreateOrganizationRequest
+        {
+            Name = "Acme",
+            Slug = NewSlug(),
+            PublicMetadata = new JsonObject { ["tier"] = "gold" },
+            PrivateMetadata = new JsonObject { ["crmId"] = "acc_9" },
+        });
+        var organization = await created.ReadAsync<OrganizationResponse>();
+
+        using var replaced = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Organizations}/{organization.Id}", """{ "publicMetadata": null }""");
+        var updated = await replaced.ReadAsync<OrganizationResponse>();
+
+        updated.PublicMetadata.ShouldBeEmpty();
+        updated.PrivateMetadata["crmId"]!.GetValue<string>().ShouldBe("acc_9");
+        using var tooLarge = await api.Http.SendJsonAsync(
+            HttpMethod.Patch, $"{Organizations}/{organization.Id}", $$"""{ "privateMetadata": { "notes": "{{new string('x', 9000)}}" } }""");
+        (await tooLarge.ReadProblemCodeAsync()).ShouldBe("metadata.too_large");
     }
 
     [Theory]

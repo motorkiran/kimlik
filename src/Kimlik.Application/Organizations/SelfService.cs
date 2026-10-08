@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
+using Kimlik.Application.Common;
 using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
@@ -21,10 +22,17 @@ public sealed class MyOrganizations(
     IOptions<OrganizationOptions> options,
     TimeProvider timeProvider)
 {
-    public async Task<IReadOnlyList<MyOrganizationResponse>> ListAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<MyOrganizationResponse>> ListAsync(Guid userId, CancellationToken cancellationToken) =>
+        await DescribeAsync(userId, organizationId: null, cancellationToken);
+
+    /// <summary>The organization as the member sees it.</summary>
+    internal async Task<MyOrganizationResponse> DescribeAsync(Guid userId, Guid organizationId, CancellationToken cancellationToken) =>
+        (await DescribeAsync(userId, (Guid?)organizationId, cancellationToken)).Single();
+
+    private async Task<List<MyOrganizationResponse>> DescribeAsync(Guid userId, Guid? organizationId, CancellationToken cancellationToken)
     {
         var memberships = await context.Memberships.AsNoTracking()
-            .Where(membership => membership.UserId == userId)
+            .Where(membership => membership.UserId == userId && (organizationId == null || membership.OrganizationId == organizationId))
             .Join(context.Organizations, membership => membership.OrganizationId, organization => organization.Id, (membership, organization) => new { membership, organization })
             .OrderBy(entry => entry.organization.Name)
             .ToListAsync(cancellationToken);
@@ -41,14 +49,16 @@ public sealed class MyOrganizations(
                 entry.organization.Slug,
                 member.Roles,
                 [.. permissions.Order(StringComparer.Ordinal)],
-                member.JoinedAt));
+                member.JoinedAt,
+                entry.organization.RequireMfa,
+                Metadata.Parse(entry.organization.PublicMetadata)));
         }
 
         return result;
     }
 
     /// <summary>Creates an organization with the user as its first member, holding the creator roles.</summary>
-    public async Task<Result<OrganizationResponse>> CreateAsync(Guid userId, CreateOrganizationRequest request, CancellationToken cancellationToken)
+    public async Task<Result<MyOrganizationResponse>> CreateAsync(Guid userId, CreateMyOrganizationRequest request, CancellationToken cancellationToken)
     {
         if (!options.Value.UsersCanCreate)
         {
@@ -63,7 +73,8 @@ public sealed class MyOrganizations(
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
 
-        var created = await createOrganization.HandleAsync(request, cancellationToken);
+        var created = await createOrganization.HandleAsync(
+            new CreateOrganizationRequest { Name = request.Name, Slug = request.Slug, RequireMfa = request.RequireMfa }, cancellationToken);
         if (created.IsFailure)
         {
             return created.Error;
@@ -87,7 +98,7 @@ public sealed class MyOrganizations(
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return created;
+        return await DescribeAsync(userId, created.Value.Id, cancellationToken);
     }
 
     /// <summary>

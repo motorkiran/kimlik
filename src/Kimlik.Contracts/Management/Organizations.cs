@@ -1,10 +1,23 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Management;
 
-/// <summary>A group of users, such as a company, workspace or team. Clients may name it by ID or slug.</summary>
-public sealed record OrganizationResponse(Guid Id, string Name, string Slug, bool RequireMfa, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>
+/// A group of users, such as a company, workspace or team. Clients may name it by ID or slug. Metadata is what the
+/// application keeps about it: members can read the public metadata through the Account API, and only the Management
+/// API reads the private metadata.
+/// </summary>
+public sealed record OrganizationResponse(
+    Guid Id,
+    string Name,
+    string Slug,
+    bool RequireMfa,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    JsonObject PublicMetadata,
+    JsonObject PrivateMetadata);
 
 public sealed record CreateOrganizationRequest
 {
@@ -19,6 +32,12 @@ public sealed record CreateOrganizationRequest
 
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool RequireMfa { get; init; }
+
+    /// <summary>A JSON object of up to 8 KB that members can read too.</summary>
+    public JsonObject? PublicMetadata { get; init; }
+
+    /// <summary>A JSON object of up to 8 KB for the application's backend only.</summary>
+    public JsonObject? PrivateMetadata { get; init; }
 }
 
 /// <summary>Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value.</summary>
@@ -50,6 +69,28 @@ public sealed record UpdateOrganizationRequest
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool? RequireMfa { get; init; }
 
+    /// <summary>Replaces the public metadata, a JSON object of up to 8 KB; <c>null</c> clears it.</summary>
+    public JsonObject? PublicMetadata
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPublicMetadata = true;
+        }
+    }
+
+    /// <summary>Replaces the private metadata, a JSON object of up to 8 KB; <c>null</c> clears it.</summary>
+    public JsonObject? PrivateMetadata
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPrivateMetadata = true;
+        }
+    }
+
     /// <summary>Whether the request sets <see cref="Name"/>.</summary>
     [JsonIgnore]
     public bool HasName { get; private init; }
@@ -57,6 +98,14 @@ public sealed record UpdateOrganizationRequest
     /// <summary>Whether the request sets <see cref="Slug"/>.</summary>
     [JsonIgnore]
     public bool HasSlug { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PublicMetadata"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPublicMetadata { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PrivateMetadata"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPrivateMetadata { get; private init; }
 }
 
 /// <summary>A member of an organization and the organization roles they hold there.</summary>

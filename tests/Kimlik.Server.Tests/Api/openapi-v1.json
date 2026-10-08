@@ -5922,7 +5922,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrganizationRequest"
+                "$ref": "#/components/schemas/CreateMyOrganizationRequest"
               }
             }
           },
@@ -5934,7 +5934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
+                  "$ref": "#/components/schemas/MyOrganizationResponse"
                 }
               }
             }
@@ -5996,7 +5996,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationRequest"
+                "$ref": "#/components/schemas/UpdateMyOrganizationRequest"
               }
             }
           },
@@ -6008,7 +6008,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
+                  "$ref": "#/components/schemas/MyOrganizationResponse"
                 }
               }
             }
@@ -7903,6 +7903,31 @@
           }
         }
       },
+      "CreateMyOrganizationRequest": {
+        "required": [
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "Up to 64 lowercase letters, digits and inner hyphens, such as `acme`."
+          },
+          "requireMfa": {
+            "type": "boolean",
+            "description": "Whether signing in to the organization takes a second factor."
+          }
+        },
+        "description": "An organization the signed-in user creates; metadata is the application's, so only the Management API sets it."
+      },
       "CreateOrganizationRequest": {
         "required": [
           "name",
@@ -7924,6 +7949,28 @@
           "requireMfa": {
             "type": "boolean",
             "description": "Whether signing in to the organization takes a second factor."
+          },
+          "publicMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "A JSON object of up to 8 KB that members can read too.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "privateMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "A JSON object of up to 8 KB for the application's backend only.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         }
       },
@@ -8458,7 +8505,9 @@
           "slug",
           "roles",
           "permissions",
-          "joinedAt"
+          "joinedAt",
+          "requireMfa",
+          "publicMetadata"
         ],
         "type": "object",
         "properties": {
@@ -8487,9 +8536,15 @@
           "joinedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "requireMfa": {
+            "type": "boolean"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
           }
         },
-        "description": "An organization the signed-in user belongs to, with their roles and permissions in it."
+        "description": "An organization the signed-in user belongs to, with their roles and permissions in it, and the public metadata\nthat the application keeps about it."
       },
       "OrganizationResponse": {
         "required": [
@@ -8498,7 +8553,9 @@
           "slug",
           "requireMfa",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "publicMetadata",
+          "privateMetadata"
         ],
         "type": "object",
         "properties": {
@@ -8522,9 +8579,15 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "privateMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
           }
         },
-        "description": "A group of users, such as a company, workspace or team. Clients may name it by ID or slug."
+        "description": "A group of users, such as a company, workspace or team. Clients may name it by ID or slug. Metadata is what the\napplication keeps about it: members can read the public metadata through the Account API, and only the Management\nAPI reads the private metadata."
       },
       "PageOfApiKeyResponse": {
         "required": [
@@ -9735,6 +9798,36 @@
         },
         "description": "Changes a feature with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
       },
+      "UpdateMyOrganizationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new slug; clients that use the old one must switch to it."
+          },
+          "requireMfa": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether signing in to the organization takes a second factor."
+          }
+        },
+        "description": "Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value. Metadata is the\napplication's, so only the Management API changes it."
+      },
       "UpdateOrganizationRequest": {
         "type": "object",
         "properties": {
@@ -9761,6 +9854,28 @@
               "boolean"
             ],
             "description": "Whether signing in to the organization takes a second factor."
+          },
+          "publicMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Replaces the public metadata, a JSON object of up to 8 KB; `null` clears it.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "privateMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Replaces the private metadata, a JSON object of up to 8 KB; `null` clears it.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         },
         "description": "Changes an organization with JSON Merge Patch semantics: an omitted property keeps its value."
