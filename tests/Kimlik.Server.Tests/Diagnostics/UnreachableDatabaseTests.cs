@@ -32,6 +32,19 @@ public sealed class UnreachableDatabaseTests
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task OidcRequests_ReturnServiceUnavailable_UntilTokenKeysAreLoaded()
+    {
+        await using var factory = new UnreachableDatabaseFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        response.Headers.RetryAfter.ShouldNotBeNull();
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
     private sealed class UnreachableDatabaseFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder

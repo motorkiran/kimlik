@@ -35,6 +35,8 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Kimlik: Host=postgres;Database=kimlik;Username=kimlik;Password=kimlik
+      Kimlik__Server__PublicUrl: http://localhost:8080/
+      Kimlik__Server__RequireHttps: "false"
       # Development key only. Production installations generate their own: openssl rand -base64 32
       Kimlik__Security__MasterKey: Hx+waeuN8N26ESEiMOsJMWTYMN5CjUbcDE3uSZqtbnE=
     ports:

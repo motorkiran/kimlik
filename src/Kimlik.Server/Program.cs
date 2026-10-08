@@ -1,12 +1,15 @@
 using Kimlik.Infrastructure;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Server.Diagnostics;
+using Kimlik.Server.Oidc;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddTelemetry();
 builder.Services.AddInfrastructure();
+builder.Services.AddOidcServer();
+builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthProbes();
 
@@ -29,6 +32,12 @@ if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOn
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
-app.MapHealthProbes();
+app.UseHealthProbes();
+app.UseReadinessGate();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapTokenEndpoint();
 
 await app.RunAsync();

@@ -1,3 +1,4 @@
+using System.Net;
 using Kimlik.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -16,15 +17,28 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
 {
     public const string PostgreSqlImage = "docker.io/library/postgres:18-alpine";
 
+    private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(30);
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgreSqlImage).Build();
 
-    public async ValueTask InitializeAsync() => await _postgres.StartAsync();
+    public async ValueTask InitializeAsync()
+    {
+        await _postgres.StartAsync();
+        await WaitUntilReadyAsync();
+    }
 
     /// <summary>Runs <paramref name="action"/> with a fresh database context in its own scope.</summary>
     public async Task<T> QueryDatabaseAsync<T>(Func<KimlikDbContext, Task<T>> action)
     {
         await using var scope = Services.CreateAsyncScope();
         return await action(scope.ServiceProvider.GetRequiredService<KimlikDbContext>());
+    }
+
+    /// <summary>Runs <paramref name="action"/> with services resolved from a fresh scope.</summary>
+    public async Task<T> WithServicesAsync<T>(Func<IServiceProvider, Task<T>> action)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await action(scope.ServiceProvider);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
@@ -36,5 +50,23 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     {
         await base.DisposeAsync();
         await _postgres.DisposeAsync();
+    }
+
+    // Token keys load in the background after startup; tests start once the instance reports ready.
+    private async Task WaitUntilReadyAsync()
+    {
+        using var client = CreateClient();
+        using var timeout = new CancellationTokenSource(ReadinessTimeout);
+
+        while (true)
+        {
+            using var response = await client.GetAsync("/health/ready", timeout.Token);
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100), timeout.Token);
+        }
     }
 }

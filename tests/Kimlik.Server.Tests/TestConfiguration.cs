@@ -7,12 +7,17 @@ internal static class TestConfiguration
 {
     public const string Environment = "Testing";
 
+    /// <summary>The base address of the in-memory test server, which is also the token issuer.</summary>
+    public const string PublicUrl = "http://localhost/";
+
     /// <summary>A fresh master key per test run; nothing encrypted by the tests outlives it.</summary>
     public static readonly string MasterKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
     public static Dictionary<string, string?> Create(string connectionString) => new()
     {
         ["ConnectionStrings:Kimlik"] = connectionString,
+        ["Kimlik:Server:PublicUrl"] = PublicUrl,
+        ["Kimlik:Server:RequireHttps"] = "false",
         ["Kimlik:Security:MasterKey"] = MasterKey,
     };
 }

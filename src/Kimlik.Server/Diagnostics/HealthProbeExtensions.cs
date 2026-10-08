@@ -8,7 +8,8 @@ namespace Kimlik.Server.Diagnostics;
 /// </summary>
 internal static class HealthProbeExtensions
 {
-    private const string ReadinessTag = "ready";
+    /// <summary>Checks with this tag must pass before the instance receives traffic.</summary>
+    public const string ReadinessTag = "ready";
 
     public static IServiceCollection AddHealthProbes(this IServiceCollection services)
     {
@@ -18,16 +19,17 @@ internal static class HealthProbeExtensions
         return services;
     }
 
-    public static IEndpointRouteBuilder MapHealthProbes(this IEndpointRouteBuilder endpoints)
+    /// <summary>
+    /// Serves the probes as middleware placed before authentication, so they answer even while the instance
+    /// cannot serve anything else (for example before its token keys are loaded).
+    /// </summary>
+    public static IApplicationBuilder UseHealthProbes(this IApplicationBuilder app)
     {
         // Liveness only reports that the process is up, so a database outage
         // makes Kimlik unready instead of getting it restarted.
-        endpoints.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
-            .DisableHttpMetrics();
+        app.UseHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+        app.UseHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains(ReadinessTag) });
 
-        endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains(ReadinessTag) })
-            .DisableHttpMetrics();
-
-        return endpoints;
+        return app;
     }
 }
