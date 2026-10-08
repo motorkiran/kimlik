@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
-using Microsoft.Extensions.WebEncoders;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.WebEncoders;
 
 namespace Kimlik.Server.Ui;
 
