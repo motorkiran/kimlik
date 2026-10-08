@@ -11,4 +11,6 @@ internal static class AdvisoryLockKeys
     public const long DatabasePreparation = 0x4B494D4C494B_0002;
 
     public const long SubscriptionExpiration = 0x4B494D4C494B_0003;
+
+    public const long ProtocolDataPruning = 0x4B494D4C494B_0004;
 }

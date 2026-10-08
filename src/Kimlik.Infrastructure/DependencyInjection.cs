@@ -37,6 +37,8 @@ public static class DependencyInjection
 
         services.AddScoped<IAuditLog, AuditLog>();
         services.AddHostedService<SubscriptionExpirationService>();
+        services.AddScoped<ProtocolDataPruner>();
+        services.AddHostedService<ProtocolDataPruningService>();
 
         return services;
     }
