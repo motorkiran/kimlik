@@ -35,5 +35,7 @@ public sealed record AuditSubject(string Type, string Id)
 
     public static AuditSubject ApiKey(Guid apiKeyId) => new("api_key", apiKeyId.ToString());
 
+    public static AuditSubject WebhookEndpoint(Guid endpointId) => new("webhook_endpoint", endpointId.ToString());
+
     public static AuditSubject Subscription(Guid subscriptionId) => new("subscription", subscriptionId.ToString());
 }

@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5) and API keys. Webhooks come next. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), and API keys and webhooks (M6). The admin panel comes next. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -34,6 +34,21 @@ builder.Services.AddKimlikClient(options =>
 });
 
 var user = await kimlik.Users.CreateAsync(new CreateUserRequest { Email = "ada@example.com" }, cancellationToken);
+```
+
+Receive Kimlik's webhooks, such as `user.created` or `subscription.updated`, at an endpoint registered with `POST /api/v1/webhooks/endpoints`. They follow the [Standard Webhooks](https://www.standardwebhooks.com/) specification, so any of its libraries can check them too:
+
+```csharp
+app.MapPost("/webhooks/kimlik", async (HttpRequest request) =>
+{
+    if (await KimlikWebhook.ReadAsync(request, secret) is not { } webhookEvent)
+    {
+        return Results.Unauthorized();
+    }
+
+    // webhookEvent.Type, webhookEvent.Data.SubjectId…; delivery is at least once, so handle each webhook-id once.
+    return Results.Ok();
+});
 ```
 
 The [samples](samples/README.md) show a single-page app and its API working with Kimlik end to end.
@@ -99,6 +114,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Mfa__*` | Who must use a second factor (administrators by default, or everyone) and how long a trusted browser may skip it |
 | `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
 | `Kimlik__Plans__DefaultUserPlan`, `Kimlik__Plans__DefaultOrganizationPlan` | The plan of users and organizations without a current subscription |
+| `Kimlik__Webhooks__*` | Retry delays (`RetryDelays`), timeout and how long the delivery log is kept |
 | `Kimlik__Audit__RetentionPeriod` | How long audit events are kept, such as `365.00:00:00` (the default) |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
 | `Kimlik__SocialLogin__*` | Sign-in with Google, Microsoft, Apple and GitHub (see below) |

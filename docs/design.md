@@ -665,7 +665,8 @@ Every operation requires a system permission, for example:
 - `kimlik.users:read` and `kimlik.users:write`
 - `kimlik.roles:write`, `kimlik.clients:write` and `kimlik.plans:write`
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
-- `kimlik.webhooks:write`, `kimlik.audit:read` and `kimlik.settings:write`
+- `kimlik.webhooks:read`, `kimlik.webhooks:write`, `kimlik.audit:read` and `kimlik.settings:write`
+- `kimlik.api_keys:read` and `kimlik.api_keys:write`
 - `kimlik.api_keys:verify`
 
 ### 9.3 Account API (`/api/v1/me`)
@@ -690,8 +691,12 @@ Event names follow `<resource>.<past_tense_verb>`.
 Webhook delivery follows the Standard Webhooks specification (`webhook-id`, `webhook-timestamp` and `webhook-signature` headers, HMAC-SHA256):
 
 - Delivery is at-least-once, so consumers should process events idempotently.
-- Failed deliveries are retried with exponential backoff for up to 24 hours.
-- Endpoints that keep failing are flagged.
+- Failed deliveries are retried with exponential backoff for up to 24 hours (by default after 10 seconds, 1 and 5 minutes, 30 minutes, 2, 6 and 12 hours). Any 2xx answer counts as received; redirects are not followed.
+- Endpoints that keep failing are flagged (`failingSince`) until a delivery succeeds.
+- Events are thin: `{ "type", "timestamp", "data": { "subjectType", "subjectId", "organizationId", "actor", "details" } }`. They name what changed and leave its current state to the Management API, so delayed or repeated deliveries never carry stale data.
+- Each event is the audit event of the change: recording a change whose action is a webhook event type also queues the event in the outbox, in the same transaction, and `webhook-id` is the audit event's ID. A worker fans the event out into one delivery per subscribed endpoint, and senders lease due deliveries with `FOR UPDATE SKIP LOCKED`, so any number of instances share the work.
+- Endpoint URLs must use HTTPS, except `localhost` for development. Secrets (`whsec_…`) are encrypted with the master key; rotating one takes effect at once.
+- A test event (`webhook.test`) can be sent to an endpoint, even a disabled one, and any delivery can be sent again. The delivery log is kept for 30 days.
 
 ---
 
@@ -956,7 +961,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M3: Organizations** | Organizations, memberships, invitations, organization roles, organization context in tokens, Account API self-service | Users switch organizations and receive context-specific permissions ✅ |
 | **M4: Plans and entitlements** | Features, plans, subscriptions, expiration job, `plan` claim, entitlements API, SDK `RequireFeature` and limits | The sample API gates a feature and enforces a limit ✅ |
 | **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests ✅ |
-| **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection |
+| **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection ✅ |
 | **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI |
 | **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image and NuGet publishing | v0.1.0 released |
 

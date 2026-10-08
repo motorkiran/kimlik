@@ -65,4 +65,8 @@ public static class AuditActions
     public const string SubscriptionUpdated = "subscription.updated";
     public const string SubscriptionCanceled = "subscription.canceled";
     public const string SubscriptionExpired = "subscription.expired";
+    public const string WebhookEndpointCreated = "webhook_endpoint.created";
+    public const string WebhookEndpointUpdated = "webhook_endpoint.updated";
+    public const string WebhookEndpointDeleted = "webhook_endpoint.deleted";
+    public const string WebhookEndpointSecretRotated = "webhook_endpoint.secret_rotated";
 }

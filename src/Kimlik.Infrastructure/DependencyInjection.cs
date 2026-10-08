@@ -10,6 +10,7 @@ using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Plans;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
+using Kimlik.Infrastructure.Webhooks;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Identity;
@@ -36,6 +37,7 @@ public static class DependencyInjection
         AddEmail(services);
 
         services.AddScoped<IAuditLog, AuditLog>();
+        AddWebhooks(services);
         services.AddHostedService<SubscriptionExpirationService>();
         services.AddScoped<ProtocolDataPruner>();
         services.AddHostedService<ProtocolDataPruningService>();
@@ -86,6 +88,7 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<ISecretProtector, SecretProtector>();
+        services.AddSingleton<ISecretEncryption, SecretEncryption>();
 
         // Every instance shares one key ring, stored in PostgreSQL and encrypted with the master key.
         services.AddDataProtection()
@@ -124,6 +127,22 @@ public static class DependencyInjection
         services.AddScoped<OutboxSignalInterceptor>();
         services.AddScoped<IOutbox, Outbox.Outbox>();
         services.AddHostedService<OutboxDispatcher>();
+    }
+
+    private static void AddWebhooks(IServiceCollection services)
+    {
+        services.AddOptions<WebhookOptions>()
+            .BindConfiguration(WebhookOptions.SectionName)
+            .Validate(options => options.IsValid(), $"{WebhookOptions.SectionName}: intervals and delays must be positive and the batch size between 1 and 100.")
+            .ValidateOnStart();
+
+        services.AddSingleton<WebhookSignal>();
+        services.AddSingleton<IWebhookSignal>(provider => provider.GetRequiredService<WebhookSignal>());
+        services.AddScoped<WebhookSender>();
+        services.AddHttpClient(WebhookSender.HttpClientName)
+            .ConfigureHttpClient((provider, client) => WebhookHttpClient.Configure(client, provider.GetRequiredService<IOptions<WebhookOptions>>().Value.Timeout))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+        services.AddHostedService<WebhookDeliveryService>();
     }
 
     private static void AddEmail(IServiceCollection services)

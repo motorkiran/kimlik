@@ -3,6 +3,7 @@ using Kimlik.Application.Accounts;
 using Kimlik.Client;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
+using Kimlik.Contracts.Webhooks;
 using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
@@ -63,6 +64,31 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
 
         await kimlik.ApiKeys.RevokeAsync(created.ApiKey.Id, CancellationToken);
         (await kimlik.ApiKeys.VerifyAsync(created.Key, CancellationToken)).Active.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Webhooks_CanBeManaged_ThroughTheClient()
+    {
+        await using var services = await CreateServicesAsync();
+        var kimlik = services.GetRequiredService<KimlikClient>();
+        var url = server.Webhooks.NewEndpoint();
+
+        // Disabled, so that only the test event below reaches it.
+        var created = await kimlik.Webhooks.CreateEndpointAsync(
+            new CreateWebhookEndpointRequest { Url = url, EventTypes = [WebhookEventTypes.UserCreated], Enabled = false }, CancellationToken);
+        (await kimlik.Webhooks.ListEventTypesAsync(CancellationToken)).ShouldContain(WebhookEventTypes.UserCreated);
+
+        var updated = await kimlik.Webhooks.UpdateEndpointAsync(created.Endpoint.Id, new UpdateWebhookEndpointRequest { Description = "Billing" }, CancellationToken);
+        updated.Description.ShouldBe("Billing");
+        updated.EventTypes.ShouldBe([WebhookEventTypes.UserCreated]);
+
+        var test = await kimlik.Webhooks.SendTestAsync(created.Endpoint.Id, CancellationToken);
+        await server.Webhooks.WaitForAsync(url, webhook => webhook.Id == test.EventId.ToString());
+        (await kimlik.Webhooks.ListDeliveriesAsync(endpointId: created.Endpoint.Id, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem().Id.ShouldBe(test.Id);
+
+        await kimlik.Webhooks.DeleteEndpointAsync(created.Endpoint.Id, CancellationToken);
+        var gone = await Should.ThrowAsync<KimlikApiException>(() => kimlik.Webhooks.GetEndpointAsync(created.Endpoint.Id, CancellationToken));
+        gone.Code.ShouldBe("webhook.endpoint_not_found");
     }
 
     [Fact]

@@ -22,6 +22,11 @@ internal static class TestConfiguration
         // Any reuse of a refresh token counts as theft, so the tests need not wait out the leeway.
         ["Kimlik:Tokens:RefreshTokenReuseLeeway"] = "00:00:00",
         ["Kimlik:Outbox:PollingInterval"] = "00:00:00.200",
+        // Webhooks retry three times, quickly, so failures and retries fit in a test.
+        ["Kimlik:Webhooks:PollingInterval"] = "00:00:00.200",
+        ["Kimlik:Webhooks:RetryDelays:0"] = "00:00:00.200",
+        ["Kimlik:Webhooks:RetryDelays:1"] = "00:00:00.200",
+        ["Kimlik:Webhooks:RetryDelays:2"] = "00:00:00.200",
         // Tests sign administrators in with a password alone; the MFA tests turn the policy on where they need it.
         ["Kimlik:Mfa:RequireForAdministrators"] = "false",
         // Every test request comes from the same address; rate limiting has its own tests.

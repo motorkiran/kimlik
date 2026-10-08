@@ -1,6 +1,7 @@
 using System.Net;
 using Kimlik.Application.Abstractions;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Infrastructure.Webhooks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -27,6 +28,9 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
 
     /// <summary>Every email the server sends during the test run.</summary>
     public CapturingEmailSender Emails { get; } = new();
+
+    /// <summary>The webhook endpoints of the test run, which every host sends its webhooks to.</summary>
+    internal Webhooks.TestWebhookReceiver Webhooks { get; } = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -64,7 +68,11 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
         .UseEnvironment(TestConfiguration.Environment)
         .ConfigureAppConfiguration((_, configuration) =>
             configuration.AddInMemoryCollection(TestConfiguration.Create(_postgres.GetConnectionString())))
-        .ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));
+        .ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IEmailSender>(Emails);
+            services.AddHttpClient(WebhookSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(Webhooks.CreateHandler);
+        });
 
     /// <summary>
     /// A host that checks the security stamp of sign-in sessions on every request instead of every few minutes, as

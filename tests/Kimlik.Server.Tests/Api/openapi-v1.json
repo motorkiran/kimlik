@@ -4455,6 +4455,629 @@
         ]
       }
     },
+    "/api/v1/webhooks/event-types": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List the events endpoints can subscribe to",
+        "description": "Requires the `kimlik.webhooks:read` permission.",
+        "operationId": "ListWebhookEventTypes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/endpoints": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List webhook endpoints",
+        "description": "Requires the `kimlik.webhooks:read` permission.",
+        "operationId": "ListWebhookEndpoints",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfWebhookEndpointResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Register a webhook endpoint",
+        "description": "Returns the secret that signs its deliveries, only this once. Deliveries follow the Standard Webhooks specification.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "CreateWebhookEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookEndpointRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedWebhookEndpointResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/endpoints/{id}": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Get a webhook endpoint",
+        "description": "Requires the `kimlik.webhooks:read` permission.",
+        "operationId": "GetWebhookEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Change a webhook endpoint",
+        "description": "Changes the URL, description, event types or whether it is enabled. Deliveries to a disabled endpoint fail instead of being sent.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "UpdateWebhookEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookEndpointRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Delete a webhook endpoint",
+        "description": "Its delivery log is deleted with it.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "DeleteWebhookEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/endpoints/{id}/secret": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Replace an endpoint's signing secret",
+        "description": "Returns the new secret, only this once. Every delivery from then on, retries included, is signed with it.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "RotateWebhookSecret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSecretResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/endpoints/{id}/test": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Send a test event to an endpoint",
+        "description": "Sends a `webhook.test` event, even to a disabled endpoint, and returns its delivery.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "SendTestWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/deliveries": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List webhook deliveries",
+        "description": "Lists deliveries newest first, with the outcome of their latest attempt. The log is kept for 30 days by default.\n\nRequires the `kimlik.webhooks:read` permission.",
+        "operationId": "ListWebhookDeliveries",
+        "parameters": [
+          {
+            "name": "endpointId",
+            "in": "query",
+            "description": "Only the deliveries to this endpoint.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`pending`, `succeeded` or `failed`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfWebhookDeliveryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/deliveries/{id}": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Get a webhook delivery",
+        "description": "Requires the `kimlik.webhooks:read` permission.",
+        "operationId": "GetWebhookDelivery",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/webhooks/deliveries/{id}/redeliver": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Send a delivery again",
+        "description": "Sends the same event, with the same `webhook-id`, as a fresh series of attempts.\n\nRequires the `kimlik.webhooks:write` permission.",
+        "operationId": "RedeliverWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.webhooks:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/provisioning": {
       "get": {
         "tags": [
@@ -7052,6 +7675,22 @@
         },
         "description": "A new client and, for web and service clients, its secret. The secret is shown only this once."
       },
+      "CreatedWebhookEndpointResponse": {
+        "required": [
+          "endpoint",
+          "secret"
+        ],
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "$ref": "#/components/schemas/WebhookEndpointResponse"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "description": "A new endpoint and the secret that signs its deliveries, which is shown only this once."
+      },
       "CreateFeatureRequest": {
         "required": [
           "key",
@@ -7320,6 +7959,41 @@
           }
         },
         "description": "Creates a user. Without a password, the user sets one through the password reset flow."
+      },
+      "CreateWebhookEndpointRequest": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string",
+            "description": "An HTTPS URL; plain HTTP only for `localhost`, for development."
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "eventTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "The events to send; all of them when omitted or empty."
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
       },
       "DeleteAccountRequest": {
         "required": [
@@ -7944,6 +8618,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UserResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfWebhookDeliveryResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfWebhookEndpointResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEndpointResponse"
             }
           },
           "nextCursor": {
@@ -8932,6 +9650,43 @@
         },
         "description": "Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and\n`null` clears one."
       },
+      "UpdateWebhookEndpointRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "eventTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Changes an endpoint with JSON Merge Patch semantics: omitted properties keep their value."
+      },
       "UserLoginResponse": {
         "required": [
           "provider",
@@ -9048,6 +9803,167 @@
             "type": "string"
           }
         }
+      },
+      "WebhookDeliveryResponse": {
+        "required": [
+          "id",
+          "endpointId",
+          "eventId",
+          "eventType",
+          "status",
+          "attempts",
+          "createdAt",
+          "lastAttemptAt",
+          "nextAttemptAt",
+          "responseStatusCode",
+          "responseBody",
+          "error",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "endpointId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WebhookDeliveryStatus"
+          },
+          "attempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAttemptAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextAttemptAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "responseStatusCode": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "responseBody": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        },
+        "description": "One event sent to one endpoint, with the outcome of its latest attempt. Every attempt carries the event's ID as\n`webhook-id`, so receivers can recognize repeats."
+      },
+      "WebhookDeliveryStatus": {
+        "enum": [
+          "pending",
+          "succeeded",
+          "failed"
+        ]
+      },
+      "WebhookEndpointResponse": {
+        "required": [
+          "id",
+          "url",
+          "description",
+          "eventTypes",
+          "enabled",
+          "createdAt",
+          "updatedAt",
+          "failingSince"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failingSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A URL that receives signed events. `EventTypes` lists the events it subscribes to; empty means all of them.\n`FailingSince` is set while its deliveries keep failing."
+      },
+      "WebhookSecretResponse": {
+        "required": [
+          "secret"
+        ],
+        "type": "object",
+        "properties": {
+          "secret": {
+            "type": "string"
+          }
+        },
+        "description": "A new signing secret, which is shown only this once."
       }
     },
     "securitySchemes": {
@@ -9092,6 +10008,9 @@
     },
     {
       "name": "API keys"
+    },
+    {
+      "name": "Webhooks"
     },
     {
       "name": "Provisioning"

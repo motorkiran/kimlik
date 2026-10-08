@@ -21,6 +21,7 @@ public sealed class KimlikClient
         Plans = new PlansClient(http);
         Subscriptions = new SubscriptionsClient(http);
         ApiKeys = new ApiKeysClient(http);
+        Webhooks = new WebhooksClient(http);
         AuditEvents = new AuditEventsClient(http);
         Provisioning = new ProvisioningClient(http);
     }
@@ -42,6 +43,8 @@ public sealed class KimlikClient
     public SubscriptionsClient Subscriptions { get; }
 
     public ApiKeysClient ApiKeys { get; }
+
+    public WebhooksClient Webhooks { get; }
 
     public AuditEventsClient AuditEvents { get; }
 

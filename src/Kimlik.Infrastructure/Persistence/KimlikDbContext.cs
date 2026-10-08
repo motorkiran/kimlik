@@ -5,6 +5,7 @@ using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
 using Kimlik.Domain.Users;
+using Kimlik.Domain.Webhooks;
 using Kimlik.Infrastructure.Outbox;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
@@ -47,6 +48,10 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     public DbSet<ApiKeyPermission> ApiKeyPermissions => Set<ApiKeyPermission>();
+
+    public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
+
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 

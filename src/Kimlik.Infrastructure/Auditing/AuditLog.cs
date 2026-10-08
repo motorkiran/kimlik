@@ -1,11 +1,16 @@
 using System.Text.Json;
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Webhooks;
 using Kimlik.Domain.Auditing;
 using Kimlik.Infrastructure.Persistence;
 
 namespace Kimlik.Infrastructure.Auditing;
 
-internal sealed class AuditLog(KimlikDbContext context, IRequestContext request, TimeProvider timeProvider) : IAuditLog
+/// <summary>
+/// Records audit events, and for the changes that applications can subscribe to, queues the webhook event in the
+/// same unit of work; its ID is the audit event's.
+/// </summary>
+internal sealed class AuditLog(KimlikDbContext context, IRequestContext request, IOutbox outbox, TimeProvider timeProvider) : IAuditLog
 {
     public void Record(
         string action,
@@ -16,7 +21,7 @@ internal sealed class AuditLog(KimlikDbContext context, IRequestContext request,
     {
         actor ??= request.Actor;
 
-        context.AuditEvents.Add(new AuditEvent
+        var auditEvent = new AuditEvent
         {
             OccurredAt = timeProvider.GetUtcNow(),
             Action = action,
@@ -29,7 +34,13 @@ internal sealed class AuditLog(KimlikDbContext context, IRequestContext request,
             UserAgent = Truncate(request.UserAgent, AuditEvent.UserAgentMaxLength),
             CorrelationId = Truncate(request.CorrelationId, AuditEvent.ReferenceMaxLength),
             Data = data is null ? null : JsonSerializer.Serialize(data),
-        });
+        };
+
+        context.AuditEvents.Add(auditEvent);
+        if (WebhookEvents.From(auditEvent) is { } webhookEvent)
+        {
+            outbox.Enqueue(webhookEvent);
+        }
     }
 
     private static string? Truncate(string? value, int maxLength) =>

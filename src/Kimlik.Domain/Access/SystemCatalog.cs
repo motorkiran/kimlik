@@ -19,6 +19,8 @@ public static class SystemPermissions
     public const string ApiKeysRead = "kimlik.api_keys:read";
     public const string ApiKeysWrite = "kimlik.api_keys:write";
     public const string ApiKeysVerify = "kimlik.api_keys:verify";
+    public const string WebhooksRead = "kimlik.webhooks:read";
+    public const string WebhooksWrite = "kimlik.webhooks:write";
 
     public const string OrganizationMembersRead = "kimlik.org.members:read";
     public const string OrganizationMembersWrite = "kimlik.org.members:write";
@@ -45,6 +47,8 @@ public static class SystemPermissions
         [ApiKeysRead] = "View the API keys of users and organizations.",
         [ApiKeysWrite] = "Revoke API keys.",
         [ApiKeysVerify] = "Verify API keys, as a resource server that accepts them.",
+        [WebhooksRead] = "View webhook endpoints and their deliveries.",
+        [WebhooksWrite] = "Register and change webhook endpoints, rotate their secrets and send deliveries again.",
     };
 
     /// <summary>The system permissions that apply within one organization, held through organization roles.</summary>
