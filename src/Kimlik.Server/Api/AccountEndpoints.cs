@@ -40,6 +40,19 @@ internal static class AccountEndpoints
             .WithSummary("Sign out everywhere")
             .WithDescription("Every application session and token ends, this one included; browser sessions end within minutes.");
 
+        me.MapGet("passkeys", ListPasskeysAsync).WithName("ListMyPasskeys")
+            .WithSummary("List my passkeys")
+            .WithDescription("Passkeys are added in the browser, on the account pages.");
+
+        me.MapPatch("passkeys/{id}", RenamePasskeyAsync).WithName("RenameMyPasskey")
+            .WithSummary("Rename a passkey")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapDelete("passkeys/{id}", RemovePasskeyAsync).WithName("RemoveMyPasskey")
+            .WithSummary("Remove a passkey")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         me.MapGet("logins", ListLoginsAsync).WithName("ListMyLogins")
             .WithSummary("List the accounts at other providers that I sign in with");
 
@@ -311,6 +324,18 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> RevokeAllSessionsAsync(
         ClaimsPrincipal principal, ApplicationSessions sessions, CancellationToken cancellationToken) =>
         (await sessions.RevokeAllAsync(Caller(principal), cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<IReadOnlyList<PasskeyResponse>>, ProblemHttpResult>> ListPasskeysAsync(
+        ClaimsPrincipal principal, UserPasskeys passkeys) =>
+        (await passkeys.ListAsync(Caller(principal))).ToOk();
+
+    private static async Task<Results<Ok<PasskeyResponse>, ProblemHttpResult>> RenamePasskeyAsync(
+        ClaimsPrincipal principal, string id, RenamePasskeyRequest request, UserPasskeys passkeys, CancellationToken cancellationToken) =>
+        (await passkeys.RenameAsync(Caller(principal), id, request, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemovePasskeyAsync(
+        ClaimsPrincipal principal, string id, UserPasskeys passkeys, CancellationToken cancellationToken) =>
+        (await passkeys.RemoveAsync(Caller(principal), id, cancellationToken)).ToNoContent();
 
     private static async Task<Results<Ok<IReadOnlyList<UserLoginResponse>>, ProblemHttpResult>> ListLoginsAsync(
         ClaimsPrincipal principal, ExternalLogins logins) =>

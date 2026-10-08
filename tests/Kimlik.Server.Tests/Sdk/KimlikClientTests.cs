@@ -41,6 +41,7 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
         (await kimlik.Users.ListLoginsAsync(created.Id, CancellationToken)).ShouldBeEmpty();
 
         (await kimlik.Users.ListSessionsAsync(created.Id, CancellationToken)).ShouldBeEmpty();
+        (await kimlik.Users.ListPasskeysAsync(created.Id, CancellationToken)).ShouldBeEmpty();
         await kimlik.Users.RevokeSessionsAsync(created.Id, CancellationToken);
 
         await kimlik.Users.SuspendAsync(created.Id, CancellationToken);

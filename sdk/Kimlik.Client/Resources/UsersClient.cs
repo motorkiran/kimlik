@@ -57,6 +57,14 @@ public sealed class UsersClient
     public Task UnlinkLoginAsync(Guid id, string provider, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Delete, $"users/{id}/logins/{Uri.EscapeDataString(provider)}", body: null, cancellationToken);
 
+    /// <summary>The passkeys the user signs in with.</summary>
+    public Task<IReadOnlyList<PasskeyResponse>> ListPasskeysAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.GetAsync<IReadOnlyList<PasskeyResponse>>($"users/{id}/passkeys", cancellationToken);
+
+    /// <summary>Removes one of the user's passkeys, such as one on a device that was stolen.</summary>
+    public Task RemovePasskeyAsync(Guid id, string passkeyId, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Delete, $"users/{id}/passkeys/{Uri.EscapeDataString(passkeyId)}", body: null, cancellationToken);
+
     /// <summary>The applications the user is signed in to, newest first.</summary>
     public Task<IReadOnlyList<SessionResponse>> ListSessionsAsync(Guid id, CancellationToken cancellationToken = default) =>
         _http.GetAsync<IReadOnlyList<SessionResponse>>($"users/{id}/sessions", cancellationToken);

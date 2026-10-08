@@ -89,6 +89,19 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapGet("{id:guid}/passkeys", ListPasskeysAsync)
+            .WithName("ListUserPasskeys")
+            .WithSummary("List a user's passkeys")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersRead);
+
+        users.MapDelete("{id:guid}/passkeys/{passkeyId}", RemovePasskeyAsync)
+            .WithName("RemoveUserPasskey")
+            .WithSummary("Remove a user's passkey")
+            .WithDescription("The user can no longer sign in with it, as after losing the device it is on.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
         users.MapGet("{id:guid}/sessions", ListSessionsAsync)
             .WithName("ListUserSessions")
             .WithSummary("List the applications a user is signed in to")
@@ -186,6 +199,14 @@ internal static class UserEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
         Guid id, string provider, UnlinkUserLoginHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, provider, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<IReadOnlyList<PasskeyResponse>>, ProblemHttpResult>> ListPasskeysAsync(
+        Guid id, ListUserPasskeysHandler handler) =>
+        (await handler.HandleAsync(id)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemovePasskeyAsync(
+        Guid id, string passkeyId, RemoveUserPasskeyHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, passkeyId, cancellationToken)).ToNoContent();
 
     private static async Task<Results<Ok<IReadOnlyList<SessionResponse>>, ProblemHttpResult>> ListSessionsAsync(
         Guid id, ListUserSessionsHandler handler, CancellationToken cancellationToken) =>
