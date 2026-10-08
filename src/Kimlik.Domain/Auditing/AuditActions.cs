@@ -16,6 +16,8 @@ public static class AuditActions
     public const string UserEmailVerified = "user.email_verified";
     public const string UserPasswordResetRequested = "user.password_reset_requested";
     public const string UserPasswordReset = "user.password_reset";
+    public const string UserPasswordChanged = "user.password_changed";
+    public const string UserSessionRevoked = "user.session_revoked";
     public const string UserMfaEnabled = "user.mfa_enabled";
     public const string UserMfaDisabled = "user.mfa_disabled";
     public const string UserMfaReset = "user.mfa_reset";

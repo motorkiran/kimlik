@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Security.Claims;
+using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Users;
@@ -17,6 +18,32 @@ internal static class AccountEndpoints
         var me = api.MapGroup("me").WithTags("Account").RequireSignedInUser();
 
         me.MapGet(string.Empty, GetAccountAsync).WithName("GetMyAccount").WithSummary("Get the signed-in user");
+
+        me.MapPatch(string.Empty, UpdateProfileAsync).WithName("UpdateMyProfile")
+            .WithSummary("Update my profile")
+            .WithDescription("JSON Merge Patch: omitted properties keep their value and `null` clears one.")
+            .ProducesValidationProblem();
+
+        me.MapPost("password", ChangePasswordAsync).WithName("ChangeMyPassword")
+            .WithSummary("Change my password")
+            .WithDescription("Every session and token of the account ends, this one included.")
+            .ProducesValidationProblem();
+
+        me.MapGet("sessions", ListSessionsAsync).WithName("ListMySessions")
+            .WithSummary("List the applications I am signed in to");
+
+        me.MapDelete("sessions/{id:guid}", RevokeSessionAsync).WithName("RevokeMySession")
+            .WithSummary("Sign an application out")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapDelete("sessions", RevokeAllSessionsAsync).WithName("RevokeAllMySessions")
+            .WithSummary("Sign out everywhere")
+            .WithDescription("Every application session and token ends, this one included; browser sessions end within minutes.");
+
+        me.MapPost("delete", DeleteAccountAsync).WithName("DeleteMyAccount")
+            .WithSummary("Delete my account")
+            .WithDescription("Takes the password. The account and its personal data are deleted, and every session ends.")
+            .ProducesValidationProblem();
 
         me.MapGet("organizations", ListOrganizationsAsync).WithName("ListMyOrganizations")
             .WithSummary("List my organizations")
@@ -220,4 +247,28 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> DisableMfaAsync(
         ClaimsPrincipal principal, AuthenticatorCodeRequest request, TwoFactor twoFactor, CancellationToken cancellationToken) =>
         (await twoFactor.DisableAsync(Caller(principal), request.Code, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> UpdateProfileAsync(
+        ClaimsPrincipal principal, UpdateUserRequest request, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.UpdateProfileAsync(Caller(principal), request, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ChangePasswordAsync(
+        ClaimsPrincipal principal, ChangePasswordRequest request, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.ChangePasswordAsync(Caller(principal), request, cancellationToken)).ToNoContent();
+
+    private static async Task<Ok<IReadOnlyList<SessionResponse>>> ListSessionsAsync(
+        ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await account.ListSessionsAsync(Caller(principal), cancellationToken));
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeSessionAsync(
+        ClaimsPrincipal principal, Guid id, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.RevokeSessionAsync(Caller(principal), id, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeAllSessionsAsync(
+        ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.RevokeAllSessionsAsync(Caller(principal), cancellationToken)).ToNoContent();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> DeleteAccountAsync(
+        ClaimsPrincipal principal, DeleteAccountRequest request, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.DeleteAsync(Caller(principal), request, cancellationToken)).ToNoContent();
 }

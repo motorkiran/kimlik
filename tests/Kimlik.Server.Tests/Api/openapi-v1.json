@@ -4274,6 +4274,256 @@
             "Bearer": [ ]
           }
         ]
+      },
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update my profile",
+        "description": "JSON Merge Patch: omitted properties keep their value and `null` clears one.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "UpdateMyProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change my password",
+        "description": "Every session and token of the account ends, this one included.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "ChangeMyPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List the applications I am signed in to",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "ListMySessions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Sign out everywhere",
+        "description": "Every application session and token ends, this one included; browser sessions end within minutes.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "RevokeAllMySessions",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Sign an application out",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "RevokeMySession",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/delete": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Delete my account",
+        "description": "Takes the password. The account and its personal data are deleted, and every session ends.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "DeleteMyAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
       }
     },
     "/api/v1/me/organizations": {
@@ -5594,6 +5844,25 @@
         },
         "description": "A new authenticator key. Add it to an authenticator app, by scanning `otpAuthUri` as a QR code or typing\n`secret`, then confirm with a code from the app."
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "ClientResponse": {
         "required": [
           "id",
@@ -6071,6 +6340,20 @@
           }
         },
         "description": "Creates a user. Without a password, the user sets one through the password reset flow."
+      },
+      "DeleteAccountRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "description": "Deleting the account takes the password, so a stolen token alone cannot do it."
       },
       "EntitlementsResponse": {
         "required": [
@@ -7203,6 +7486,48 @@
           "global",
           "organization"
         ]
+      },
+      "SessionResponse": {
+        "required": [
+          "id",
+          "clientId",
+          "clientName",
+          "scopes",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "An application the user signed in to, which can get tokens on their behalf until the session is revoked."
       },
       "SetPermissionsRequest": {
         "required": [

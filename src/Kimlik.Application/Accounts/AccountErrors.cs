@@ -17,6 +17,10 @@ public static class AccountErrors
 
     public static readonly Error PasswordRejected = Error.Validation("account.password_rejected", "The password does not meet the password policy.");
 
+    public static readonly Error WrongPassword = Error.Validation("account.wrong_password", "The password is not right.");
+
+    public static readonly Error SessionNotFound = Error.NotFound("account.session_not_found", "The session does not exist.");
+
     /// <summary>A verification or reset link that is invalid, expired or already used.</summary>
     public static readonly Error InvalidLink = Error.Validation("account.invalid_link", "The link is invalid or has expired.");
 
