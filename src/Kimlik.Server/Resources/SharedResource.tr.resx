@@ -367,6 +367,15 @@
   <data name="Choose a language from the list." xml:space="preserve">
     <value>Listeden bir dil seçin.</value>
   </data>
+  <data name="Choose a time zone from the list." xml:space="preserve">
+    <value>Listeden bir saat dilimi seçin.</value>
+  </data>
+  <data name="Time zone" xml:space="preserve">
+    <value>Saat dilimi</value>
+  </data>
+  <data name="The applications you sign in to can see it." xml:space="preserve">
+    <value>Giriş yaptığınız uygulamalar bunu görebilir.</value>
+  </data>
   <data name="Back to your account" xml:space="preserve">
     <value>Hesabınıza dönün</value>
   </data>

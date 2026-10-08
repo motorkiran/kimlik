@@ -18,6 +18,9 @@ public sealed class ProfileModel(
     ExternalProviders providers,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
+    private static readonly string[] IanaTimeZones =
+        [.. TimeZoneInfo.GetSystemTimeZones().Where(zone => zone.HasIanaId).Select(zone => zone.Id).Order(StringComparer.Ordinal)];
+
     [BindProperty]
     public ProfileInput Input { get; set; } = new();
 
@@ -31,6 +34,9 @@ public sealed class ProfileModel(
     /// <summary>The languages of the hosted pages, plus the user's current one if it is another.</summary>
     public IReadOnlyList<SelectListItem> Languages { get; private set; } = [];
 
+    /// <summary>The IANA time zones of the system, plus the user's current one if it is another.</summary>
+    public IReadOnlyList<SelectListItem> TimeZones { get; private set; } = [];
+
     public bool Saved { get; private set; }
 
     public async Task<IActionResult> OnGetAsync()
@@ -40,7 +46,7 @@ public sealed class ProfileModel(
             return Challenge();
         }
 
-        Input = new ProfileInput { GivenName = user.GivenName, FamilyName = user.FamilyName, Locale = user.Locale };
+        Input = new ProfileInput { GivenName = user.GivenName, FamilyName = user.FamilyName, Locale = user.Locale, TimeZone = user.TimeZone };
         Show(user);
         return Page();
     }
@@ -58,6 +64,11 @@ public sealed class ProfileModel(
             ModelState.AddModelError("Input.Locale", localizer["Choose a language from the list."]);
         }
 
+        if (Input.TimeZone is { Length: > 0 } timeZone && !TimeZones.Any(zone => zone.Value == timeZone))
+        {
+            ModelState.AddModelError("Input.TimeZone", localizer["Choose a time zone from the list."]);
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -65,7 +76,7 @@ public sealed class ProfileModel(
 
         var updated = await account.UpdateProfileAsync(
             user.Id,
-            new UpdateProfileRequest { GivenName = Input.GivenName, FamilyName = Input.FamilyName, Locale = Input.Locale },
+            new UpdateProfileRequest { GivenName = Input.GivenName, FamilyName = Input.FamilyName, Locale = Input.Locale, TimeZone = Input.TimeZone },
             cancellationToken);
 
         Saved = updated.IsSuccess;
@@ -87,6 +98,15 @@ public sealed class ProfileModel(
         }
 
         Languages = languages;
+
+        var timeZones = new List<SelectListItem> { new(localizer["Not set"], string.Empty) };
+        timeZones.AddRange(IanaTimeZones.Select(zone => new SelectListItem(zone, zone)));
+        if (user.TimeZone is { } currentZone && !IanaTimeZones.Contains(currentZone))
+        {
+            timeZones.Add(new SelectListItem(currentZone, currentZone));
+        }
+
+        TimeZones = timeZones;
     }
 }
 
@@ -102,4 +122,7 @@ public sealed class ProfileInput
 
     [Display(Name = "Language")]
     public string? Locale { get; set; }
+
+    [Display(Name = "Time zone")]
+    public string? TimeZone { get; set; }
 }

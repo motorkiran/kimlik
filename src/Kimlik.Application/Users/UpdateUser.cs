@@ -30,11 +30,20 @@ public sealed class UpdateUserHandler(IKimlikDbContext context, AccessGuard guar
             return Metadata.TooLarge;
         }
 
+        var pictureUrl = request.HasPictureUrl ? request.PictureUrl : user.PictureUrl;
+        var timeZone = request.HasTimeZone ? request.TimeZone : user.TimeZone;
+        if (ProfileFields.Check(pictureUrl, timeZone) is { } invalid)
+        {
+            return invalid;
+        }
+
         var now = timeProvider.GetUtcNow();
         user.UpdateProfile(
             request.HasGivenName ? request.GivenName : user.GivenName,
             request.HasFamilyName ? request.FamilyName : user.FamilyName,
             request.HasLocale ? request.Locale : user.Locale,
+            pictureUrl,
+            timeZone,
             now);
         user.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
 

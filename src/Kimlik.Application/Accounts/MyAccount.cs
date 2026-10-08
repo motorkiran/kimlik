@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Common;
 using Kimlik.Application.Users;
 using Kimlik.Contracts.Account;
 using Kimlik.Domain.Auditing;
@@ -27,10 +28,19 @@ public sealed class MyAccount(
             return UserErrors.NotFound;
         }
 
+        var pictureUrl = request.HasPictureUrl ? request.PictureUrl : user.PictureUrl;
+        var timeZone = request.HasTimeZone ? request.TimeZone : user.TimeZone;
+        if (ProfileFields.Check(pictureUrl, timeZone) is { } invalid)
+        {
+            return invalid;
+        }
+
         user.UpdateProfile(
             request.HasGivenName ? request.GivenName : user.GivenName,
             request.HasFamilyName ? request.FamilyName : user.FamilyName,
             request.HasLocale ? request.Locale : user.Locale,
+            pictureUrl,
+            timeZone,
             timeProvider.GetUtcNow());
 
         auditLog.Record(AuditActions.UserUpdated, AuditSubject.User(userId));

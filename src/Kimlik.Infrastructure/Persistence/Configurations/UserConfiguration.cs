@@ -14,6 +14,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.GivenName).HasMaxLength(User.NameMaxLength);
         builder.Property(user => user.FamilyName).HasMaxLength(User.NameMaxLength);
         builder.Property(user => user.Locale).HasMaxLength(User.LocaleMaxLength);
+        builder.Property(user => user.PictureUrl).HasMaxLength(User.PictureUrlMaxLength);
+        builder.Property(user => user.TimeZone).HasMaxLength(User.TimeZoneMaxLength);
         builder.Property(user => user.Status).HasConversion<string>().HasMaxLength(16);
         builder.Property(user => user.PublicMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         builder.Property(user => user.PrivateMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");

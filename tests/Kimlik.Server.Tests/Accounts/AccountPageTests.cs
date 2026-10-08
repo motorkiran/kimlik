@@ -36,13 +36,16 @@ public sealed class AccountPageTests(KimlikServerFixture server)
 
         using var unknown = await browser.SubmitAsync(page, new Dictionary<string, string> { ["Input.Locale"] = "xx" });
         (await Browser.ReadPageAsync(unknown)).Text.ShouldContain("Choose a language from the list.");
+        using var unknownZone = await browser.SubmitAsync(page, new Dictionary<string, string> { ["Input.TimeZone"] = "Mars/Olympus_Mons" });
+        (await Browser.ReadPageAsync(unknownZone)).Text.ShouldContain("Choose a time zone from the list.");
 
-        using var saved = await browser.SubmitAsync(page, new Dictionary<string, string> { ["Input.GivenName"] = "Augusta", ["Input.Locale"] = "tr" });
+        using var saved = await browser.SubmitAsync(page, new Dictionary<string, string> { ["Input.GivenName"] = "Augusta", ["Input.Locale"] = "tr", ["Input.TimeZone"] = "Europe/Istanbul" });
         (await Browser.ReadPageAsync(saved)).Text.ShouldContain("Your profile has been saved.");
 
         var reloaded = await browser.GetPageAsync("/account");
         reloaded.Document.QuerySelector<IHtmlInputElement>("#Input_GivenName")!.Value.ShouldBe("Augusta");
         reloaded.Document.QuerySelector<IHtmlSelectElement>("#Input_Locale")!.Value.ShouldBe("tr");
+        reloaded.Document.QuerySelector<IHtmlSelectElement>("#Input_TimeZone")!.Value.ShouldBe("Europe/Istanbul");
     }
 
     [Fact]

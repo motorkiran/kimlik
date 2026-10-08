@@ -47,6 +47,7 @@ public sealed class MyOrganizations(
                 entry.organization.Id,
                 entry.organization.Name,
                 entry.organization.Slug,
+                entry.organization.PictureUrl,
                 member.Roles,
                 [.. permissions.Order(StringComparer.Ordinal)],
                 member.JoinedAt,
@@ -74,7 +75,7 @@ public sealed class MyOrganizations(
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
 
         var created = await createOrganization.HandleAsync(
-            new CreateOrganizationRequest { Name = request.Name, Slug = request.Slug, RequireMfa = request.RequireMfa }, cancellationToken);
+            new CreateOrganizationRequest { Name = request.Name, Slug = request.Slug, PictureUrl = request.PictureUrl, RequireMfa = request.RequireMfa }, cancellationToken);
         if (created.IsFailure)
         {
             return created.Error;

@@ -7921,6 +7921,15 @@
             "type": "string",
             "description": "Up to 64 lowercase letters, digits and inner hyphens, such as `acme`."
           },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A logo or other image of the organization, as an absolute HTTP or HTTPS URL."
+          },
           "requireMfa": {
             "type": "boolean",
             "description": "Whether signing in to the organization takes a second factor."
@@ -7945,6 +7954,15 @@
             "minLength": 0,
             "type": "string",
             "description": "Up to 64 lowercase letters, digits and inner hyphens, such as `acme`."
+          },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A logo or other image of the organization, as an absolute HTTP or HTTPS URL."
           },
           "requireMfa": {
             "type": "boolean",
@@ -8149,6 +8167,24 @@
               "string"
             ],
             "description": "Preferred language as a BCP 47 tag, such as `tr` or `en`."
+          },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "An image of the user, as an absolute HTTP or HTTPS URL."
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user's time zone as an IANA name, such as `Europe/Istanbul`."
           },
           "password": {
             "maxLength": 128,
@@ -8503,6 +8539,7 @@
           "id",
           "name",
           "slug",
+          "pictureUrl",
           "roles",
           "permissions",
           "joinedAt",
@@ -8520,6 +8557,12 @@
           },
           "slug": {
             "type": "string"
+          },
+          "pictureUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "roles": {
             "type": "array",
@@ -8551,6 +8594,7 @@
           "id",
           "name",
           "slug",
+          "pictureUrl",
           "requireMfa",
           "createdAt",
           "updatedAt",
@@ -8568,6 +8612,12 @@
           },
           "slug": {
             "type": "string"
+          },
+          "pictureUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "requireMfa": {
             "type": "boolean"
@@ -9045,6 +9095,8 @@
           "familyName",
           "name",
           "locale",
+          "pictureUrl",
+          "timeZone",
           "roles",
           "createdAt",
           "updatedAt",
@@ -9085,6 +9137,18 @@
             ]
           },
           "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pictureUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
             "type": [
               "null",
               "string"
@@ -9818,6 +9882,15 @@
             ],
             "description": "A new slug; clients that use the old one must switch to it."
           },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A logo or other image of the organization, as an absolute HTTP or HTTPS URL; `null` clears it."
+          },
           "requireMfa": {
             "type": [
               "null",
@@ -9847,6 +9920,15 @@
               "string"
             ],
             "description": "A new slug; clients that use the old one must switch to it."
+          },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A logo or other image of the organization, as an absolute HTTP or HTTPS URL; `null` clears it."
           },
           "requireMfa": {
             "type": [
@@ -9955,6 +10037,24 @@
               "null",
               "string"
             ]
+          },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "An image of the user, as an absolute HTTP or HTTPS URL; `null` clears it."
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user's time zone as an IANA name, such as `Europe/Istanbul`; `null` clears it."
           }
         },
         "description": "Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and\n`null` clears one. Metadata is the application's, so only the Management API changes it."
@@ -10056,6 +10156,24 @@
               "string"
             ]
           },
+          "pictureUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "An image of the user, as an absolute HTTP or HTTPS URL; `null` clears it."
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user's time zone as an IANA name, such as `Europe/Istanbul`; `null` clears it."
+          },
           "publicMetadata": {
             "oneOf": [
               {
@@ -10145,6 +10263,8 @@
           "familyName",
           "name",
           "locale",
+          "pictureUrl",
+          "timeZone",
           "status",
           "roles",
           "createdAt",
@@ -10187,6 +10307,18 @@
             ]
           },
           "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pictureUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
             "type": [
               "null",
               "string"

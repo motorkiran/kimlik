@@ -39,6 +39,20 @@ public sealed class OrganizationApiTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task Picture_IsKeptOnlyWhenItIsAWebAddress()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var created = await api.Http.PostJsonAsync(
+            Organizations, new CreateOrganizationRequest { Name = "Acme", Slug = NewSlug(), PictureUrl = "https://example.com/acme.svg" });
+        var organization = await created.ReadAsync<OrganizationResponse>();
+        organization.PictureUrl.ShouldBe("https://example.com/acme.svg");
+
+        using var relative = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Organizations}/{organization.Id}", """{ "pictureUrl": "/logo.png" }""");
+
+        (await relative.ReadProblemCodeAsync()).ShouldBe("profile.invalid_picture_url");
+    }
+
+    [Fact]
     public async Task Metadata_IsSetOnCreation_AndReplacedOneByOne()
     {
         using var api = await server.CreateApiClientAsync();

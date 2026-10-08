@@ -31,7 +31,13 @@ public sealed class CreateUserHandler(
             return Metadata.TooLarge;
         }
 
+        if (ProfileFields.Check(request.PictureUrl, request.TimeZone) is { } invalid)
+        {
+            return invalid;
+        }
+
         var user = DomainUser.Create(request.Email, request.GivenName, request.FamilyName, request.Locale, now);
+        user.UpdateProfile(user.GivenName, user.FamilyName, user.Locale, request.PictureUrl, request.TimeZone, now);
         user.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
         if (request.EmailVerified)
         {

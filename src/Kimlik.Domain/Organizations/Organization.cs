@@ -27,6 +27,9 @@ public sealed partial class Organization
     /// <summary>Whether signing in to the organization takes a second factor, whatever the installation's policy.</summary>
     public bool RequireMfa { get; private set; }
 
+    /// <summary>A logo or other image of the organization, as an absolute HTTP or HTTPS URL.</summary>
+    public string? PictureUrl { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private init; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -75,6 +78,13 @@ public sealed partial class Organization
     /// Lowercase letters, digits and inner hyphens. A slug never reads as an ID, so a reference to an organization
     /// is unambiguous.
     /// </summary>
+    /// <summary>Replaces the picture; the caller has checked the URL.</summary>
+    public void SetPictureUrl(string? pictureUrl, DateTimeOffset now)
+    {
+        PictureUrl = string.IsNullOrWhiteSpace(pictureUrl) ? null : pictureUrl.Trim();
+        UpdatedAt = now;
+    }
+
     /// <summary>Replaces the metadata; the caller has checked that each is a JSON object.</summary>
     public void SetMetadata(string publicMetadata, string privateMetadata, DateTimeOffset now)
     {

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Kimlik.Server.Tests.Accounts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -15,6 +16,9 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         var user = await server.CreateUserAsync();
         using var browser = new Browser(server);
         var request = new AuthorizationRequest(client.ClientId);
+        await server.QueryDatabaseAsync(context => context.Users.Where(candidate => candidate.Id == user.Id).ExecuteUpdateAsync(
+            setters => setters.SetProperty(candidate => candidate.PictureUrl, "https://example.com/ada.png").SetProperty(candidate => candidate.TimeZone, "Europe/London"),
+            TestContext.Current.CancellationToken));
 
         using var challenge = await browser.GetAsync(request.Url);
         challenge.StatusCode.ShouldBe(HttpStatusCode.Redirect);
@@ -34,6 +38,8 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         identityToken.GetClaim(Claims.Email).Value.ShouldBe(user.Email);
         identityToken.GetClaim(Claims.EmailVerified).Value.ShouldBe("true");
         identityToken.GetClaim(Claims.Name).Value.ShouldBe("Ada Lovelace");
+        identityToken.GetClaim(Claims.Picture).Value.ShouldBe("https://example.com/ada.png");
+        identityToken.GetClaim(Claims.Zoneinfo).Value.ShouldBe("Europe/London");
         identityToken.TryGetClaim(Claims.AuthenticationTime, out _).ShouldBeTrue();
 
         var accessToken = new JsonWebToken(tokens.GetProperty("access_token").GetString());
@@ -47,6 +53,7 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         var claims = await userInfo.ReadJsonAsync();
         claims.GetProperty("sub").GetString().ShouldBe(user.Id.ToString());
         claims.GetProperty("email").GetString().ShouldBe(user.Email);
+        claims.GetProperty("zoneinfo").GetString().ShouldBe("Europe/London");
     }
 
     [Fact]

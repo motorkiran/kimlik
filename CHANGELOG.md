@@ -13,6 +13,7 @@ The first release: a self-hosted identity and access management server with a .N
 - Two-factor authentication with authenticator apps and recovery codes, required for administrators by default, per organization or for everyone; trusted browsers; step-up for sessions that need it; `amr` in tokens.
 - Sign-in with Google, Microsoft, Apple and GitHub, without ever linking accounts on an email address alone.
 - Account pages for the profile, password, two-factor authentication, connected accounts, signed-in applications and account deletion.
+- Profiles with a name, language, picture and time zone, issued as the standard claims of the `profile` scope.
 
 ### Access and multi-tenancy
 

@@ -19,6 +19,11 @@ public sealed class CreateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return Metadata.TooLarge;
         }
 
+        if (ProfileFields.Check(request.PictureUrl) is { } invalid)
+        {
+            return invalid;
+        }
+
         var now = timeProvider.GetUtcNow();
         var created = Organization.Create(request.Name, request.Slug, request.RequireMfa, now);
         if (created.IsFailure)
@@ -27,6 +32,7 @@ public sealed class CreateOrganizationHandler(IKimlikDbContext context, IAuditLo
         }
 
         var organization = created.Value;
+        organization.SetPictureUrl(request.PictureUrl, now);
         organization.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
         if (await context.Organizations.AnyAsync(existing => existing.Slug == organization.Slug, cancellationToken))
         {
@@ -58,7 +64,7 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return OrganizationErrors.NotFound;
         }
 
-        if (!request.HasName && !request.HasSlug && request.RequireMfa is null && !request.HasPublicMetadata && !request.HasPrivateMetadata)
+        if (!request.HasName && !request.HasSlug && !request.HasPictureUrl && request.RequireMfa is null && !request.HasPublicMetadata && !request.HasPrivateMetadata)
         {
             return organization.ToResponse();
         }
@@ -76,6 +82,12 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return Metadata.TooLarge;
         }
 
+        var pictureUrl = request.HasPictureUrl ? request.PictureUrl : organization.PictureUrl;
+        if (ProfileFields.Check(pictureUrl) is { } invalid)
+        {
+            return invalid;
+        }
+
         var now = timeProvider.GetUtcNow();
         var updated = organization.Update(
             request.HasName ? request.Name ?? string.Empty : organization.Name,
@@ -87,6 +99,7 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
             return updated.Error;
         }
 
+        organization.SetPictureUrl(pictureUrl, now);
         organization.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
 
         auditLog.Record(AuditActions.OrganizationUpdated, AuditSubject.Organization(id), organizationId: id);

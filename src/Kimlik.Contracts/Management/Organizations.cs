@@ -13,6 +13,7 @@ public sealed record OrganizationResponse(
     Guid Id,
     string Name,
     string Slug,
+    string? PictureUrl,
     bool RequireMfa,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
@@ -29,6 +30,10 @@ public sealed record CreateOrganizationRequest
     [Required]
     [StringLength(64)]
     public required string Slug { get; init; }
+
+    /// <summary>A logo or other image of the organization, as an absolute HTTP or HTTPS URL.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl { get; init; }
 
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool RequireMfa { get; init; }
@@ -66,6 +71,18 @@ public sealed record UpdateOrganizationRequest
         }
     }
 
+    /// <summary>A logo or other image of the organization, as an absolute HTTP or HTTPS URL; <c>null</c> clears it.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPictureUrl = true;
+        }
+    }
+
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool? RequireMfa { get; init; }
 
@@ -98,6 +115,10 @@ public sealed record UpdateOrganizationRequest
     /// <summary>Whether the request sets <see cref="Slug"/>.</summary>
     [JsonIgnore]
     public bool HasSlug { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PictureUrl"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPictureUrl { get; private init; }
 
     /// <summary>Whether the request sets <see cref="PublicMetadata"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]

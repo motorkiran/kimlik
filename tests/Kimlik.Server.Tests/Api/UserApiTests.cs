@@ -347,6 +347,27 @@ public sealed class UserApiTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task PictureAndTimeZone_AreKeptOnlyWhenValid()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var created = await api.Http.PostJsonAsync(
+            Users, new CreateUserRequest { Email = NewEmail(), PictureUrl = "https://example.com/grace.png", TimeZone = "Europe/Istanbul" });
+        var user = await created.ReadAsync<UserResponse>();
+        user.PictureUrl.ShouldBe("https://example.com/grace.png");
+        user.TimeZone.ShouldBe("Europe/Istanbul");
+
+        using var script = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "pictureUrl": "javascript:alert(1)" }""");
+        (await script.ReadProblemCodeAsync()).ShouldBe("profile.invalid_picture_url");
+        using var mars = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "timeZone": "Mars/Olympus_Mons" }""");
+        (await mars.ReadProblemCodeAsync()).ShouldBe("profile.invalid_time_zone");
+
+        using var cleared = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "pictureUrl": null }""");
+        var updated = await cleared.ReadAsync<UserResponse>();
+        updated.PictureUrl.ShouldBeNull();
+        updated.TimeZone.ShouldBe("Europe/Istanbul");
+    }
+
+    [Fact]
     public async Task UnknownUser_IsNotFound()
     {
         using var api = await server.CreateApiClientAsync();

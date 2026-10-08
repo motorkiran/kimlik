@@ -37,6 +37,8 @@ internal static class UserInfoEndpoint
             claims[Claims.GivenName] = user.GivenName;
             claims[Claims.FamilyName] = user.FamilyName;
             claims[Claims.Locale] = user.Locale;
+            claims[Claims.Picture] = user.PictureUrl;
+            claims[Claims.Zoneinfo] = user.TimeZone;
             claims[Claims.UpdatedAt] = user.UpdatedAt.ToUnixTimeSeconds();
         }
 

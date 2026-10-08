@@ -31,6 +31,12 @@
         <span id="locale-hint" class="hint">@L["Emails use it, and the applications you sign in to can see it."]</span>
         <span asp-validation-for="Input.Locale" class="field-error"></span>
     </div>
+    <div class="field">
+        <label asp-for="Input.TimeZone"></label>
+        <select asp-for="Input.TimeZone" asp-items="Model.TimeZones" aria-describedby="time-zone-hint"></select>
+        <span id="time-zone-hint" class="hint">@L["The applications you sign in to can see it."]</span>
+        <span asp-validation-for="Input.TimeZone" class="field-error"></span>
+    </div>
     <button type="submit" class="button">@L["Save"]</button>
 </form>
 

@@ -42,7 +42,9 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             .SetClaim(Claims.Name, user.Name)
             .SetClaim(Claims.GivenName, user.GivenName)
             .SetClaim(Claims.FamilyName, user.FamilyName)
-            .SetClaim(Claims.Locale, user.Locale);
+            .SetClaim(Claims.Locale, user.Locale)
+            .SetClaim(Claims.Picture, user.PictureUrl)
+            .SetClaim(Claims.Zoneinfo, user.TimeZone);
 
         identity.AddClaim(new Claim(Claims.EmailVerified, user.EmailConfirmed ? "true" : "false", ClaimValueTypes.Boolean));
         identity.AddClaim(UnixTimeClaim(Claims.UpdatedAt, user.UpdatedAt));
@@ -136,7 +138,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         {
             Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference => [Destinations.AccessToken, Destinations.IdentityToken],
 
-            Claims.Name or Claims.GivenName or Claims.FamilyName or Claims.Locale or Claims.UpdatedAt when identity.HasScope(Scopes.Profile)
+            Claims.Name or Claims.GivenName or Claims.FamilyName or Claims.Locale or Claims.Picture or Claims.Zoneinfo or Claims.UpdatedAt
+                when identity.HasScope(Scopes.Profile)
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
             Claims.Email or Claims.EmailVerified when identity.HasScope(Scopes.Email)

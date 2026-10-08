@@ -21,6 +21,7 @@ else if (_organization is { } organization)
                 <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Settings</MudText>
                 <MudTextField @bind-Value="_name" Label="Name" MaxLength="100" ReadOnly="!CanWrite" />
                 <MudTextField @bind-Value="_slug" Label="Slug" MaxLength="64" ReadOnly="!CanWrite" HelperText="Apps that sign in to the organization by its old slug must switch." />
+                <MudTextField @bind-Value="_pictureUrl" Label="Picture URL" HelperText="A logo or other image of the organization." MaxLength="2048" ReadOnly="!CanWrite" />
                 <MudCheckBox @bind-Value="_requireMfa" Label="Members must use two-factor authentication" ReadOnly="!CanWrite" />
                 @if (CanWrite)
                 {
@@ -109,6 +110,7 @@ else if (_organization is { } organization)
     private bool _notFound;
     private string _name = string.Empty;
     private string _slug = string.Empty;
+    private string? _pictureUrl;
     private bool _requireMfa;
     private IReadOnlyList<MemberResponse> _members = [];
     private IReadOnlyList<InvitationResponse> _invitations = [];
@@ -147,6 +149,7 @@ else if (_organization is { } organization)
         _organization = organization;
         _name = organization.Name;
         _slug = organization.Slug;
+        _pictureUrl = organization.PictureUrl;
         _requireMfa = organization.RequireMfa;
         _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
         _breadcrumbs.Add(new BreadcrumbItem(organization.Name, href: null, disabled: true));
@@ -164,7 +167,7 @@ else if (_organization is { } organization)
 
     private async Task SaveAsync()
     {
-        var request = new UpdateOrganizationRequest { Name = _name.Trim(), Slug = _slug.Trim(), RequireMfa = _requireMfa };
+        var request = new UpdateOrganizationRequest { Name = _name.Trim(), Slug = _slug.Trim(), PictureUrl = _pictureUrl, RequireMfa = _requireMfa };
         if (await ChangeAsync<UpdateOrganizationHandler, OrganizationResponse>(
             SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The organization was saved.") is { } organization)
         {

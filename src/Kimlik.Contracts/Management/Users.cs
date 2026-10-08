@@ -22,6 +22,8 @@ public sealed record UserResponse(
     string? FamilyName,
     string? Name,
     string? Locale,
+    string? PictureUrl,
+    string? TimeZone,
     UserStatus Status,
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt,
@@ -47,6 +49,14 @@ public sealed record CreateUserRequest
     /// <summary>Preferred language as a BCP 47 tag, such as <c>tr</c> or <c>en</c>.</summary>
     [StringLength(16)]
     public string? Locale { get; init; }
+
+    /// <summary>An image of the user, as an absolute HTTP or HTTPS URL.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl { get; init; }
+
+    /// <summary>The user's time zone as an IANA name, such as <c>Europe/Istanbul</c>.</summary>
+    [StringLength(64)]
+    public string? TimeZone { get; init; }
 
     [StringLength(128, MinimumLength = 1)]
     public string? Password { get; init; }
@@ -100,6 +110,30 @@ public sealed record UpdateUserRequest
         }
     }
 
+    /// <summary>An image of the user, as an absolute HTTP or HTTPS URL; <c>null</c> clears it.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPictureUrl = true;
+        }
+    }
+
+    /// <summary>The user's time zone as an IANA name, such as <c>Europe/Istanbul</c>; <c>null</c> clears it.</summary>
+    [StringLength(64)]
+    public string? TimeZone
+    {
+        get;
+        init
+        {
+            field = value;
+            HasTimeZone = true;
+        }
+    }
+
     /// <summary>Replaces the public metadata, a JSON object of up to 8 KB; <c>null</c> clears it.</summary>
     public JsonObject? PublicMetadata
     {
@@ -133,6 +167,14 @@ public sealed record UpdateUserRequest
     /// <summary>Whether the request sets <see cref="Locale"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]
     public bool HasLocale { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PictureUrl"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPictureUrl { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="TimeZone"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasTimeZone { get; private init; }
 
     /// <summary>Whether the request sets <see cref="PublicMetadata"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]

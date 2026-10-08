@@ -10,6 +10,8 @@ public sealed class User : IdentityUser<Guid>
 {
     public const int NameMaxLength = 100;
     public const int LocaleMaxLength = 16;
+    public const int PictureUrlMaxLength = 2048;
+    public const int TimeZoneMaxLength = 64;
     public const string EmptyMetadata = "{}";
 
     // Used by EF Core.
@@ -23,6 +25,12 @@ public sealed class User : IdentityUser<Guid>
 
     /// <summary>Preferred UI and email language as a BCP 47 tag, such as <c>tr</c> or <c>en</c>.</summary>
     public string? Locale { get; private set; }
+
+    /// <summary>An image of the person, as an absolute HTTP or HTTPS URL.</summary>
+    public string? PictureUrl { get; private set; }
+
+    /// <summary>The person's time zone as an IANA name, such as <c>Europe/Istanbul</c>.</summary>
+    public string? TimeZone { get; private set; }
 
     public UserStatus Status { get; private set; }
 
@@ -68,11 +76,14 @@ public sealed class User : IdentityUser<Guid>
 
     public bool CanSignIn => Status == UserStatus.Active;
 
-    public void UpdateProfile(string? givenName, string? familyName, string? locale, DateTimeOffset now)
+    /// <summary>Replaces the profile; the caller has checked the picture URL and the time zone.</summary>
+    public void UpdateProfile(string? givenName, string? familyName, string? locale, string? pictureUrl, string? timeZone, DateTimeOffset now)
     {
         GivenName = NullIfBlank(givenName);
         FamilyName = NullIfBlank(familyName);
         Locale = NullIfBlank(locale);
+        PictureUrl = NullIfBlank(pictureUrl);
+        TimeZone = NullIfBlank(timeZone);
         UpdatedAt = now;
     }
 

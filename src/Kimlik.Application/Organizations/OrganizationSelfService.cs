@@ -37,6 +37,7 @@ public sealed class OrganizationSelfService(
         var update = new UpdateOrganizationRequest { RequireMfa = request.RequireMfa };
         update = request.HasName ? update with { Name = request.Name } : update;
         update = request.HasSlug ? update with { Slug = request.Slug } : update;
+        update = request.HasPictureUrl ? update with { PictureUrl = request.PictureUrl } : update;
 
         var updated = await updateOrganization.HandleAsync(organizationId, update, cancellationToken);
         return updated.IsFailure ? updated.Error : await myOrganizations.DescribeAsync(callerId, organizationId, cancellationToken);

@@ -13,6 +13,7 @@ internal static class OrganizationMapping
             organization.Id,
             organization.Name,
             organization.Slug,
+            organization.PictureUrl,
             organization.RequireMfa,
             organization.CreatedAt,
             organization.UpdatedAt,

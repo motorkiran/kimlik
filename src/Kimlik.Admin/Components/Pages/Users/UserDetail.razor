@@ -36,6 +36,8 @@ else if (_user is { } user)
                 <MudTextField @bind-Value="_givenName" Label="First name" MaxLength="100" ReadOnly="!CanWrite" />
                 <MudTextField @bind-Value="_familyName" Label="Last name" MaxLength="100" ReadOnly="!CanWrite" />
                 <MudTextField @bind-Value="_locale" Label="Language" HelperText="A language tag, such as en or tr." MaxLength="16" ReadOnly="!CanWrite" />
+                <MudTextField @bind-Value="_pictureUrl" Label="Picture URL" HelperText="An image of the user, such as their avatar." MaxLength="2048" ReadOnly="!CanWrite" />
+                <MudTextField @bind-Value="_timeZone" Label="Time zone" HelperText="An IANA name, such as Europe/Istanbul." MaxLength="64" ReadOnly="!CanWrite" />
                 @if (CanWrite)
                 {
                     <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProfileAsync" id="save-profile">Save</MudButton>
@@ -209,6 +211,8 @@ else if (_user is { } user)
     private string? _givenName;
     private string? _familyName;
     private string? _locale;
+    private string? _pictureUrl;
+    private string? _timeZone;
     private IReadOnlyCollection<string> _roles = [];
     private IReadOnlyList<RoleResponse> _globalRoles = [];
     private IReadOnlyList<UserLoginResponse> _logins = [];
@@ -259,6 +263,8 @@ else if (_user is { } user)
         _givenName = user.GivenName;
         _familyName = user.FamilyName;
         _locale = user.Locale;
+        _pictureUrl = user.PictureUrl;
+        _timeZone = user.TimeZone;
         _roles = user.Roles;
         _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
         _breadcrumbs.Add(new BreadcrumbItem(user.Email ?? user.Id.ToString(), href: null, disabled: true));
@@ -266,7 +272,7 @@ else if (_user is { } user)
 
     private async Task SaveProfileAsync()
     {
-        var request = new UpdateUserRequest { GivenName = _givenName, FamilyName = _familyName, Locale = _locale };
+        var request = new UpdateUserRequest { GivenName = _givenName, FamilyName = _familyName, Locale = _locale, PictureUrl = _pictureUrl, TimeZone = _timeZone };
         if (await ChangeAsync<UpdateUserHandler, UserResponse>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, request, Aborted), "The profile was saved.") is { } user)
         {
             Show(user);

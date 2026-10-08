@@ -13,6 +13,7 @@ internal sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organ
         builder.Property(organization => organization.Id).ValueGeneratedNever();
         builder.Property(organization => organization.Name).HasMaxLength(Organization.NameMaxLength);
         builder.Property(organization => organization.Slug).HasMaxLength(Organization.SlugMaxLength);
+        builder.Property(organization => organization.PictureUrl).HasMaxLength(User.PictureUrlMaxLength);
         builder.Property(organization => organization.PublicMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         builder.Property(organization => organization.PrivateMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         builder.HasIndex(organization => organization.Slug).IsUnique();

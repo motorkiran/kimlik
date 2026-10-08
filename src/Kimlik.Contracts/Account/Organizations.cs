@@ -12,6 +12,7 @@ public sealed record MyOrganizationResponse(
     Guid Id,
     string Name,
     string Slug,
+    string? PictureUrl,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions,
     DateTimeOffset JoinedAt,
@@ -32,6 +33,10 @@ public sealed record CreateMyOrganizationRequest
     [Required]
     [StringLength(64)]
     public required string Slug { get; init; }
+
+    /// <summary>A logo or other image of the organization, as an absolute HTTP or HTTPS URL.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl { get; init; }
 
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool RequireMfa { get; init; }
@@ -66,6 +71,18 @@ public sealed record UpdateMyOrganizationRequest
         }
     }
 
+    /// <summary>A logo or other image of the organization, as an absolute HTTP or HTTPS URL; <c>null</c> clears it.</summary>
+    [StringLength(2048)]
+    public string? PictureUrl
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPictureUrl = true;
+        }
+    }
+
     /// <summary>Whether signing in to the organization takes a second factor.</summary>
     public bool? RequireMfa { get; init; }
 
@@ -76,4 +93,8 @@ public sealed record UpdateMyOrganizationRequest
     /// <summary>Whether the request sets <see cref="Slug"/>.</summary>
     [JsonIgnore]
     public bool HasSlug { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PictureUrl"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPictureUrl { get; private init; }
 }
