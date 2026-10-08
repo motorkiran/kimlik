@@ -2,6 +2,17 @@
 
 All notable changes to Kimlik are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); until 1.0, minor versions may break compatibility.
 
+## [Unreleased]
+
+### Added
+
+- Passkeys (WebAuthn): sign in with a passkey, from a button or the browser's suggestions in the address field, as two factors that meet MFA requirements (`amr` `["pop", "mfa"]`); add, rename and remove passkeys on the account pages, with a one-time offer after a password sign-in; manage them through the Account and Management APIs, `Kimlik.Client` and the admin panel.
+
+### Fixed
+
+- `auth_time` and `max_age` use the time the user signed in, which renewing the session cookie no longer moves.
+- Webhook deliveries that an instance claimed are handed back when it stops, instead of waiting for their lease to run out.
+
 ## [0.1.0] - 2026-10-08
 
 The first release: a self-hosted identity and access management server with a .NET SDK.

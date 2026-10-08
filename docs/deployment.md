@@ -42,7 +42,7 @@ Terminate TLS at the proxy and forward to port 8080. With `ASPNETCORE_FORWARDEDH
 
 The proxy must pass WebSocket connections on `/_blazor` through, for the admin panel.
 
-`Kimlik:Server:PublicUrl` must be the address people see. Kimlik never derives it from request headers, so a wrong `Host` header cannot change the token issuer or the links in emails.
+`Kimlik:Server:PublicUrl` must be the address people see. Kimlik never derives it from request headers, so a wrong `Host` header cannot change the token issuer or the links in emails. Passkeys belong to its host too: moving Kimlik to another host leaves them unusable, and people sign in another way to add new ones.
 
 ## Database migrations
 
