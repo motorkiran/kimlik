@@ -38,6 +38,11 @@ public sealed class CreateClientHandler(
             return validation.Error;
         }
 
+        if (ClientPresets.ActsForUsersInKimlik(request.Type, settings.Scopes) && guard.EnsureHoldsAllSystemPermissions() is { IsFailure: true } denied)
+        {
+            return denied.Error;
+        }
+
         var roles = await ResolveRolesAsync(request, cancellationToken);
         if (roles.IsFailure)
         {
@@ -145,6 +150,12 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
         if (validation.IsFailure)
         {
             return validation.Error;
+        }
+
+        if ((ClientPresets.ActsForUsersInKimlik(current.Type, current.Scopes) || ClientPresets.ActsForUsersInKimlik(current.Type, settings.Scopes))
+            && guard.EnsureHoldsAllSystemPermissions() is { IsFailure: true } denied)
+        {
+            return denied.Error;
         }
 
         var descriptor = new OpenIddictApplicationDescriptor();

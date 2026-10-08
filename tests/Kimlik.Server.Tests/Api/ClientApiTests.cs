@@ -246,5 +246,49 @@ public sealed class ClientApiTests(KimlikServerFixture server)
     private static Task<HttpResponseMessage> RequestTokenAsync(HttpClient http, TestClient client) =>
         http.PostFormAsync("/connect/token", [new("grant_type", "client_credentials"), new("scope", TestClients.ApiScope)], client);
 
+    [Fact]
+    public async Task AppsThatSignUsersInToKimliksApi_TakeFullAccessToSetUp()
+    {
+        using var delegated = await server.CreateApiClientAsync(await server.CreateRoleWithAsync(SystemPermissions.ClientsRead, SystemPermissions.ClientsWrite));
+        using var admin = await server.CreateApiClientAsync();
+        var request = new CreateClientRequest
+        {
+            ClientId = NewClientId(),
+            DisplayName = "Console",
+            Type = ClientType.Spa,
+            RedirectUris = ["https://console.example.com/callback"],
+            Scopes = ["openid", KimlikScopes.Api],
+        };
+
+        // Its tokens would carry the access of whoever signs in, administrators included.
+        using var refused = await delegated.Http.PostJsonAsync(Clients, request);
+        (await refused.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
+
+        using var created = await admin.Http.PostJsonAsync(Clients, request);
+        var client = (await created.ReadAsync<CreatedClientResponse>()).Client;
+
+        using var redirected = await delegated.Http.SendJsonAsync(
+            HttpMethod.Patch, $"{Clients}/{client.Id}", """{ "redirectUris": ["https://attacker.example.com/callback"] }""");
+        (await redirected.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
+    }
+
+    [Fact]
+    public async Task FirstPartyApp_AsksForConsent_TheFirstTimeItWantsKimliksApi()
+    {
+        var user = await server.CreateUserAsync();
+        var client = await server.CreateWebClientAsync();
+        using var browser = new Browser(server);
+        using var _ = await browser.SignInAsync(user.Email, user.Password);
+
+        var consent = await browser.GetPageAsync(new AuthorizationRequest(client.ClientId) { Scope = $"openid {KimlikScopes.Api}" }.Url);
+        using var accepted = await browser.SubmitAsync(consent, submitter: ("consent", "accept"));
+        accepted.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        // Once given, the consent stands; other scopes never asked for it.
+        var request = new AuthorizationRequest(client.ClientId) { Scope = $"openid {KimlikScopes.Api}" };
+        using var again = await browser.GetAsync(request.Url);
+        AuthorizationRequest.ReadCallback(again).ShouldContainKey("code");
+    }
+
     private static string NewClientId() => $"client-{Guid.NewGuid():N}";
 }

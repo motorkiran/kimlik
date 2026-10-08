@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Kimlik.Application.Abstractions;
+using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Common;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,14 @@ public static partial class ClientPresets
     internal static bool IsConfidential(ClientType type) => type is ClientType.Web or ClientType.Service;
 
     internal static bool SignsInUsers(ClientType type) => type is not ClientType.Service;
+
+    /// <summary>
+    /// Whether the client gets tokens for Kimlik's own API on behalf of the users who sign in to it. Those tokens
+    /// carry everything the user may do in Kimlik, an administrator's included, so only callers with full access
+    /// may set up such a client or change where its tokens go.
+    /// </summary>
+    internal static bool ActsForUsersInKimlik(ClientType type, IEnumerable<string> scopes) =>
+        SignsInUsers(type) && scopes.Contains(KimlikScopes.Api, StringComparer.Ordinal);
 
     internal static bool IsValidClientId(string clientId) => ClientIdPattern().IsMatch(clientId);
 

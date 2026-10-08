@@ -16,7 +16,17 @@ internal static class OidcFlows
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
 
         var request = scope is null ? new AuthorizationRequest(client.ClientId) : new AuthorizationRequest(client.ClientId) { Scope = scope };
-        using var callback = await browser.GetAsync(request.Url);
+        var callback = await browser.GetAsync(request.Url);
+
+        // Access to Kimlik's own API takes the user's consent, even for first-party apps.
+        if (callback.StatusCode == HttpStatusCode.OK)
+        {
+            var consent = await Browser.ReadPageAsync(callback);
+            callback.Dispose();
+            callback = await browser.SubmitAsync(consent, submitter: ("consent", "accept"));
+        }
+
+        using var _ = callback;
         var tokens = await RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
 
         return (browser, client, tokens);

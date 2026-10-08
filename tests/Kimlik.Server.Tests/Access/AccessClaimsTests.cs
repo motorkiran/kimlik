@@ -91,13 +91,8 @@ public sealed class AccessClaimsTests(KimlikServerFixture server)
 
     private async Task<JsonElement> AccessTokenPayloadAsync(TestUser user, string scope)
     {
-        var client = await server.CreateWebClientAsync();
-        using var browser = new Browser(server);
-        using var signIn = await browser.SignInAsync(user.Email, user.Password);
-
-        var request = new AuthorizationRequest(client.ClientId) { Scope = scope };
-        using var callback = await browser.GetAsync(request.Url);
-        var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
+        var (browser, _, tokens) = await server.SignInAndRedeemAsync(user, scope);
+        browser.Dispose();
 
         return Payload(tokens.GetProperty("access_token").GetString()!);
     }

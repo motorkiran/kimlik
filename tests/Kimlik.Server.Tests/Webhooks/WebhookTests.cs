@@ -90,7 +90,7 @@ public sealed class WebhookTests(KimlikServerFixture server)
         var disabled = server.Webhooks.NewEndpoint();
         var everything = server.Webhooks.NewEndpoint();
         var first = await CreateEndpointAsync(admin, organizationsOnly, WebhookEventTypes.OrganizationCreated);
-        var second = await CreateEndpointAsync(admin, disabled);
+        var second = await CreateEndpointAsync(admin, disabled, WebhookEventTypes.UserCreated);
         var third = await CreateEndpointAsync(admin, everything);
         using var turnedOff = await admin.Http.SendJsonAsync(HttpMethod.Patch, $"/api/v1/webhooks/endpoints/{second.Endpoint.Id}", """{ "enabled": false }""");
         (await turnedOff.ReadAsync<WebhookEndpointResponse>()).Enabled.ShouldBeFalse();
@@ -100,7 +100,8 @@ public sealed class WebhookTests(KimlikServerFixture server)
         await server.Webhooks.WaitForAsync(everything, webhook => webhook.Body.Contains(user.Id.ToString(), StringComparison.Ordinal));
 
         server.Webhooks.ReceivedBy(organizationsOnly).ShouldNotContain(webhook => webhook.Body.Contains(user.Id.ToString(), StringComparison.Ordinal));
-        server.Webhooks.ReceivedBy(disabled).ShouldBeEmpty();
+        // Other tests' users, created before it was turned off, may have reached it; this one may not.
+        server.Webhooks.ReceivedBy(disabled).ShouldNotContain(webhook => webhook.Body.Contains(user.Id.ToString(), StringComparison.Ordinal));
 
         // Trying a disabled endpoint out still works.
         using var test = await admin.Http.PostAsync($"/api/v1/webhooks/endpoints/{second.Endpoint.Id}/test");

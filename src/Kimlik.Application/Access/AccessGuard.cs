@@ -43,6 +43,12 @@ public sealed class AccessGuard(IKimlikDbContext context, IRequestContext reques
             ? Result.Success()
             : AccessErrors.PrivilegeEscalation;
 
+    /// <summary>
+    /// Fails unless the caller holds every system permission for the whole installation. Some changes can hand out
+    /// all of somebody else's access to Kimlik, such as setting up an app that signs users in to Kimlik's own API.
+    /// </summary>
+    public Result EnsureHoldsAllSystemPermissions() => EnsureCanGrant(SystemPermissions.Global.Keys);
+
     private static bool IsInstallationWide(string permission) =>
         AccessKeys.IsSystemPermission(permission) && !AccessKeys.IsOrganizationSystemPermission(permission);
 
