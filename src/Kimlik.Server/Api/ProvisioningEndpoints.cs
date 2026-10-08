@@ -14,15 +14,16 @@ internal static class ProvisioningEndpoints
         provisioning.MapGet(string.Empty, ExportAsync)
             .WithName("ExportProvisioning")
             .WithSummary("Export the access model")
-            .WithDescription("Describes permissions, roles, API resources and clients as a provisioning document, without client secrets.")
-            .RequirePermission(SystemPermissions.RolesRead, SystemPermissions.ClientsRead);
+            .WithDescription("Describes permissions, roles, features, plans, API resources and clients as a provisioning document, without client secrets.")
+            .RequirePermission(SystemPermissions.RolesRead, SystemPermissions.ClientsRead, SystemPermissions.PlansRead);
 
+        // The document covers roles, clients and plans, so applying one takes the right to change all three.
         provisioning.MapPost(string.Empty, ApplyAsync)
             .WithName("ApplyProvisioning")
             .WithSummary("Apply a provisioning document")
             .WithDescription("Creates what is missing and updates what differs, in one transaction; nothing is deleted.")
             .ProducesValidationProblem()
-            .RequirePermission(SystemPermissions.RolesWrite, SystemPermissions.ClientsWrite);
+            .RequirePermission(SystemPermissions.RolesWrite, SystemPermissions.ClientsWrite, SystemPermissions.PlansWrite);
 
         return api;
     }

@@ -105,7 +105,8 @@ public sealed class ProvisioningApiTests(KimlikServerFixture server)
     [Fact]
     public async Task Document_StaysWithinTheCallersOwnAccess()
     {
-        using var catalogManager = await server.CreateApiClientAsync(await server.CreateRoleWithAsync(SystemPermissions.RolesWrite, SystemPermissions.ClientsWrite));
+        using var catalogManager = await server.CreateApiClientAsync(
+            await server.CreateRoleWithAsync(SystemPermissions.RolesWrite, SystemPermissions.ClientsWrite, SystemPermissions.PlansWrite));
         var model = new TestModel();
 
         using var escalated = await catalogManager.Http.PostJsonAsync(Provisioning, new ProvisioningDocument
@@ -118,9 +119,9 @@ public sealed class ProvisioningApiTests(KimlikServerFixture server)
     }
 
     [Fact]
-    public async Task Applying_RequiresBothCatalogPermissions()
+    public async Task Applying_RequiresTheRightToChangeEverythingItCovers()
     {
-        using var roleManager = await server.CreateApiClientAsync(await server.CreateRoleWithAsync(SystemPermissions.RolesWrite));
+        using var roleManager = await server.CreateApiClientAsync(await server.CreateRoleWithAsync(SystemPermissions.RolesWrite, SystemPermissions.ClientsWrite));
 
         using var response = await roleManager.Http.PostJsonAsync(Provisioning, new ProvisioningDocument());
 

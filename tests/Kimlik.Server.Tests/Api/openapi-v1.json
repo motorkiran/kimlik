@@ -5084,7 +5084,7 @@
           "Provisioning"
         ],
         "summary": "Export the access model",
-        "description": "Describes permissions, roles, API resources and clients as a provisioning document, without client secrets.\n\nRequires the `kimlik.roles:read` and `kimlik.clients:read` permissions.",
+        "description": "Describes permissions, roles, features, plans, API resources and clients as a provisioning document, without client secrets.\n\nRequires the `kimlik.roles:read` and `kimlik.clients:read` and `kimlik.plans:read` permissions.",
         "operationId": "ExportProvisioning",
         "responses": {
           "200": {
@@ -5101,7 +5101,7 @@
             "description": "The access token is missing, invalid or revoked."
           },
           "403": {
-            "description": "The access token does not carry `kimlik.roles:read` and `kimlik.clients:read`."
+            "description": "The access token does not carry `kimlik.roles:read` and `kimlik.clients:read` and `kimlik.plans:read`."
           }
         },
         "security": [
@@ -5115,7 +5115,7 @@
           "Provisioning"
         ],
         "summary": "Apply a provisioning document",
-        "description": "Creates what is missing and updates what differs, in one transaction; nothing is deleted.\n\nRequires the `kimlik.roles:write` and `kimlik.clients:write` permissions.",
+        "description": "Creates what is missing and updates what differs, in one transaction; nothing is deleted.\n\nRequires the `kimlik.roles:write` and `kimlik.clients:write` and `kimlik.plans:write` permissions.",
         "operationId": "ApplyProvisioning",
         "requestBody": {
           "content": {
@@ -5152,7 +5152,7 @@
             "description": "The access token is missing, invalid or revoked."
           },
           "403": {
-            "description": "The access token does not carry `kimlik.roles:write` and `kimlik.clients:write`."
+            "description": "The access token does not carry `kimlik.roles:write` and `kimlik.clients:write` and `kimlik.plans:write`."
           }
         },
         "security": [
