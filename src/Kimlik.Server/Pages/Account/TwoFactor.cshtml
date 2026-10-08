@@ -1,0 +1,95 @@
+@page "/account/two-factor"
+@model TwoFactorModel
+@{
+    ViewData["Title"] = L["Two-factor authentication"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+@if (Model.RecoveryCodes is not null)
+{
+    <h1 id="page-title">@L["Save your recovery codes"]</h1>
+    <p class="lead">@L["If you lose your device, each of these codes signs you in once. Keep them somewhere safe; they are not shown again."]</p>
+    <partial name="_RecoveryCodes" model="Model.RecoveryCodes" />
+    <div class="actions">
+        <a class="button" asp-page="/Account/TwoFactor">@L["Done"]</a>
+    </div>
+}
+else if (Model.Key is not null)
+{
+    <h1 id="page-title">@L["Set up two-factor authentication"]</h1>
+    <p class="lead">@L["Scan the code with an authenticator app, such as Google Authenticator or Microsoft Authenticator, then enter the code it shows."]</p>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <partial name="_AuthenticatorKey" model="Model.Key" />
+
+    <form method="post" asp-page-handler="Confirm" id="confirm" novalidate>
+        <div class="field">
+            <label for="confirm-code">@L["Code"]</label>
+            <input id="confirm-code" name="Code" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="16" autofocus />
+        </div>
+        <button type="submit" class="button">@L["Turn on"]</button>
+    </form>
+}
+else if (Model.Status is { } status)
+{
+    <h1 id="page-title">@L["Two-factor authentication"]</h1>
+
+    @if (Model.Notice is not null)
+    {
+        <div class="alert alert-success" role="status">@Model.Notice</div>
+    }
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+    }
+
+    @if (status.Enabled)
+    {
+        <p class="lead" id="status">@L["On. Signing in takes a code from your authenticator app as well as your password."]</p>
+
+        <h2>@L["Recovery codes"]</h2>
+        <p class="hint">@L["Recovery codes left: {0}. New codes replace all of them.", status.RecoveryCodesLeft]</p>
+        <form method="post" asp-page-handler="RecoveryCodes" id="new-recovery-codes" novalidate>
+            <div class="field">
+                <label for="recovery-codes-code">@L["Code from your authenticator app"]</label>
+                <input id="recovery-codes-code" name="Code" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="16" />
+            </div>
+            <button type="submit" class="button button-secondary">@L["Get new recovery codes"]</button>
+        </form>
+
+        <h2>@L["Turn off"]</h2>
+        @if (status.Required)
+        {
+            <p class="hint">@L["Your account requires two-factor authentication, so it cannot be turned off."]</p>
+        }
+        else
+        {
+            <form method="post" asp-page-handler="TurnOff" id="turn-off" novalidate>
+                <div class="field">
+                    <label for="turn-off-code">@L["Code from your authenticator app"]</label>
+                    <input id="turn-off-code" name="Code" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="16" />
+                </div>
+                <button type="submit" class="button button-danger">@L["Turn off two-factor authentication"]</button>
+            </form>
+        }
+    }
+    else
+    {
+        <p class="lead" id="status">@L["Off. Add a second step to signing in: a code from an authenticator app on your phone."]</p>
+
+        @if (status.Required)
+        {
+            <div class="alert alert-error" role="alert">@L["Your account requires two-factor authentication. Set it up now, or you will be asked to at your next sign-in."]</div>
+        }
+
+        <form method="post" asp-page-handler="SetUp" id="set-up">
+            <button type="submit" class="button">@L["Set up"]</button>
+        </form>
+    }
+}

@@ -1,0 +1,6 @@
+@* The key to add to an authenticator app, to scan or to type. *@
+@model Kimlik.Server.Identity.AuthenticatorKeyView
+<div class="qr">
+    <img src="@Model.QrCode" alt="@L["QR code of your authenticator key"]" width="185" height="185" />
+</div>
+<p class="hint">@L["Can't scan it? Enter this key in the app instead:"] <code id="secret">@Model.Secret</code></p>

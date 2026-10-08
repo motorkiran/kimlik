@@ -1,0 +1,29 @@
+@page "/account/delete"
+@model DeleteModel
+@{
+    ViewData["Title"] = L["Delete account"];
+}
+
+@if (Model.Deleted)
+{
+    <h1 id="page-title">@L["Your account has been deleted."]</h1>
+    <p class="lead">@L["You have been signed out of every application."]</p>
+    <div class="actions">
+        <a class="button button-secondary" asp-page="/Index">@L["Go to the home page"]</a>
+    </div>
+}
+else
+{
+    <p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+    <h1 id="page-title">@L["Delete account"]</h1>
+    <p class="lead">@L["This deletes your account for good and signs you out of every application. It cannot be undone."]</p>
+    <partial name="_FormError" />
+    <form method="post" novalidate>
+        <div class="field">
+            <label asp-for="Input.CurrentPassword"></label>
+            <input asp-for="Input.CurrentPassword" autocomplete="current-password" />
+            <span asp-validation-for="Input.CurrentPassword" class="field-error"></span>
+        </div>
+        <button type="submit" class="button button-danger">@L["Delete my account"]</button>
+    </form>
+}

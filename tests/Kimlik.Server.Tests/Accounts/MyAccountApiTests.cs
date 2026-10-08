@@ -45,6 +45,25 @@ public sealed class MyAccountApiTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task WrongPasswords_LockTheAccount_AsAtSignIn()
+    {
+        var user = await server.CreateUserAsync();
+        using var me = server.WithToken(await server.UserAccessTokenAsync(user));
+
+        for (var attempt = 1; attempt < 5; attempt++)
+        {
+            using var wrong = await me.PostJsonAsync("/api/v1/me/password", new ChangePasswordRequest { CurrentPassword = "not the password", NewPassword = "a brand new passphrase" });
+            (await wrong.ReadProblemCodeAsync()).ShouldBe("account.wrong_password");
+        }
+
+        using var fifth = await me.PostJsonAsync("/api/v1/me/password", new ChangePasswordRequest { CurrentPassword = "not the password", NewPassword = "a brand new passphrase" });
+        (await fifth.ReadProblemCodeAsync()).ShouldBe("account.locked_out");
+
+        using var right = await me.PostJsonAsync("/api/v1/me/password", new ChangePasswordRequest { CurrentPassword = user.Password, NewPassword = "a brand new passphrase" });
+        (await right.ReadProblemCodeAsync()).ShouldBe("account.locked_out");
+    }
+
+    [Fact]
     public async Task Sessions_CanBeListedAndRevoked()
     {
         var user = await server.CreateUserAsync();

@@ -1,0 +1,49 @@
+@page "/account"
+@model ProfileModel
+@{
+    ViewData["Title"] = L["Your account"];
+}
+
+<h1 id="page-title">@L["Your account"]</h1>
+<p class="lead">@L["Signed in as {0}.", Model.Email ?? string.Empty]</p>
+
+@if (Model.Saved)
+{
+    <div class="alert alert-success" role="status">@L["Your profile has been saved."]</div>
+}
+
+<form method="post" novalidate>
+    <div class="field-pair">
+        <div class="field">
+            <label asp-for="Input.GivenName"></label>
+            <input asp-for="Input.GivenName" autocomplete="given-name" />
+            <span asp-validation-for="Input.GivenName" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.FamilyName"></label>
+            <input asp-for="Input.FamilyName" autocomplete="family-name" />
+            <span asp-validation-for="Input.FamilyName" class="field-error"></span>
+        </div>
+    </div>
+    <div class="field">
+        <label asp-for="Input.Locale"></label>
+        <select asp-for="Input.Locale" asp-items="Model.Languages" aria-describedby="locale-hint"></select>
+        <span id="locale-hint" class="hint">@L["Emails use it, and the applications you sign in to can see it."]</span>
+        <span asp-validation-for="Input.Locale" class="field-error"></span>
+    </div>
+    <button type="submit" class="button">@L["Save"]</button>
+</form>
+
+<nav class="menu" aria-label="@L["Account settings"]">
+    <a asp-page="/Account/Password">@L["Password"]</a>
+    <a asp-page="/Account/TwoFactor">
+        <span>@L["Two-factor authentication"]</span>
+        <span class="badge" id="two-factor-status">@(Model.TwoFactorEnabled ? L["On"] : L["Off"])</span>
+    </a>
+    <a asp-page="/Account/Sessions">@L["Signed-in applications"]</a>
+    <a asp-page="/Account/Delete">@L["Delete account"]</a>
+</nav>
+
+<div class="actions">
+    <a class="button button-secondary" asp-page="/SignOut">@L["Sign out"]</a>
+</div>

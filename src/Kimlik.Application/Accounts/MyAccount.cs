@@ -51,10 +51,10 @@ public sealed class MyAccount(
             return UserErrors.NotFound;
         }
 
-        if (!await userManager.CheckPasswordAsync(user, request.CurrentPassword))
+        var confirmed = await ConfirmPasswordAsync(user, request.CurrentPassword);
+        if (confirmed.IsFailure)
         {
-            await userManager.AccessFailedAsync(user);
-            return AccountErrors.WrongPassword;
+            return confirmed;
         }
 
         var changed = await userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
@@ -134,10 +134,10 @@ public sealed class MyAccount(
             return UserErrors.NotFound;
         }
 
-        if (!await userManager.CheckPasswordAsync(user, request.Password))
+        var confirmed = await ConfirmPasswordAsync(user, request.Password);
+        if (confirmed.IsFailure)
         {
-            await userManager.AccessFailedAsync(user);
-            return AccountErrors.WrongPassword;
+            return confirmed;
         }
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
@@ -152,5 +152,26 @@ public sealed class MyAccount(
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Checks the password the way signing in does: wrong guesses count toward the lockout, and a locked-out account
+    /// accepts no password until the lockout ends.
+    /// </summary>
+    private async Task<Result> ConfirmPasswordAsync(User user, string password)
+    {
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return AccountErrors.LockedOut;
+        }
+
+        if (await userManager.CheckPasswordAsync(user, password))
+        {
+            await userManager.ResetAccessFailedCountAsync(user);
+            return Result.Success();
+        }
+
+        await userManager.AccessFailedAsync(user);
+        return await userManager.IsLockedOutAsync(user) ? AccountErrors.LockedOut : AccountErrors.WrongPassword;
     }
 }

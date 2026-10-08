@@ -5,7 +5,6 @@ using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
-using QRCoder;
 
 namespace Kimlik.Server.Pages;
 
@@ -28,11 +27,7 @@ public sealed class SignInSetUpTwoFactorModel(
     [Display(Name = "Code")]
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>The key in groups of four, for typing it into an app.</summary>
-    public string? Secret { get; private set; }
-
-    /// <summary>The key as a QR code image, for scanning it with an app.</summary>
-    public string? QrCode { get; private set; }
+    public AuthenticatorKeyView? Key { get; private set; }
 
     /// <summary>Set once two-factor authentication is on: the codes to save.</summary>
     public IReadOnlyList<string>? RecoveryCodes { get; private set; }
@@ -78,13 +73,6 @@ public sealed class SignInSetUpTwoFactorModel(
         return Page();
     }
 
-    private async Task ShowKeyAsync(Domain.Users.User user)
-    {
-        var setup = (await twoFactor.PendingSetupAsync(user)).Value;
-        Secret = string.Join(' ', setup.Secret.Chunk(4).Select(group => new string(group)));
-
-        using var generator = new QRCodeGenerator();
-        using var data = generator.CreateQrCode(setup.OtpAuthUri, QRCodeGenerator.ECCLevel.M);
-        QrCode = $"data:image/png;base64,{Convert.ToBase64String(new PngByteQRCode(data).GetGraphic(5))}";
-    }
+    private async Task ShowKeyAsync(Domain.Users.User user) =>
+        Key = AuthenticatorKeyView.For((await twoFactor.PendingSetupAsync(user)).Value);
 }

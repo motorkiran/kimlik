@@ -8,12 +8,7 @@
 {
     <h1 id="page-title">@L["Save your recovery codes"]</h1>
     <p class="lead">@L["Two-factor authentication is on. If you lose your device, each of these codes signs you in once. Keep them somewhere safe; they are not shown again."]</p>
-    <ul class="codes" id="recovery-codes">
-        @foreach (var code in Model.RecoveryCodes)
-        {
-            <li><code>@code</code></li>
-        }
-    </ul>
+    <partial name="_RecoveryCodes" model="Model.RecoveryCodes" />
     <div class="actions">
         <a class="button" href="@Model.ContinueUrl">@L["Continue"]</a>
     </div>
@@ -28,10 +23,7 @@ else
         <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
     }
 
-    <div class="qr">
-        <img src="@Model.QrCode" alt="@L["QR code of your authenticator key"]" width="185" height="185" />
-    </div>
-    <p class="hint">@L["Can't scan it? Enter this key in the app instead:"] <code id="secret">@Model.Secret</code></p>
+    <partial name="_AuthenticatorKey" model="Model.Key" />
 
     <form method="post" novalidate>
         <input type="hidden" asp-for="ReturnUrl" />

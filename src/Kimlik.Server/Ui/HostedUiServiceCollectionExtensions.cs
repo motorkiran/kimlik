@@ -20,7 +20,13 @@ internal static class HostedUiServiceCollectionExtensions
         // special in HTML are still encoded.
         services.Configure<WebEncoderOptions>(options => options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
 
-        services.AddRazorPages(options => options.Conventions.ConfigureFilter(new SecurityHeaders.ContentSecurityPolicyFilter()))
+        services.AddRazorPages(options =>
+            {
+                options.Conventions.ConfigureFilter(new SecurityHeaders.ContentSecurityPolicyFilter());
+
+                // The signed-in user's own account; anyone else is sent to sign in first.
+                options.Conventions.AuthorizeFolder("/Account");
+            })
             .AddViewLocalization()
             .AddDataAnnotationsLocalization(options =>
                 options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource)));

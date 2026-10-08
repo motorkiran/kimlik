@@ -77,6 +77,11 @@ internal sealed class Browser : IDisposable
             fields.Add(new(input.Name!, input.Value));
         }
 
+        foreach (var select in form.QuerySelectorAll<IHtmlSelectElement>("select[name]"))
+        {
+            fields.Add(new(select.Name!, select.Value ?? string.Empty));
+        }
+
         foreach (var (name, value) in values ?? new Dictionary<string, string>())
         {
             fields.RemoveAll(field => field.Key == name);

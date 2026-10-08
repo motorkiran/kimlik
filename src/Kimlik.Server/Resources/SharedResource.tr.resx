@@ -331,4 +331,133 @@
   <data name="Turn on" xml:space="preserve">
     <value>Aç</value>
   </data>
+  <data name="Your account" xml:space="preserve">
+    <value>Hesabınız</value>
+  </data>
+  <data name="Your profile has been saved." xml:space="preserve">
+    <value>Profiliniz kaydedildi.</value>
+  </data>
+  <data name="Emails use it, and the applications you sign in to can see it." xml:space="preserve">
+    <value>E-postalar bu dili kullanır; giriş yaptığınız uygulamalar da görebilir.</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+  <data name="Account settings" xml:space="preserve">
+    <value>Hesap ayarları</value>
+  </data>
+  <data name="On" xml:space="preserve">
+    <value>Açık</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>Kapalı</value>
+  </data>
+  <data name="Signed-in applications" xml:space="preserve">
+    <value>Giriş yapılan uygulamalar</value>
+  </data>
+  <data name="Delete account" xml:space="preserve">
+    <value>Hesabı sil</value>
+  </data>
+  <data name="Manage your account" xml:space="preserve">
+    <value>Hesabınızı yönetin</value>
+  </data>
+  <data name="Not set" xml:space="preserve">
+    <value>Belirtilmemiş</value>
+  </data>
+  <data name="Choose a language from the list." xml:space="preserve">
+    <value>Listeden bir dil seçin.</value>
+  </data>
+  <data name="Back to your account" xml:space="preserve">
+    <value>Hesabınıza dönün</value>
+  </data>
+  <data name="For your security, your other sessions and applications have been signed out." xml:space="preserve">
+    <value>Güvenliğiniz için diğer oturumlarınız ve uygulamalardaki oturumlarınız kapatıldı.</value>
+  </data>
+  <data name="You stay signed in here. Your other sessions and applications are signed out." xml:space="preserve">
+    <value>Burada oturumunuz açık kalır. Diğer oturumlarınız ve uygulamalardaki oturumlarınız kapatılır.</value>
+  </data>
+  <data name="Current password" xml:space="preserve">
+    <value>Mevcut şifre</value>
+  </data>
+  <data name="Enter your current password." xml:space="preserve">
+    <value>Mevcut şifrenizi girin.</value>
+  </data>
+  <data name="That password is not right." xml:space="preserve">
+    <value>Şifre doğru değil.</value>
+  </data>
+  <data name="Two-factor authentication is off." xml:space="preserve">
+    <value>İki adımlı doğrulama kapatıldı.</value>
+  </data>
+  <data name="Your account requires two-factor authentication, so it cannot be turned off." xml:space="preserve">
+    <value>Hesabınız iki adımlı doğrulama gerektirdiği için kapatılamaz.</value>
+  </data>
+  <data name="If you lose your device, each of these codes signs you in once. Keep them somewhere safe; they are not shown again." xml:space="preserve">
+    <value>Cihazınızı kaybederseniz bu kodların her biri bir kez giriş yapmanızı sağlar. Güvenli bir yerde saklayın; bir daha gösterilmeyecekler.</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Tamam</value>
+  </data>
+  <data name="Scan the code with an authenticator app, such as Google Authenticator or Microsoft Authenticator, then enter the code it shows." xml:space="preserve">
+    <value>Kodu Google Authenticator veya Microsoft Authenticator gibi bir doğrulama uygulamasıyla tarayın, ardından uygulamanın gösterdiği kodu girin.</value>
+  </data>
+  <data name="On. Signing in takes a code from your authenticator app as well as your password." xml:space="preserve">
+    <value>Açık. Giriş yaparken şifrenizin yanı sıra doğrulama uygulamanızdaki kod da istenir.</value>
+  </data>
+  <data name="Recovery codes" xml:space="preserve">
+    <value>Kurtarma kodları</value>
+  </data>
+  <data name="Recovery codes left: {0}. New codes replace all of them." xml:space="preserve">
+    <value>Kalan kurtarma kodu: {0}. Yeni kodlar hepsinin yerini alır.</value>
+  </data>
+  <data name="Code from your authenticator app" xml:space="preserve">
+    <value>Doğrulama uygulamanızdaki kod</value>
+  </data>
+  <data name="Get new recovery codes" xml:space="preserve">
+    <value>Yeni kurtarma kodları al</value>
+  </data>
+  <data name="Turn off" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+  <data name="Turn off two-factor authentication" xml:space="preserve">
+    <value>İki adımlı doğrulamayı kapat</value>
+  </data>
+  <data name="Off. Add a second step to signing in: a code from an authenticator app on your phone." xml:space="preserve">
+    <value>Kapalı. Girişe ikinci bir adım ekleyin: telefonunuzdaki doğrulama uygulamasından bir kod.</value>
+  </data>
+  <data name="Your account requires two-factor authentication. Set it up now, or you will be asked to at your next sign-in." xml:space="preserve">
+    <value>Hesabınız iki adımlı doğrulama gerektiriyor. Şimdi kurun; kurmazsanız bir sonraki girişinizde istenecek.</value>
+  </data>
+  <data name="Set up" xml:space="preserve">
+    <value>Kur</value>
+  </data>
+  <data name="These applications can act on your behalf until you sign them out." xml:space="preserve">
+    <value>Bu uygulamalar, oturumlarını kapatana kadar sizin adınıza işlem yapabilir.</value>
+  </data>
+  <data name="You are not signed in to any applications." xml:space="preserve">
+    <value>Hiçbir uygulamada oturumunuz açık değil.</value>
+  </data>
+  <data name="Unknown application" xml:space="preserve">
+    <value>Bilinmeyen uygulama</value>
+  </data>
+  <data name="Since {0}" xml:space="preserve">
+    <value>{0} tarihinden beri</value>
+  </data>
+  <data name="Sign out everywhere" xml:space="preserve">
+    <value>Her yerden çıkış yap</value>
+  </data>
+  <data name="Signs out every application and browser, this one included." xml:space="preserve">
+    <value>Bu tarayıcı dahil tüm uygulama ve tarayıcılardaki oturumlarınızı kapatır.</value>
+  </data>
+  <data name="Your account has been deleted." xml:space="preserve">
+    <value>Hesabınız silindi.</value>
+  </data>
+  <data name="You have been signed out of every application." xml:space="preserve">
+    <value>Tüm uygulamalardaki oturumlarınız kapatıldı.</value>
+  </data>
+  <data name="This deletes your account for good and signs you out of every application. It cannot be undone." xml:space="preserve">
+    <value>Bu işlem hesabınızı kalıcı olarak siler ve tüm uygulamalardaki oturumlarınızı kapatır. Geri alınamaz.</value>
+  </data>
+  <data name="Delete my account" xml:space="preserve">
+    <value>Hesabımı sil</value>
+  </data>
 </root>

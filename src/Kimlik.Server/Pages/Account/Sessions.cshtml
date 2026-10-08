@@ -1,0 +1,40 @@
+@page "/account/sessions"
+@model SessionsModel
+@{
+    ViewData["Title"] = L["Signed-in applications"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Signed-in applications"]</h1>
+<p class="lead">@L["These applications can act on your behalf until you sign them out."]</p>
+
+@if (Model.Sessions.Count == 0)
+{
+    <p class="hint" id="no-sessions">@L["You are not signed in to any applications."]</p>
+}
+else
+{
+    <ul class="list" id="sessions">
+        @foreach (var session in Model.Sessions)
+        {
+            <li>
+                <div>
+                    <strong>@(session.ClientName ?? session.ClientId ?? L["Unknown application"])</strong>
+                    @if (session.CreatedAt is { } createdAt)
+                    {
+                        <div class="hint">@L["Since {0}", createdAt.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)]</div>
+                    }
+                </div>
+                <form method="post" asp-page-handler="Revoke" asp-route-id="@session.Id">
+                    <button type="submit" class="button button-secondary button-small">@L["Sign out"]</button>
+                </form>
+            </li>
+        }
+    </ul>
+}
+
+<form method="post" asp-page-handler="SignOutEverywhere" id="sign-out-everywhere">
+    <button type="submit" class="button button-secondary">@L["Sign out everywhere"]</button>
+    <p class="hint">@L["Signs out every application and browser, this one included."]</p>
+</form>

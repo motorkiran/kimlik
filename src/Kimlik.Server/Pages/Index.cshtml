@@ -9,6 +9,7 @@
     <h1 id="page-title">@L["You are signed in"]</h1>
     <p class="lead">@L["Signed in as {0}.", Model.Email]</p>
     <div class="actions">
+        <a class="button" asp-page="/Account/Index">@L["Manage your account"]</a>
         <a class="button button-secondary" asp-page="/SignOut">@L["Sign out"]</a>
     </div>
 }
