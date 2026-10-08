@@ -1,0 +1,67 @@
+@using Kimlik.Application.Clients
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_clientId" Label="Client ID" Required MaxLength="100" HelperText="Letters, digits, ., _ and -. It cannot be changed later." />
+        <MudTextField @bind-Value="_displayName" Label="Name" Required MaxLength="100" />
+        <MudSelect T="ClientType" Value="_type" ValueChanged="TypeChanged" Label="Type">
+            <MudSelectItem T="ClientType" Value="ClientType.Spa">Single-page app (public, PKCE)</MudSelectItem>
+            <MudSelectItem T="ClientType" Value="ClientType.Native">Mobile or desktop app (public, PKCE)</MudSelectItem>
+            <MudSelectItem T="ClientType" Value="ClientType.Web">Server-side web app (confidential)</MudSelectItem>
+            <MudSelectItem T="ClientType" Value="ClientType.Service">Service (client credentials)</MudSelectItem>
+        </MudSelect>
+        @if (_type != ClientType.Service)
+        {
+            <MudTextField @bind-Value="_redirectUris" Label="Redirect URIs" Lines="3" HelperText="One per line, exactly as the app sends them." />
+        }
+        <MudSelect T="string" Label="Scopes" MultiSelection @bind-SelectedValues="_scopes">
+            @foreach (var scope in _availableScopes)
+            {
+                <MudSelectItem T="string" Value="scope">@scope</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_clientId) || string.IsNullOrWhiteSpace(_displayName)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _clientId = string.Empty;
+    private string _displayName = string.Empty;
+    private ClientType _type = ClientType.Spa;
+    private string? _redirectUris;
+    private IReadOnlyCollection<string> _scopes = ["openid", "profile"];
+    private IReadOnlyList<string> _availableScopes = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync() => _availableScopes = await ClientScopes.AllAsync(Operations, Aborted);
+
+    /// <summary>Apps that sign users in start with OpenID Connect's scopes; services only call APIs.</summary>
+    private void TypeChanged(ClientType type)
+    {
+        _type = type;
+        _scopes = type == ClientType.Service ? [] : ["openid", "profile"];
+    }
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateClientRequest
+        {
+            ClientId = _clientId.Trim(),
+            DisplayName = _displayName.Trim(),
+            Type = _type,
+            RedirectUris = _type == ClientType.Service ? [] : ClientScopes.Lines(_redirectUris),
+            Scopes = [.. _scopes],
+        };
+
+        if (await ChangeAsync<CreateClientHandler, CreatedClientResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(request, Aborted), "The client was created.") is { } created)
+        {
+            Dialog.Close(DialogResult.Ok(created));
+        }
+    }
+}

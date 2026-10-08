@@ -1,0 +1,152 @@
+@page "/admin/plans/{Id:guid}"
+@using System.Text.Json
+@using Kimlik.Application.Plans
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>@(_plan?.Name ?? "Plan") · Kimlik admin</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+
+@if (_notFound)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Plan not found</MudText>
+}
+else if (_plan is { } plan)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>@plan.Name <code class="mud-typography-body1">@plan.Key</code></MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Outlined>
+                <MudTextField @bind-Value="_name" Label="Name" MaxLength="100" ReadOnly="!CanWrite" />
+                <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" ReadOnly="!CanWrite" />
+                <MudCheckBox @bind-Value="_archived" Label="Archived: subscribers keep it, nobody new gets it" ReadOnly="!CanWrite" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Outlined>
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Features</MudText>
+                <MudSimpleTable Dense id="plan-features">
+                    <tbody>
+                        @foreach (var value in _values)
+                        {
+                            <tr>
+                                <td>@value.Feature.Name <div class="mud-typography-caption"><code>@value.Feature.Key</code></div></td>
+                                <td>
+                                    @if (value.Feature.Type == FeatureType.Boolean)
+                                    {
+                                        <MudSwitch T="bool" @bind-Value="value.Enabled" Color="Color.Primary" ReadOnly="!CanWrite" Label="@(value.Enabled ? "On" : "Off")" data-feature="@value.Feature.Key" />
+                                    }
+                                    else
+                                    {
+                                        <MudStack Row AlignItems="AlignItems.Center">
+                                            <MudNumericField T="long" @bind-Value="value.Limit" Min="0" Disabled="value.Unlimited" ReadOnly="!CanWrite" Style="max-width: 10rem" />
+                                            <MudCheckBox @bind-Value="value.Unlimited" Label="Unlimited" ReadOnly="!CanWrite" data-feature="@value.Feature.Key" />
+                                        </MudStack>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (CanWrite)
+    {
+        <MudStack Row Class="mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" id="save-plan">Save</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Delete</MudButton>
+        </MudStack>
+    }
+}
+
+@code {
+    private PlanResponse? _plan;
+    private bool _notFound;
+    private string _name = string.Empty;
+    private string? _description;
+    private bool _archived;
+    private List<FeatureValue> _values = [];
+    private readonly List<BreadcrumbItem> _breadcrumbs = [new("Plans", "/admin/plans")];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool CanWrite => Session.Has(SystemPermissions.PlansWrite);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var plan = await Operations.RunAsync<GetPlanHandler, Result<PlanResponse>>(SystemPermissions.PlansRead, handler => handler.HandleAsync(Id, Aborted));
+        if (plan.IsFailure)
+        {
+            _notFound = true;
+            return;
+        }
+
+        var features = await Operations.RunAsync<ListFeaturesHandler, Result<Page<FeatureResponse>>>(SystemPermissions.PlansRead, handler => handler.HandleAsync(null, 200, Aborted));
+        Show(plan.Value, features.IsSuccess ? features.Value.Items : []);
+    }
+
+    private void Show(PlanResponse plan, IReadOnlyList<FeatureResponse> features)
+    {
+        _plan = plan;
+        _name = plan.Name;
+        _description = plan.Description;
+        _archived = plan.IsArchived;
+        _values = [.. features.Select(feature => FeatureValue.Of(feature, plan.Features.TryGetValue(feature.Key, out var value) ? value : null))];
+        _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
+        _breadcrumbs.Add(new BreadcrumbItem(plan.Name, href: null, disabled: true));
+    }
+
+    private async Task SaveAsync()
+    {
+        var request = new UpdatePlanRequest
+        {
+            Name = _name.Trim(),
+            Description = _description,
+            IsArchived = _archived,
+            Features = _values.ToDictionary(value => value.Feature.Key, value => value.ToJson()),
+        };
+
+        if (await ChangeAsync<UpdatePlanHandler, PlanResponse>(SystemPermissions.PlansWrite, handler => handler.HandleAsync(Id, request, Aborted), "The plan was saved.") is { } plan)
+        {
+            Show(plan, [.. _values.Select(value => value.Feature)]);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await ConfirmAsync($"Delete {_plan!.Name}?", "Only a plan nobody ever subscribed to can be deleted; archive the others.", "Delete")
+            && await ChangeAsync<DeletePlanHandler>(SystemPermissions.PlansWrite, handler => handler.HandleAsync(Id, Aborted), "The plan was deleted."))
+        {
+            Navigation.NavigateTo("/admin/plans");
+        }
+    }
+
+    /// <summary>A feature's value in the plan, as the form edits it.</summary>
+    private sealed class FeatureValue(FeatureResponse feature)
+    {
+        public FeatureResponse Feature { get; } = feature;
+
+        public bool Enabled { get; set; }
+
+        public long Limit { get; set; }
+
+        public bool Unlimited { get; set; }
+
+        public static FeatureValue Of(FeatureResponse feature, JsonElement? value) => new(feature)
+        {
+            Enabled = value is { ValueKind: JsonValueKind.True },
+            Unlimited = feature.Type == FeatureType.Limit && value is { ValueKind: JsonValueKind.Null },
+            Limit = value is { ValueKind: JsonValueKind.Number } number && number.TryGetInt64(out var limit) ? limit : 0,
+        };
+
+        public JsonElement ToJson() => Feature.Type == FeatureType.Boolean
+            ? JsonSerializer.SerializeToElement(Enabled)
+            : Unlimited ? JsonSerializer.SerializeToElement<long?>(null) : JsonSerializer.SerializeToElement(Limit);
+    }
+}

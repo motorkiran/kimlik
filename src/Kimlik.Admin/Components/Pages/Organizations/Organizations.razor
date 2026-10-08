@@ -1,0 +1,87 @@
+@page "/admin/organizations"
+@using Kimlik.Application.Organizations
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Organizations · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Organizations</MudText>
+    <MudSpacer />
+    @if (Session.Has(SystemPermissions.OrganizationsWrite))
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New organization</MudButton>
+    }
+</MudStack>
+
+<MudTextField T="string" @bind-Value="_search" Label="Search" Placeholder="Name or slug" Clearable Class="mb-4"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              DebounceInterval="300" OnDebounceIntervalElapsed="_ => ReloadAsync()" />
+
+<MudTable T="OrganizationResponse" Items="_organizations" Hover Loading="_loading" OnRowClick="args => Open(args.Item)" id="organizations">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Slug</MudTh>
+        <MudTh>Two-factor</MudTh>
+        <MudTh>Created</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name"><MudLink Href="@($"/admin/organizations/{context.Id}")">@context.Name</MudLink></MudTd>
+        <MudTd DataLabel="Slug"><code>@context.Slug</code></MudTd>
+        <MudTd DataLabel="Two-factor">@(context.RequireMfa ? "Required" : "Optional")</MudTd>
+        <MudTd DataLabel="Created"><Moment Value="context.CreatedAt" /></MudTd>
+    </RowTemplate>
+    <NoRecordsContent><MudText>No organizations match.</MudText></NoRecordsContent>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<OrganizationResponse> _organizations = [];
+    private string? _search;
+    private string? _nextCursor;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _organizations.Clear();
+        _nextCursor = null;
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        _loading = true;
+        var page = await Operations.RunAsync<ListOrganizationsHandler, Result<Page<OrganizationResponse>>>(
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListOrganizationsQuery(_search, _nextCursor, null), Aborted));
+        if (page.IsSuccess)
+        {
+            _organizations.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+
+        _loading = false;
+    }
+
+    private void Open(OrganizationResponse? organization)
+    {
+        if (organization is not null)
+        {
+            Navigation.NavigateTo($"/admin/organizations/{organization.Id}");
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<OrganizationDialog>("New organization");
+        if (await dialog.Result is { Canceled: false, Data: OrganizationResponse created })
+        {
+            Navigation.NavigateTo($"/admin/organizations/{created.Id}");
+        }
+    }
+}

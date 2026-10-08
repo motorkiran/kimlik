@@ -1,0 +1,73 @@
+@page "/admin/audit"
+@using System.Text.Json
+@using Kimlik.Application.Auditing
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Audit log · Kimlik admin</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>Audit log</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">Sign-ins, credential changes and administrative changes, newest first.</MudText>
+
+<MudStack Row Wrap="Wrap.Wrap" Class="mb-4">
+    <MudTextField T="string" @bind-Value="_action" Label="Action" Placeholder="user.signed_in" Clearable DebounceInterval="400" OnDebounceIntervalElapsed="_ => ReloadAsync()" />
+    <MudTextField T="string" @bind-Value="_subjectId" Label="About" Placeholder="A user, client or other ID" Clearable DebounceInterval="400" OnDebounceIntervalElapsed="_ => ReloadAsync()" />
+    <MudTextField T="string" @bind-Value="_actorId" Label="By" Placeholder="A user or client ID" Clearable DebounceInterval="400" OnDebounceIntervalElapsed="_ => ReloadAsync()" />
+</MudStack>
+
+<MudTable T="AuditEventResponse" Items="_events" Dense id="audit-events">
+    <HeaderContent>
+        <MudTh>When</MudTh>
+        <MudTh>Action</MudTh>
+        <MudTh>About</MudTh>
+        <MudTh>By</MudTh>
+        <MudTh>From</MudTh>
+        <MudTh>Details</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="When"><Moment Value="context.OccurredAt" /></MudTd>
+        <MudTd DataLabel="Action"><code>@context.Action</code></MudTd>
+        <MudTd DataLabel="About">@Reference(context.SubjectType, context.SubjectId)</MudTd>
+        <MudTd DataLabel="By">@Reference(context.ActorType.ToString().ToLowerInvariant(), context.ActorId)</MudTd>
+        <MudTd DataLabel="From">@context.IpAddress</MudTd>
+        <MudTd DataLabel="Details"><code class="mud-typography-caption">@(context.Data is { } data ? JsonSerializer.Serialize(data) : null)</code></MudTd>
+    </RowTemplate>
+    <NoRecordsContent><MudText>No events match.</MudText></NoRecordsContent>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<AuditEventResponse> _events = [];
+    private string? _action;
+    private string? _subjectId;
+    private string? _actorId;
+    private string? _nextCursor;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _events.Clear();
+        _nextCursor = null;
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        var query = new ListAuditEventsQuery(Blank(_action), null, Blank(_actorId), null, Blank(_subjectId), null, null, null, _nextCursor, null);
+        var page = await Operations.RunAsync<ListAuditEventsHandler, Result<Page<AuditEventResponse>>>(SystemPermissions.AuditRead, handler => handler.HandleAsync(query, Aborted));
+        if (page.IsSuccess)
+        {
+            _events.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+    }
+
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? Reference(string? type, string? id) => type is null ? null : id is null ? type : $"{type} {id}";
+}

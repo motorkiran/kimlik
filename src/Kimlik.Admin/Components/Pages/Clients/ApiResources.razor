@@ -1,0 +1,99 @@
+@page "/admin/api-resources"
+@using Kimlik.Application.ApiResources
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>API resources · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">API resources</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _creating = !_creating">New API resource</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">The APIs that accept Kimlik tokens. Clients request an API's scope, and get tokens for its audience.</MudText>
+
+@if (_creating)
+{
+    <MudPaper Class="pa-4 mb-4" Outlined id="new-api-resource">
+        <MudStack Row Wrap="Wrap.Wrap">
+            <MudTextField @bind-Value="_scope" Label="Scope" Required MaxLength="100" HelperText="What clients request, such as invoices." />
+            <MudTextField @bind-Value="_audience" Label="Audience" MaxLength="200" HelperText="What the API validates; the scope when empty." />
+            <MudTextField @bind-Value="_displayName" Label="Name for people" MaxLength="100" HelperText="Shown on the consent screen." />
+        </MudStack>
+        <MudButton Class="mt-2" Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_scope)">Create</MudButton>
+    </MudPaper>
+}
+
+<MudTable T="ApiResourceResponse" Items="_resources" Dense id="api-resources">
+    <HeaderContent>
+        <MudTh>Scope</MudTh>
+        <MudTh>Audience</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Scope"><code>@context.Scope</code></MudTd>
+        <MudTd DataLabel="Audience"><code>@context.Audience</code></MudTd>
+        <MudTd DataLabel="Name">@context.DisplayName</MudTd>
+        <MudTd>
+            @if (context.IsSystem)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Kimlik's own</MudChip>
+            }
+            else if (CanWrite)
+            {
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" aria-label="Delete" OnClick="() => DeleteAsync(context)" />
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private IReadOnlyList<ApiResourceResponse> _resources = [];
+    private bool _creating;
+    private string _scope = string.Empty;
+    private string? _audience;
+    private string? _displayName;
+
+    private bool CanWrite => Session.Has(SystemPermissions.ClientsWrite);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var resources = await Operations.RunAsync<ListApiResourcesHandler, Result<Page<ApiResourceResponse>>>(
+            SystemPermissions.ClientsRead, handler => handler.HandleAsync(new ListApiResourcesQuery(null, null, 200), Aborted));
+        _resources = resources.IsSuccess ? resources.Value.Items : [];
+    }
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateApiResourceRequest
+        {
+            Scope = _scope.Trim(),
+            Audience = string.IsNullOrWhiteSpace(_audience) ? null : _audience.Trim(),
+            DisplayName = _displayName,
+        };
+
+        if (await ChangeAsync<CreateApiResourceHandler, ApiResourceResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(request, Aborted), "The API resource was created.") is not null)
+        {
+            _creating = false;
+            _scope = string.Empty;
+            _audience = _displayName = null;
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteAsync(ApiResourceResponse resource)
+    {
+        if (await ConfirmAsync($"Delete {resource.Scope}?", "Clients can no longer request its scope.", "Delete")
+            && await ChangeAsync<DeleteApiResourceHandler>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(resource.Id, Aborted), "The API resource was deleted."))
+        {
+            await LoadAsync();
+        }
+    }
+}

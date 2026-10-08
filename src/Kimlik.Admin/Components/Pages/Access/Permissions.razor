@@ -1,0 +1,72 @@
+@page "/admin/permissions"
+@using Kimlik.Application.Permissions
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Permissions · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Permissions</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New permission</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">What your application's APIs check, written as <code>resource:action</code>. Roles group them; tokens and API keys carry them.</MudText>
+
+<MudTable T="PermissionResponse" Items="_permissions" Dense Hover id="permissions">
+    <HeaderContent>
+        <MudTh>Key</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Key"><code>@context.Key</code></MudTd>
+        <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd>
+            @if (CanWrite && !context.IsSystem)
+            {
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" aria-label="Delete" OnClick="() => DeleteAsync(context)" />
+            }
+            else if (context.IsSystem)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Kimlik's own</MudChip>
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private IReadOnlyList<PermissionResponse> _permissions = [];
+
+    private bool CanWrite => Session.Has(SystemPermissions.RolesWrite);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var permissions = await Operations.RunAsync<ListPermissionsHandler, Result<Page<PermissionResponse>>>(
+            SystemPermissions.RolesRead, handler => handler.HandleAsync(new ListPermissionsQuery(null, null, 200), Aborted));
+        _permissions = permissions.IsSuccess ? [.. permissions.Value.Items.OrderBy(permission => permission.IsSystem).ThenBy(permission => permission.Key, StringComparer.Ordinal)] : [];
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<PermissionDialog>("New permission");
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteAsync(PermissionResponse permission)
+    {
+        if (await ConfirmAsync($"Delete {permission.Key}?", "Roles and API keys that have it lose it.", "Delete")
+            && await ChangeAsync<DeletePermissionHandler>(SystemPermissions.RolesWrite, handler => handler.HandleAsync(permission.Id, Aborted), "The permission was deleted."))
+        {
+            await LoadAsync();
+        }
+    }
+}

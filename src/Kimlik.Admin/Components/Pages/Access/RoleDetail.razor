@@ -1,0 +1,93 @@
+@page "/admin/roles/{Id:guid}"
+@using Kimlik.Application.Roles
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>@(_role?.Name ?? "Role") · Kimlik admin</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+
+@if (_notFound)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Role not found</MudText>
+}
+else if (_role is { } role)
+{
+    <MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4" HtmlTag="h1">@role.Name</MudText>
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@(role.Scope == RoleScope.Global ? "Global" : "Organization")</MudChip>
+        @if (role.IsSystem)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">Kimlik's own</MudChip>
+        }
+    </MudStack>
+
+    <MudPaper Class="pa-4" Outlined>
+        <MudTextField Value="role.Key" Label="Key" ReadOnly />
+        <MudTextField @bind-Value="_name" Label="Name" MaxLength="100" ReadOnly="ReadOnly" />
+        <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" ReadOnly="ReadOnly" />
+        <MudText Typo="Typo.subtitle2" Class="mt-4">Permissions</MudText>
+        <MudText Typo="Typo.body2">@(role.Permissions.Count == 0 ? "None." : string.Join(", ", role.Permissions))</MudText>
+        <MudText Typo="Typo.caption">Change them in the <MudLink Href="/admin/roles" Typo="Typo.caption">permission matrix</MudLink>.</MudText>
+        @if (!ReadOnly)
+        {
+            <MudStack Row Class="mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Delete</MudButton>
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    private RoleResponse? _role;
+    private bool _notFound;
+    private string _name = string.Empty;
+    private string? _description;
+    private readonly List<BreadcrumbItem> _breadcrumbs = [new("Roles", "/admin/roles")];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool ReadOnly => !Session.Has(SystemPermissions.RolesWrite) || _role?.IsSystem == true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var role = await Operations.RunAsync<GetRoleHandler, Result<RoleResponse>>(SystemPermissions.RolesRead, handler => handler.HandleAsync(Id, Aborted));
+        if (role.IsFailure)
+        {
+            _notFound = true;
+            return;
+        }
+
+        Show(role.Value);
+    }
+
+    private void Show(RoleResponse role)
+    {
+        _role = role;
+        _name = role.Name;
+        _description = role.Description;
+        _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
+        _breadcrumbs.Add(new BreadcrumbItem(role.Name, href: null, disabled: true));
+    }
+
+    private async Task SaveAsync()
+    {
+        var request = new UpdateRoleRequest { Name = _name.Trim(), Description = _description };
+        if (await ChangeAsync<UpdateRoleHandler, RoleResponse>(SystemPermissions.RolesWrite, handler => handler.HandleAsync(Id, request, Aborted), "The role was saved.") is { } role)
+        {
+            Show(role);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await ConfirmAsync($"Delete {_role!.Name}?", "Everyone who holds it loses it, with its permissions.", "Delete")
+            && await ChangeAsync<DeleteRoleHandler>(SystemPermissions.RolesWrite, handler => handler.HandleAsync(Id, Aborted), "The role was deleted."))
+        {
+            Navigation.NavigateTo("/admin/roles");
+        }
+    }
+}

@@ -1,0 +1,113 @@
+@page "/admin/roles"
+@using Kimlik.Application.Permissions
+@using Kimlik.Application.Roles
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Roles · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Roles</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New role</MudButton>
+    }
+</MudStack>
+
+<MudToggleGroup T="RoleScope" Value="_scope" ValueChanged="ScopeChangedAsync" Class="mb-4">
+    <MudToggleItem Value="RoleScope.Global" Text="Global roles" />
+    <MudToggleItem Value="RoleScope.Organization" Text="Organization roles" />
+</MudToggleGroup>
+
+<MudText Typo="Typo.body2" Class="mb-2">
+    @(_scope == RoleScope.Global
+        ? "Held by users and service clients everywhere."
+        : "Held by members within an organization, through their membership.")
+    Tick a box to give a role a permission; Kimlik's own roles cannot change.
+</MudText>
+
+<div class="matrix">
+    <MudSimpleTable Dense Hover Bordered id="matrix">
+        <thead>
+            <tr>
+                <th>Permission</th>
+                @foreach (var role in _roles)
+                {
+                    <th><MudLink Href="@($"/admin/roles/{role.Id}")">@role.Name</MudLink><div class="mud-typography-caption"><code>@role.Key</code></div></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var permission in VisiblePermissions)
+            {
+                <tr>
+                    <td><code>@permission.Key</code><div class="mud-typography-caption">@permission.Description</div></td>
+                    @foreach (var role in _roles)
+                    {
+                        <td>
+                            <MudCheckBox T="bool" Value="role.Permissions.Contains(permission.Key)" Dense
+                                         ReadOnly="!CanWrite || role.IsSystem" ValueChanged="granted => ToggleAsync(role, permission.Key, granted)"
+                                         aria-label="@($"{permission.Key} for {role.Key}")" data-role="@role.Key" data-permission="@permission.Key" />
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</div>
+
+@code {
+    private RoleScope _scope = RoleScope.Global;
+    private IReadOnlyList<RoleResponse> _roles = [];
+    private IReadOnlyList<PermissionResponse> _permissions = [];
+
+    private bool CanWrite => Session.Has(SystemPermissions.RolesWrite);
+
+    /// <summary>The permissions that fit the scope: system permissions for organizations only in organization roles, and the other way round.</summary>
+    private IEnumerable<PermissionResponse> VisiblePermissions => _permissions.Where(permission =>
+        !permission.IsSystem || permission.Key.StartsWith("kimlik.org.", StringComparison.Ordinal) == (_scope == RoleScope.Organization));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var permissions = await Operations.RunAsync<ListPermissionsHandler, Result<Page<PermissionResponse>>>(
+            SystemPermissions.RolesRead, handler => handler.HandleAsync(new ListPermissionsQuery(null, null, 200), Aborted));
+        _permissions = permissions.IsSuccess ? [.. permissions.Value.Items.OrderBy(permission => permission.IsSystem).ThenBy(permission => permission.Key, StringComparer.Ordinal)] : [];
+        await LoadRolesAsync();
+    }
+
+    private async Task ScopeChangedAsync(RoleScope scope)
+    {
+        _scope = scope;
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        var roles = await Operations.RunAsync<ListRolesHandler, Result<Page<RoleResponse>>>(
+            SystemPermissions.RolesRead, handler => handler.HandleAsync(new ListRolesQuery(null, _scope, null, 200), Aborted));
+        _roles = roles.IsSuccess ? roles.Value.Items : [];
+    }
+
+    private async Task ToggleAsync(RoleResponse role, string permission, bool granted)
+    {
+        var permissions = granted ? [.. role.Permissions, permission] : role.Permissions.Where(key => key != permission).ToList();
+        var request = new SetPermissionsRequest { Permissions = permissions };
+
+        if (await ChangeAsync<SetRolePermissionsHandler, RoleResponse>(
+            SystemPermissions.RolesWrite, handler => handler.HandleAsync(role.Id, request, Aborted), granted ? $"{role.Name} can now {permission}." : $"{role.Name} no longer has {permission}.") is not null)
+        {
+            await LoadRolesAsync();
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var parameters = new DialogParameters<RoleDialog> { { dialog => dialog.Scope, _scope } };
+        var dialog = await Dialogs.ShowAsync<RoleDialog>("New role", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadRolesAsync();
+        }
+    }
+}

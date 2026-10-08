@@ -1,0 +1,241 @@
+@page "/admin/organizations/{Id:guid}"
+@using Kimlik.Application.Organizations
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>@(_organization?.Name ?? "Organization") · Kimlik admin</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+
+@if (_notFound)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Organization not found</MudText>
+}
+else if (_organization is { } organization)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>@organization.Name</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Outlined>
+                <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Settings</MudText>
+                <MudTextField @bind-Value="_name" Label="Name" MaxLength="100" ReadOnly="!CanWrite" />
+                <MudTextField @bind-Value="_slug" Label="Slug" MaxLength="64" ReadOnly="!CanWrite" HelperText="Apps that sign in to the organization by its old slug must switch." />
+                <MudCheckBox @bind-Value="_requireMfa" Label="Members must use two-factor authentication" ReadOnly="!CanWrite" />
+                @if (CanWrite)
+                {
+                    <MudStack Row Class="mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" id="save-organization">Save</MudButton>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync" id="delete-organization">Delete</MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Outlined>
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">Members</MudText>
+                    <MudSpacer />
+                    @if (CanWrite)
+                    {
+                        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddMemberAsync" id="add-member">Add member</MudButton>
+                    }
+                </MudStack>
+                <MudSimpleTable Dense Hover id="members">
+                    <thead><tr><th>Member</th><th>Roles</th><th>Joined</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var member in _members)
+                        {
+                            <tr>
+                                <td><MudLink Href="@($"/admin/users/{member.UserId}")">@(member.Email ?? member.UserId.ToString())</MudLink></td>
+                                <td>@string.Join(", ", member.Roles)</td>
+                                <td><Moment Value="member.JoinedAt" /></td>
+                                <td>
+                                    @if (CanWrite)
+                                    {
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" aria-label="Change roles" OnClick="() => ChangeRolesAsync(member)" />
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.PersonRemove" Color="Color.Error" aria-label="Remove" OnClick="() => RemoveAsync(member)" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+
+            <MudPaper Class="pa-4 mt-4" Outlined>
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">Invitations</MudText>
+                    <MudSpacer />
+                    @if (CanWrite)
+                    {
+                        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Send" OnClick="InviteAsync" id="invite">Invite</MudButton>
+                    }
+                </MudStack>
+                <MudSimpleTable Dense id="invitations">
+                    <thead><tr><th>Email</th><th>Roles</th><th>Status</th><th>Expires</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var invitation in _invitations)
+                        {
+                            <tr>
+                                <td>@invitation.Email</td>
+                                <td>@string.Join(", ", invitation.Roles)</td>
+                                <td>@invitation.Status</td>
+                                <td><Moment Value="invitation.ExpiresAt" /></td>
+                                <td>
+                                    @if (CanWrite && invitation.Status == InvitationStatus.Pending)
+                                    {
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Refresh" aria-label="Send again" OnClick="() => ResendAsync(invitation)" />
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" aria-label="Revoke" OnClick="() => RevokeAsync(invitation)" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private OrganizationResponse? _organization;
+    private bool _notFound;
+    private string _name = string.Empty;
+    private string _slug = string.Empty;
+    private bool _requireMfa;
+    private IReadOnlyList<MemberResponse> _members = [];
+    private IReadOnlyList<InvitationResponse> _invitations = [];
+    private readonly List<BreadcrumbItem> _breadcrumbs = [new("Organizations", "/admin/organizations")];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool CanWrite => Session.Has(SystemPermissions.OrganizationsWrite);
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var organization = await Operations.RunAsync<GetOrganizationHandler, Result<OrganizationResponse>>(
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(Id, Aborted));
+        if (organization.IsFailure)
+        {
+            _notFound = true;
+            return;
+        }
+
+        Show(organization.Value);
+
+        var members = await Operations.RunAsync<ListMembersHandler, Result<Page<MemberResponse>>>(
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListMembersQuery(Id, null, 200), Aborted));
+        _members = members.IsSuccess ? members.Value.Items : [];
+
+        var invitations = await Operations.RunAsync<ListInvitationsHandler, Result<Page<InvitationResponse>>>(
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListInvitationsQuery(Id, null, 200), Aborted));
+        _invitations = invitations.IsSuccess ? invitations.Value.Items : [];
+    }
+
+    private void Show(OrganizationResponse organization)
+    {
+        _organization = organization;
+        _name = organization.Name;
+        _slug = organization.Slug;
+        _requireMfa = organization.RequireMfa;
+        _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
+        _breadcrumbs.Add(new BreadcrumbItem(organization.Name, href: null, disabled: true));
+    }
+
+    private async Task SaveAsync()
+    {
+        var request = new UpdateOrganizationRequest { Name = _name.Trim(), Slug = _slug.Trim(), RequireMfa = _requireMfa };
+        if (await ChangeAsync<UpdateOrganizationHandler, OrganizationResponse>(
+            SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The organization was saved.") is { } organization)
+        {
+            Show(organization);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await ConfirmAsync($"Delete {_organization!.Name}?", "Its memberships, invitations, subscriptions and API keys go with it.", "Delete")
+            && await ChangeAsync<DeleteOrganizationHandler>(SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, Aborted), "The organization was deleted."))
+        {
+            Navigation.NavigateTo("/admin/organizations");
+        }
+    }
+
+    private async Task AddMemberAsync()
+    {
+        var choice = await ChooseAsync("Add member", "Add", [], pickUser: true);
+        if (choice is { UserId: { } userId }
+            && await ChangeAsync<AddMemberHandler, MemberResponse>(
+                SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, new AddMemberRequest { UserId = userId, Roles = choice.Roles }, Aborted), "The member was added.") is not null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ChangeRolesAsync(MemberResponse member)
+    {
+        if (await ChooseAsync($"Roles of {member.Email}", "Save", member.Roles) is { } choice
+            && await ChangeAsync<SetMemberRolesHandler, MemberResponse>(
+                SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, member.UserId, new SetRolesRequest { Roles = choice.Roles }, Aborted), "The roles were saved.") is not null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveAsync(MemberResponse member)
+    {
+        if (await ConfirmAsync($"Remove {member.Email}?", "They lose their roles in the organization.", "Remove")
+            && await ChangeAsync<RemoveMemberHandler>(SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, member.UserId, Aborted), "The member was removed."))
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task InviteAsync()
+    {
+        if (await ChooseAsync("Invite", "Send", [], email: true) is { Email: { } email } choice
+            && await ChangeAsync<CreateInvitationHandler, InvitationResponse>(
+                SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, new CreateInvitationRequest { Email = email, Roles = choice.Roles }, Aborted), "The invitation was sent.") is not null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ResendAsync(InvitationResponse invitation)
+    {
+        if (await ChangeAsync<ResendInvitationHandler, InvitationResponse>(
+            SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, invitation.Id, Aborted), "The invitation was sent again.") is not null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RevokeAsync(InvitationResponse invitation)
+    {
+        if (await ChangeAsync<RevokeInvitationHandler>(SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(Id, invitation.Id, Aborted), "The invitation was revoked."))
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task<RolesDialog.RolesChoice?> ChooseAsync(string title, string action, IReadOnlyCollection<string> selected, bool email = false, bool pickUser = false)
+    {
+        var parameters = new DialogParameters<RolesDialog>
+        {
+            { dialog => dialog.Scope, RoleScope.Organization },
+            { dialog => dialog.Selected, selected },
+            { dialog => dialog.Action, action },
+            { dialog => dialog.Email, email },
+            { dialog => dialog.PickUser, pickUser },
+        };
+
+        var dialog = await Dialogs.ShowAsync<RolesDialog>(title, parameters);
+        return await dialog.Result is { Canceled: false, Data: RolesDialog.RolesChoice choice } ? choice : null;
+    }
+}

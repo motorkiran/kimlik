@@ -1,0 +1,75 @@
+@page "/admin/webhooks"
+@using Kimlik.Application.Webhooks
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Webhooks · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Webhooks</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New endpoint</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">URLs in your application that receive signed events, following the Standard Webhooks specification.</MudText>
+
+<MudTable T="WebhookEndpointResponse" Items="_endpoints" Hover OnRowClick="args => Open(args.Item)" id="webhook-endpoints">
+    <HeaderContent>
+        <MudTh>URL</MudTh>
+        <MudTh>Events</MudTh>
+        <MudTh>Status</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="URL"><MudLink Href="@($"/admin/webhooks/{context.Id}")">@context.Url</MudLink><div class="mud-typography-caption">@context.Description</div></MudTd>
+        <MudTd DataLabel="Events">@(context.EventTypes.Count == 0 ? "All" : string.Join(", ", context.EventTypes))</MudTd>
+        <MudTd DataLabel="Status">
+            @if (!context.Enabled)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Disabled</MudChip>
+            }
+            else if (context.FailingSince is { } since)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">Failing since <Moment Value="since" /></MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Healthy</MudChip>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent><MudText>No endpoints yet.</MudText></NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<WebhookEndpointResponse> _endpoints = [];
+
+    private bool CanWrite => Session.Has(SystemPermissions.WebhooksWrite);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var endpoints = await Operations.RunAsync<ListWebhookEndpointsHandler, Result<Page<WebhookEndpointResponse>>>(
+            SystemPermissions.WebhooksRead, handler => handler.HandleAsync(new ListWebhookEndpointsQuery(null, 200), Aborted));
+        _endpoints = endpoints.IsSuccess ? endpoints.Value.Items : [];
+    }
+
+    private void Open(WebhookEndpointResponse? endpoint)
+    {
+        if (endpoint is not null)
+        {
+            Navigation.NavigateTo($"/admin/webhooks/{endpoint.Id}");
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<WebhookEndpointDialog>("New endpoint", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false, Data: CreatedWebhookEndpointResponse created })
+        {
+            await SecretDialog.ShowAsync(Dialogs, "Signing secret", "Secret of the endpoint", created.Secret);
+            Navigation.NavigateTo($"/admin/webhooks/{created.Endpoint.Id}");
+        }
+    }
+}

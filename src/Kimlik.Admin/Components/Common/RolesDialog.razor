@@ -1,0 +1,79 @@
+@* Picks roles of one scope, such as a member's roles in an organization. *@
+@using Kimlik.Application.Roles
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        @if (Email)
+        {
+            <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email" Required MaxLength="256" />
+        }
+        @if (PickUser)
+        {
+            <MudAutocomplete T="UserResponse" Label="User" SearchFunc="SearchUsersAsync" ToStringFunc="user => user?.Email" @bind-Value="_user"
+                             DebounceInterval="300" ResetValueOnEmptyText />
+        }
+        <MudSelect T="string" Label="Roles" MultiSelection @bind-SelectedValues="_selected">
+            @foreach (var role in _roles)
+            {
+                <MudSelectItem T="string" Value="role.Key">@role.Name (@role.Key)</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Done" Disabled="(Email && string.IsNullOrWhiteSpace(_email)) || (PickUser && _user is null)">@Action</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<RoleResponse> _roles = [];
+    private IReadOnlyCollection<string> _selected = [];
+    private string? _email;
+    private UserResponse? _user;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter]
+    public RoleScope Scope { get; set; }
+
+    [Parameter]
+    public IReadOnlyCollection<string> Selected { get; set; } = [];
+
+    [Parameter]
+    public string Action { get; set; } = "Save";
+
+    /// <summary>Also asks for an email address, as for an invitation.</summary>
+    [Parameter]
+    public bool Email { get; set; }
+
+    /// <summary>Also asks for a user, as for adding a member.</summary>
+    [Parameter]
+    public bool PickUser { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _selected = Selected;
+        var roles = await Operations.RunAsync<ListRolesHandler, Result<Page<RoleResponse>>>(
+            permission: null, handler => handler.HandleAsync(new ListRolesQuery(null, Scope, null, 200), Aborted));
+        _roles = roles.IsSuccess ? roles.Value.Items : [];
+    }
+
+    private async Task<IEnumerable<UserResponse>> SearchUsersAsync(string? search, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var users = await Operations.RunAsync<Kimlik.Application.Users.ListUsersHandler, Result<Page<UserResponse>>>(
+            SystemPermissions.UsersRead, handler => handler.HandleAsync(new Kimlik.Application.Users.ListUsersQuery(search, null, null, 10), cancellationToken));
+        return users.IsSuccess ? users.Value.Items : [];
+    }
+
+    private void Done() => Dialog.Close(DialogResult.Ok(new RolesChoice([.. _selected], _email?.Trim(), _user?.Id)));
+
+    public sealed record RolesChoice(IReadOnlyList<string> Roles, string? Email, Guid? UserId);
+}

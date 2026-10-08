@@ -3,3 +3,24 @@
 .mud-table-row {
     cursor: pointer;
 }
+
+/* The permission matrix scrolls sideways when there are many roles. */
+.matrix {
+    overflow-x: auto;
+}
+
+.matrix th:first-child,
+.matrix td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--mud-palette-surface);
+}
+
+.payload {
+    max-height: 24rem;
+    overflow: auto;
+    padding: 1rem;
+    font-size: 0.8125rem;
+    background: var(--mud-palette-background-gray);
+    border-radius: var(--mud-default-borderradius);
+}

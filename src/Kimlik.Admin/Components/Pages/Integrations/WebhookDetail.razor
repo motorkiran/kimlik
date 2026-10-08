@@ -1,0 +1,189 @@
+@page "/admin/webhooks/{Id:guid}"
+@using System.Text.Json
+@using Kimlik.Application.Webhooks
+@using Kimlik.Contracts.Webhooks
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Webhook endpoint · Kimlik admin</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+
+@if (_notFound)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Endpoint not found</MudText>
+}
+else if (_endpoint is { } endpoint)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom Style="word-break: break-all">@endpoint.Url</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Outlined>
+                <MudTextField @bind-Value="_url" Label="URL" MaxLength="2048" ReadOnly="!CanWrite" />
+                <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" ReadOnly="!CanWrite" />
+                <MudSelect T="string" Label="Events" MultiSelection @bind-SelectedValues="_eventTypes" ReadOnly="!CanWrite" HelperText="None selected sends every event.">
+                    @foreach (var eventType in WebhookEventTypes.All.Order(StringComparer.Ordinal))
+                    {
+                        <MudSelectItem T="string" Value="eventType">@eventType</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSwitch T="bool" @bind-Value="_enabled" Color="Color.Primary" Label="@(_enabled ? "Enabled" : "Disabled")" ReadOnly="!CanWrite" />
+                @if (CanWrite)
+                {
+                    <MudStack Row Wrap="Wrap.Wrap" Class="mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+                        <MudButton Variant="Variant.Outlined" OnClick="SendTestAsync" id="send-test">Send a test event</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="RotateSecretAsync">New secret</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Delete</MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Outlined>
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">Deliveries</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" aria-label="Refresh" OnClick="LoadDeliveriesAsync" />
+                </MudStack>
+                <MudTable T="WebhookDeliveryResponse" Items="_deliveries" Dense id="deliveries">
+                    <HeaderContent>
+                        <MudTh>Event</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Attempts</MudTh>
+                        <MudTh>Last attempt</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Event"><code>@context.EventType</code></MudTd>
+                        <MudTd DataLabel="Status">
+                            @context.Status
+                            @if (context.ResponseStatusCode is { } status)
+                            {
+                                <span class="mud-typography-caption"> (HTTP @status)</span>
+                            }
+                            @if (context.Error is { } error)
+                            {
+                                <div class="mud-typography-caption">@error</div>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Attempts">@context.Attempts</MudTd>
+                        <MudTd DataLabel="Last attempt"><Moment Value="context.LastAttemptAt" Empty="Not yet" /></MudTd>
+                        <MudTd>
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.DataObject" aria-label="Show the event" OnClick="() => ShowPayload(context)" />
+                            @if (CanWrite && context.Status != WebhookDeliveryStatus.Pending)
+                            {
+                                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Replay" aria-label="Send again" OnClick="() => RedeliverAsync(context)" />
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText>No deliveries in the last 30 days.</MudText></NoRecordsContent>
+                </MudTable>
+                @if (_payload is not null)
+                {
+                    <pre class="payload">@_payload</pre>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
+    private WebhookEndpointResponse? _endpoint;
+    private bool _notFound;
+    private string _url = string.Empty;
+    private string? _description;
+    private IReadOnlyCollection<string> _eventTypes = [];
+    private bool _enabled;
+    private IReadOnlyList<WebhookDeliveryResponse> _deliveries = [];
+    private string? _payload;
+    private readonly List<BreadcrumbItem> _breadcrumbs = [new("Webhooks", "/admin/webhooks"), new("Endpoint", href: null, disabled: true)];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool CanWrite => Session.Has(SystemPermissions.WebhooksWrite);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var endpoint = await Operations.RunAsync<GetWebhookEndpointHandler, Result<WebhookEndpointResponse>>(
+            SystemPermissions.WebhooksRead, handler => handler.HandleAsync(Id, Aborted));
+        if (endpoint.IsFailure)
+        {
+            _notFound = true;
+            return;
+        }
+
+        Show(endpoint.Value);
+        await LoadDeliveriesAsync();
+    }
+
+    private void Show(WebhookEndpointResponse endpoint)
+    {
+        _endpoint = endpoint;
+        _url = endpoint.Url;
+        _description = endpoint.Description;
+        _eventTypes = endpoint.EventTypes;
+        _enabled = endpoint.Enabled;
+    }
+
+    private async Task LoadDeliveriesAsync()
+    {
+        var deliveries = await Operations.RunAsync<ListWebhookDeliveriesHandler, Result<Page<WebhookDeliveryResponse>>>(
+            SystemPermissions.WebhooksRead, handler => handler.HandleAsync(new ListWebhookDeliveriesQuery(Id, null, null, 50), Aborted));
+        _deliveries = deliveries.IsSuccess ? deliveries.Value.Items : [];
+    }
+
+    private void ShowPayload(WebhookDeliveryResponse delivery) => _payload = JsonSerializer.Serialize(delivery.Payload, Indented);
+
+    private async Task SaveAsync()
+    {
+        var request = new UpdateWebhookEndpointRequest { Url = _url.Trim(), Description = _description, EventTypes = [.. _eventTypes], Enabled = _enabled };
+        if (await ChangeAsync<UpdateWebhookEndpointHandler, WebhookEndpointResponse>(
+            SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(Id, request, Aborted), "The endpoint was saved.") is { } endpoint)
+        {
+            Show(endpoint);
+        }
+    }
+
+    private async Task SendTestAsync()
+    {
+        if (await ChangeAsync<SendTestWebhookHandler, WebhookDeliveryResponse>(
+            SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(Id, Aborted), "A test event is on its way.") is not null)
+        {
+            await LoadDeliveriesAsync();
+        }
+    }
+
+    private async Task RedeliverAsync(WebhookDeliveryResponse delivery)
+    {
+        if (await ChangeAsync<RedeliverWebhookHandler, WebhookDeliveryResponse>(
+            SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(delivery.Id, Aborted), "The event is on its way again.") is not null)
+        {
+            await LoadDeliveriesAsync();
+        }
+    }
+
+    private async Task RotateSecretAsync()
+    {
+        if (await ConfirmAsync("Issue a new secret?", "Deliveries are signed with the new secret at once, retries included; update the receiving application first.", "Issue")
+            && await ChangeAsync<RotateWebhookSecretHandler, WebhookSecretResponse>(
+                SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(Id, Aborted), "A new secret was issued.") is { } secret)
+        {
+            await SecretDialog.ShowAsync(Dialogs, "Signing secret", "Secret of the endpoint", secret.Secret);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await ConfirmAsync("Delete the endpoint?", "It receives no more events, and its delivery log is deleted.", "Delete")
+            && await ChangeAsync<DeleteWebhookEndpointHandler>(SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(Id, Aborted), "The endpoint was deleted."))
+        {
+            Navigation.NavigateTo("/admin/webhooks");
+        }
+    }
+}

@@ -1,0 +1,39 @@
+@using Kimlik.Application.Webhooks
+@using Kimlik.Contracts.Webhooks
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_url" Label="URL" Required MaxLength="2048" HelperText="HTTPS; plain HTTP only for localhost." />
+        <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" />
+        <MudSelect T="string" Label="Events" MultiSelection @bind-SelectedValues="_eventTypes" HelperText="None selected sends every event.">
+            @foreach (var eventType in WebhookEventTypes.All.Order(StringComparer.Ordinal))
+            {
+                <MudSelectItem T="string" Value="eventType">@eventType</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_url)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _url = string.Empty;
+    private string? _description;
+    private IReadOnlyCollection<string> _eventTypes = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateWebhookEndpointRequest { Url = _url.Trim(), Description = _description, EventTypes = [.. _eventTypes] };
+        if (await ChangeAsync<CreateWebhookEndpointHandler, CreatedWebhookEndpointResponse>(
+            SystemPermissions.WebhooksWrite, handler => handler.HandleAsync(request, Aborted), "The endpoint was created.") is { } created)
+        {
+            Dialog.Close(DialogResult.Ok(created));
+        }
+    }
+}

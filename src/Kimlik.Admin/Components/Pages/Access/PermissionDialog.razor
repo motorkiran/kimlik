@@ -1,0 +1,30 @@
+@using Kimlik.Application.Permissions
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_key" Label="Key" Required MaxLength="128" HelperText="resource:action, in lowercase, such as invoices:read." />
+        <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_key)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _key = string.Empty;
+    private string? _description;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private async Task CreateAsync()
+    {
+        var request = new CreatePermissionRequest { Key = _key.Trim(), Description = _description };
+        if (await ChangeAsync<CreatePermissionHandler, PermissionResponse>(SystemPermissions.RolesWrite, handler => handler.HandleAsync(request, Aborted), "The permission was created.") is { } permission)
+        {
+            Dialog.Close(DialogResult.Ok(permission));
+        }
+    }
+}

@@ -1,0 +1,90 @@
+@using Kimlik.Application.Organizations
+@using Kimlik.Application.Plans
+@using Kimlik.Application.Users
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="SubscriberType" @bind-Value="_type" Label="Subscriber">
+            <MudSelectItem T="SubscriberType" Value="SubscriberType.User">A user</MudSelectItem>
+            <MudSelectItem T="SubscriberType" Value="SubscriberType.Organization">An organization</MudSelectItem>
+        </MudSelect>
+        @if (_type == SubscriberType.User)
+        {
+            <MudAutocomplete T="UserResponse" Label="User" SearchFunc="SearchUsersAsync" ToStringFunc="user => user?.Email" @bind-Value="_user" DebounceInterval="300" />
+        }
+        else
+        {
+            <MudAutocomplete T="OrganizationResponse" Label="Organization" SearchFunc="SearchOrganizationsAsync" ToStringFunc="organization => organization?.Name" @bind-Value="_organization" DebounceInterval="300" />
+        }
+        <MudSelect T="string" @bind-Value="_plan" Label="Plan">
+            @foreach (var plan in Plans)
+            {
+                <MudSelectItem T="string" Value="plan.Key">@plan.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudDatePicker @bind-Date="_trialEndsAt" Label="Trial ends" Clearable />
+        <MudDatePicker @bind-Date="_periodEnds" Label="Period ends" Clearable HelperText="Empty for a subscription without an end, such as a free plan." />
+        <MudTextField @bind-Value="_reference" Label="Billing reference" MaxLength="200" HelperText="The subscription's ID in the billing system." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="SubscriberId is null || _plan is null">Subscribe</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private SubscriberType _type = SubscriberType.User;
+    private UserResponse? _user;
+    private OrganizationResponse? _organization;
+    private string? _plan;
+    private DateTime? _trialEndsAt;
+    private DateTime? _periodEnds;
+    private string? _reference;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<PlanResponse> Plans { get; set; } = [];
+
+    private Guid? SubscriberId => _type == SubscriberType.User ? _user?.Id : _organization?.Id;
+
+    private async Task<IEnumerable<UserResponse>> SearchUsersAsync(string? search, CancellationToken cancellationToken)
+    {
+        var users = await Operations.RunAsync<ListUsersHandler, Result<Page<UserResponse>>>(
+            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListUsersQuery(search, null, null, 10), cancellationToken));
+        return users.IsSuccess ? users.Value.Items : [];
+    }
+
+    private async Task<IEnumerable<OrganizationResponse>> SearchOrganizationsAsync(string? search, CancellationToken cancellationToken)
+    {
+        var organizations = await Operations.RunAsync<ListOrganizationsHandler, Result<Page<OrganizationResponse>>>(
+            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListOrganizationsQuery(search, null, 10), cancellationToken));
+        return organizations.IsSuccess ? organizations.Value.Items : [];
+    }
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateSubscriptionRequest
+        {
+            SubscriberType = _type,
+            SubscriberId = SubscriberId!.Value,
+            Plan = _plan!,
+            TrialEndsAt = EndOfDay(_trialEndsAt),
+            CurrentPeriodEnd = EndOfDay(_periodEnds),
+            ExternalReference = string.IsNullOrWhiteSpace(_reference) ? null : _reference.Trim(),
+        };
+
+        if (await ChangeAsync<CreateSubscriptionHandler, SubscriptionResponse>(
+            SystemPermissions.SubscriptionsWrite, handler => handler.HandleAsync(request, Aborted), "The subscription was created.") is { } subscription)
+        {
+            Dialog.Close(DialogResult.Ok(subscription));
+        }
+    }
+
+    /// <summary>A date picked in the calendar means through the end of that day, in UTC.</summary>
+    private static DateTimeOffset? EndOfDay(DateTime? date) =>
+        date is { } day ? new DateTimeOffset(day.Date.AddDays(1), TimeSpan.Zero) : null;
+}

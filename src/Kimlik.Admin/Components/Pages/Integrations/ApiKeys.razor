@@ -1,0 +1,81 @@
+@page "/admin/api-keys"
+@using Kimlik.Application.ApiKeys
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>API keys · Kimlik admin</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>API keys</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">Keys that users and organizations created for calling your APIs. Their owners create them; here they can be revoked.</MudText>
+
+<MudTable T="ApiKeyResponse" Items="_keys" Dense id="api-keys">
+    <HeaderContent>
+        <MudTh>Key</MudTh>
+        <MudTh>Owner</MudTh>
+        <MudTh>Permissions</MudTh>
+        <MudTh>Last used</MudTh>
+        <MudTh>Expires</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Key">@context.Name <div class="mud-typography-caption"><code>@context.Prefix…</code></div></MudTd>
+        <MudTd DataLabel="Owner">
+            @if (context.UserId is { } userId)
+            {
+                <MudLink Href="@($"/admin/users/{userId}")">User</MudLink>
+            }
+            else
+            {
+                <MudLink Href="@($"/admin/organizations/{context.OrganizationId}")">Organization</MudLink>
+            }
+        </MudTd>
+        <MudTd DataLabel="Permissions">@string.Join(", ", context.Permissions)</MudTd>
+        <MudTd DataLabel="Last used"><Moment Value="context.LastUsedAt" /></MudTd>
+        <MudTd DataLabel="Expires"><Moment Value="context.ExpiresAt" Empty="Never" /></MudTd>
+        <MudTd>
+            @if (context.RevokedAt is not null)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Revoked</MudChip>
+            }
+            else if (Session.Has(SystemPermissions.ApiKeysWrite))
+            {
+                <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => RevokeAsync(context)">Revoke</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent><MudText>No API keys yet.</MudText></NoRecordsContent>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<ApiKeyResponse> _keys = [];
+    private string? _nextCursor;
+
+    protected override Task OnInitializedAsync() => LoadMoreAsync();
+
+    private async Task LoadMoreAsync()
+    {
+        var page = await Operations.RunAsync<ListApiKeysHandler, Result<Page<ApiKeyResponse>>>(
+            SystemPermissions.ApiKeysRead, handler => handler.HandleAsync(new ListApiKeysQuery(null, null, _nextCursor, null), Aborted));
+        if (page.IsSuccess)
+        {
+            _keys.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+    }
+
+    private async Task RevokeAsync(ApiKeyResponse key)
+    {
+        if (await ConfirmAsync($"Revoke {key.Name}?", "The key stops working at once.", "Revoke")
+            && await ChangeAsync<RevokeApiKeyHandler>(SystemPermissions.ApiKeysWrite, handler => handler.HandleAsync(key.Id, Aborted), "The key was revoked."))
+        {
+            _keys.Clear();
+            _nextCursor = null;
+            await LoadMoreAsync();
+        }
+    }
+}

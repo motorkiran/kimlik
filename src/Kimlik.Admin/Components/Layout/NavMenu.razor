@@ -6,4 +6,38 @@
     {
         <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.People">Users</MudNavLink>
     }
+    @if (Session.Has(SystemPermissions.OrganizationsRead))
+    {
+        <MudNavLink Href="/admin/organizations" Icon="@Icons.Material.Filled.Business">Organizations</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.RolesRead))
+    {
+        <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Filled.AdminPanelSettings">Roles</MudNavLink>
+        <MudNavLink Href="/admin/permissions" Icon="@Icons.Material.Filled.Key">Permissions</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.ClientsRead))
+    {
+        <MudNavLink Href="/admin/clients" Icon="@Icons.Material.Filled.Apps">Clients</MudNavLink>
+        <MudNavLink Href="/admin/api-resources" Icon="@Icons.Material.Filled.Api">API resources</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.PlansRead))
+    {
+        <MudNavLink Href="/admin/plans" Icon="@Icons.Material.Filled.Layers">Plans</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.SubscriptionsRead))
+    {
+        <MudNavLink Href="/admin/subscriptions" Icon="@Icons.Material.Filled.CreditCard">Subscriptions</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.ApiKeysRead))
+    {
+        <MudNavLink Href="/admin/api-keys" Icon="@Icons.Material.Filled.VpnKey">API keys</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.WebhooksRead))
+    {
+        <MudNavLink Href="/admin/webhooks" Icon="@Icons.Material.Filled.Webhook">Webhooks</MudNavLink>
+    }
+    @if (Session.Has(SystemPermissions.AuditRead))
+    {
+        <MudNavLink Href="/admin/audit" Icon="@Icons.Material.Filled.History">Audit log</MudNavLink>
+    }
 </MudNavMenu>

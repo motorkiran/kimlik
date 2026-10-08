@@ -964,7 +964,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M4: Plans and entitlements** | Features, plans, subscriptions, expiration job, `plan` claim, entitlements API, SDK `RequireFeature` and limits | The sample API gates a feature and enforces a limit ✅ |
 | **M5: Account security and social login** | MFA (TOTP, recovery codes, policies for administrators, organizations and the installation, `amr` claim); Google, Microsoft, Apple and GitHub, with account linking; account pages; Account API | MFA enrollment, challenge and recovery, and social sign-up, sign-in and linking, pass end-to-end tests ✅ |
 | **M6: API keys and webhooks** | API keys and verification, outbox, webhook delivery and retries, delivery log, SDK API key handler and webhook verification | Webhooks are delivered reliably under failure injection ✅ |
-| **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI |
+| **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI ✅ (product settings still come from configuration) |
 | **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image and NuGet publishing | v0.1.0 released |
 
 ---

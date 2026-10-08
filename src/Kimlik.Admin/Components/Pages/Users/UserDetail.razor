@@ -195,7 +195,7 @@ else if (_user is { } user)
         Show(user.Value);
 
         var roles = await Operations.RunAsync<ListRolesHandler, Result<Page<RoleResponse>>>(
-            SystemPermissions.UsersRead, handler => handler.HandleAsync(new ListRolesQuery(null, Kimlik.Contracts.Management.RoleScope.Global, null, 200), Aborted));
+            SystemPermissions.UsersRead, handler => handler.HandleAsync(new ListRolesQuery(null, RoleScope.Global, null, 200), Aborted));
         _globalRoles = roles.IsSuccess ? roles.Value.Items : [];
 
         var logins = await Operations.RunAsync<ListUserLoginsHandler, Result<IReadOnlyList<UserLoginResponse>>>(SystemPermissions.UsersRead, handler => handler.HandleAsync(Id));

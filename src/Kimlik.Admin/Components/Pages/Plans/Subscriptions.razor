@@ -1,0 +1,120 @@
+@page "/admin/subscriptions"
+@using Kimlik.Application.Plans
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Subscriptions · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Subscriptions</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New subscription</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">Newest first, ended ones included. Usually a billing integration keeps them up to date through the Management API.</MudText>
+
+<MudTable T="SubscriptionResponse" Items="_subscriptions" Dense id="subscriptions">
+    <HeaderContent>
+        <MudTh>Subscriber</MudTh>
+        <MudTh>Plan</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Period ends</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Subscriber">
+            <MudLink Href="@(context.SubscriberType == SubscriberType.User ? $"/admin/users/{context.SubscriberId}" : $"/admin/organizations/{context.SubscriberId}")">
+                @(context.SubscriberType == SubscriberType.User ? "User" : "Organization") @context.SubscriberId.ToString()[..8]
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="Plan"><code>@context.Plan</code></MudTd>
+        <MudTd DataLabel="Status">@context.Status</MudTd>
+        <MudTd DataLabel="Period ends"><Moment Value="context.CurrentPeriodEnd" Empty="No end" /></MudTd>
+        <MudTd>
+            @if (CanWrite && context.Status != SubscriptionStatus.Expired)
+            {
+                <MudSelect T="string" Value="context.Plan" ValueChanged="plan => ChangePlanAsync(context, plan)" Dense Style="max-width: 10rem" aria-label="Plan">
+                    @foreach (var plan in _plans)
+                    {
+                        <MudSelectItem T="string" Value="plan.Key">@plan.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (context.Status != SubscriptionStatus.Canceled)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => CancelAsync(context)">Cancel</MudButton>
+                }
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<SubscriptionResponse> _subscriptions = [];
+    private IReadOnlyList<PlanResponse> _plans = [];
+    private string? _nextCursor;
+
+    private bool CanWrite => Session.Has(SystemPermissions.SubscriptionsWrite);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var plans = await Operations.RunAsync<ListPlansHandler, Result<Page<PlanResponse>>>(
+            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListPlansQuery(false, null, 200), Aborted));
+        _plans = plans.IsSuccess ? plans.Value.Items : [];
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _subscriptions.Clear();
+        _nextCursor = null;
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        var page = await Operations.RunAsync<ListSubscriptionsHandler, Result<Page<SubscriptionResponse>>>(
+            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListSubscriptionsQuery(null, null, _nextCursor, null), Aborted));
+        if (page.IsSuccess)
+        {
+            _subscriptions.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+    }
+
+    private async Task ChangePlanAsync(SubscriptionResponse subscription, string plan)
+    {
+        if (await ChangeAsync<UpdateSubscriptionHandler, SubscriptionResponse>(
+            SystemPermissions.SubscriptionsWrite, handler => handler.HandleAsync(subscription.Id, new UpdateSubscriptionRequest { Plan = plan }, Aborted), "The plan was changed.") is not null)
+        {
+            await ReloadAsync();
+        }
+    }
+
+    private async Task CancelAsync(SubscriptionResponse subscription)
+    {
+        if (await ConfirmAsync("Cancel the subscription?", "It stays in effect until the end of its period; one without an end expires at once.", "Cancel subscription")
+            && await ChangeAsync<CancelSubscriptionHandler, SubscriptionResponse>(
+                SystemPermissions.SubscriptionsWrite, handler => handler.HandleAsync(subscription.Id, Aborted), "The subscription was canceled.") is not null)
+        {
+            await ReloadAsync();
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var parameters = new DialogParameters<CreateSubscriptionDialog> { { dialog => dialog.Plans, _plans } };
+        var dialog = await Dialogs.ShowAsync<CreateSubscriptionDialog>("New subscription", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            await ReloadAsync();
+        }
+    }
+}

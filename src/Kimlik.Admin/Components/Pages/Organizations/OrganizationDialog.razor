@@ -1,0 +1,33 @@
+@using Kimlik.Application.Organizations
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" />
+        <MudTextField @bind-Value="_slug" Label="Slug" Required MaxLength="64" HelperText="Lowercase letters, digits and hyphens, such as acme. Apps sign in to the organization by it." />
+        <MudCheckBox @bind-Value="_requireMfa" Label="Members must use two-factor authentication" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_slug)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _name = string.Empty;
+    private string _slug = string.Empty;
+    private bool _requireMfa;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateOrganizationRequest { Name = _name.Trim(), Slug = _slug.Trim(), RequireMfa = _requireMfa };
+        if (await ChangeAsync<CreateOrganizationHandler, OrganizationResponse>(
+            SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(request, Aborted), "The organization was created.") is { } organization)
+        {
+            Dialog.Close(DialogResult.Ok(organization));
+        }
+    }
+}

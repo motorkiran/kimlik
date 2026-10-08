@@ -1,0 +1,176 @@
+@page "/admin/clients/{Id:guid}"
+@using Kimlik.Application.Clients
+@using Kimlik.Application.Roles
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>@(_client?.ClientId ?? "Client") · Kimlik admin</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+
+@if (_notFound)
+{
+    <MudText Typo="Typo.h4" HtmlTag="h1">Client not found</MudText>
+}
+else if (_client is { } client)
+{
+    <MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4" HtmlTag="h1"><code>@client.ClientId</code></MudText>
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@client.Type</MudChip>
+    </MudStack>
+
+    <MudGrid>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Outlined>
+                <MudTextField @bind-Value="_displayName" Label="Name" MaxLength="100" ReadOnly="!CanWrite" />
+                @if (client.Type != ClientType.Service)
+                {
+                    <MudTextField @bind-Value="_redirectUris" Label="Redirect URIs" Lines="3" ReadOnly="!CanWrite" HelperText="One per line." />
+                    <MudTextField @bind-Value="_postLogoutRedirectUris" Label="Post-logout redirect URIs" Lines="2" ReadOnly="!CanWrite" HelperText="One per line." />
+                    <MudCheckBox @bind-Value="_firstParty" Label="First party: skip the consent screen" ReadOnly="!CanWrite" />
+                    <MudCheckBox @bind-Value="_requireOrganization" Label="Users sign in to an organization" ReadOnly="!CanWrite" />
+                }
+                <MudSelect T="string" Label="Scopes" MultiSelection @bind-SelectedValues="_scopes" ReadOnly="!CanWrite">
+                    @foreach (var scope in _availableScopes)
+                    {
+                        <MudSelectItem T="string" Value="scope">@scope</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (CanWrite)
+                {
+                    <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            @if (client.Type == ClientType.Service)
+            {
+                <MudPaper Class="pa-4 mb-4" Outlined>
+                    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Roles</MudText>
+                    <MudSelect T="string" Label="Global roles" MultiSelection @bind-SelectedValues="_roles" ReadOnly="!CanWrite">
+                        @foreach (var role in _globalRoles)
+                        {
+                            <MudSelectItem T="string" Value="role.Key">@role.Name (@role.Key)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (CanWrite)
+                    {
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveRolesAsync">Save roles</MudButton>
+                    }
+                </MudPaper>
+            }
+
+            @if (CanWrite)
+            {
+                <MudPaper Class="pa-4" Outlined>
+                    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Danger zone</MudText>
+                    <MudStack Row Wrap="Wrap.Wrap">
+                        @if (client.Type is ClientType.Web or ClientType.Service)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="RegenerateSecretAsync">New secret</MudButton>
+                        }
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Delete</MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private ClientResponse? _client;
+    private bool _notFound;
+    private string? _displayName;
+    private string? _redirectUris;
+    private string? _postLogoutRedirectUris;
+    private bool _firstParty;
+    private bool _requireOrganization;
+    private IReadOnlyCollection<string> _scopes = [];
+    private IReadOnlyCollection<string> _roles = [];
+    private IReadOnlyList<string> _availableScopes = [];
+    private IReadOnlyList<RoleResponse> _globalRoles = [];
+    private readonly List<BreadcrumbItem> _breadcrumbs = [new("Clients", "/admin/clients")];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool CanWrite => Session.Has(SystemPermissions.ClientsWrite);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var client = await Operations.RunAsync<GetClientHandler, Result<ClientResponse>>(SystemPermissions.ClientsRead, handler => handler.HandleAsync(Id, Aborted));
+        if (client.IsFailure)
+        {
+            _notFound = true;
+            return;
+        }
+
+        Show(client.Value);
+        _availableScopes = await ClientScopes.AllAsync(Operations, Aborted);
+        var roles = await Operations.RunAsync<ListRolesHandler, Result<Page<RoleResponse>>>(
+            SystemPermissions.ClientsRead, handler => handler.HandleAsync(new ListRolesQuery(null, RoleScope.Global, null, 200), Aborted));
+        _globalRoles = roles.IsSuccess ? roles.Value.Items : [];
+    }
+
+    private void Show(ClientResponse client)
+    {
+        _client = client;
+        _displayName = client.DisplayName;
+        _redirectUris = string.Join('\n', client.RedirectUris);
+        _postLogoutRedirectUris = string.Join('\n', client.PostLogoutRedirectUris);
+        _firstParty = client.FirstParty;
+        _requireOrganization = client.RequireOrganization;
+        _scopes = client.Scopes;
+        _roles = client.Roles;
+        _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
+        _breadcrumbs.Add(new BreadcrumbItem(client.ClientId, href: null, disabled: true));
+    }
+
+    private async Task SaveAsync()
+    {
+        var request = _client!.Type == ClientType.Service
+            ? new UpdateClientRequest { DisplayName = _displayName, Scopes = [.. _scopes] }
+            : new UpdateClientRequest
+            {
+                DisplayName = _displayName,
+                RedirectUris = ClientScopes.Lines(_redirectUris),
+                PostLogoutRedirectUris = ClientScopes.Lines(_postLogoutRedirectUris),
+                FirstParty = _firstParty,
+                RequireOrganization = _requireOrganization,
+                Scopes = [.. _scopes],
+            };
+
+        if (await ChangeAsync<UpdateClientHandler, ClientResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The client was saved.") is { } client)
+        {
+            Show(client);
+        }
+    }
+
+    private async Task SaveRolesAsync()
+    {
+        var request = new SetRolesRequest { Roles = [.. _roles] };
+        if (await ChangeAsync<SetClientRolesHandler, ClientResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The roles were saved.") is { } client)
+        {
+            Show(client);
+        }
+    }
+
+    private async Task RegenerateSecretAsync()
+    {
+        if (await ConfirmAsync("Issue a new secret?", "The current secret stops working at once; the client needs the new one to get tokens.", "Issue")
+            && await ChangeAsync<RegenerateClientSecretHandler, ClientSecretResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, Aborted), "A new secret was issued.") is { } secret)
+        {
+            await SecretDialog.ShowAsync(Dialogs, "Client secret", $"Secret of {_client!.ClientId}", secret.ClientSecret);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (await ConfirmAsync($"Delete {_client!.ClientId}?", "Its tokens stop working and it can no longer get new ones.", "Delete")
+            && await ChangeAsync<DeleteClientHandler>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, Aborted), "The client was deleted."))
+        {
+            Navigation.NavigateTo("/admin/clients");
+        }
+    }
+}

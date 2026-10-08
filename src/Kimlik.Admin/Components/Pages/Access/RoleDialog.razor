@@ -1,0 +1,39 @@
+@using Kimlik.Application.Roles
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_key" Label="Key" Required MaxLength="64" HelperText="Lowercase letters, digits, - and _, such as accountant. Tokens carry it." />
+        <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" />
+        <MudTextField @bind-Value="_description" Label="Description" MaxLength="256" />
+        <MudSelect T="RoleScope" @bind-Value="Scope" Label="Scope">
+            <MudSelectItem T="RoleScope" Value="RoleScope.Global">Global</MudSelectItem>
+            <MudSelectItem T="RoleScope" Value="RoleScope.Organization">Organization</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAsync" Disabled="string.IsNullOrWhiteSpace(_key) || string.IsNullOrWhiteSpace(_name)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _key = string.Empty;
+    private string _name = string.Empty;
+    private string? _description;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter]
+    public RoleScope Scope { get; set; }
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateRoleRequest { Key = _key.Trim(), Name = _name.Trim(), Description = _description, Scope = Scope };
+        if (await ChangeAsync<CreateRoleHandler, RoleResponse>(SystemPermissions.RolesWrite, handler => handler.HandleAsync(request, Aborted), "The role was created.") is { } role)
+        {
+            Dialog.Close(DialogResult.Ok(role));
+        }
+    }
+}

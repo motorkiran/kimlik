@@ -38,6 +38,11 @@ internal sealed class AdminComponents : BunitContext
         Notifications.WaitForAssertion(() => Notifications.Markup.ShouldContain(message), TimeSpan.FromSeconds(5));
 
     /// <summary>Clicks the button in the open dialog whose text is <paramref name="text"/>.</summary>
-    public void Confirm(string text) =>
-        Dialogs.WaitForElements("button").Single(button => button.TextContent.Trim() == text).Click();
+    public void Confirm(string text)
+    {
+        Dialogs.WaitForAssertion(() => Dialogs.FindAll("button").ShouldContain(button => button.TextContent.Trim() == text), TimeSpan.FromSeconds(5));
+
+        // Found and clicked in one go, so that no render in between leaves the click on a stale button.
+        Dialogs.InvokeAsync(() => Dialogs.FindAll("button").Single(button => button.TextContent.Trim() == text).Click());
+    }
 }

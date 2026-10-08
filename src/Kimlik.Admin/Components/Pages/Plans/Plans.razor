@@ -1,0 +1,123 @@
+@page "/admin/plans"
+@using Kimlik.Application.Plans
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Plans · Kimlik admin</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>Plans</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">Features are what your application lets people do; plans give each feature a value, and subscriptions give people a plan.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Outlined>
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6" HtmlTag="h2">Plans</MudText>
+                <MudSpacer />
+                @if (CanWrite)
+                {
+                    <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="CreatePlanAsync" id="new-plan">New plan</MudButton>
+                }
+            </MudStack>
+            <MudSimpleTable Dense Hover id="plans">
+                <thead><tr><th>Plan</th><th>Key</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var plan in _plans)
+                    {
+                        <tr>
+                            <td><MudLink Href="@($"/admin/plans/{plan.Id}")">@plan.Name</MudLink></td>
+                            <td><code>@plan.Key</code></td>
+                            <td>@if (plan.IsArchived) { <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Archived</MudChip> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Outlined>
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6" HtmlTag="h2">Features</MudText>
+                <MudSpacer />
+                @if (CanWrite)
+                {
+                    <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateFeatureAsync" id="new-feature">New feature</MudButton>
+                }
+            </MudStack>
+            <MudSimpleTable Dense id="features">
+                <thead><tr><th>Feature</th><th>Key</th><th>Type</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var feature in _features)
+                    {
+                        <tr>
+                            <td>@feature.Name</td>
+                            <td><code>@feature.Key</code></td>
+                            <td>@(feature.Type == FeatureType.Boolean ? "On or off" : "Limit")</td>
+                            <td>
+                                @if (CanWrite)
+                                {
+                                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" aria-label="Delete" OnClick="() => DeleteFeatureAsync(feature)" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private IReadOnlyList<PlanResponse> _plans = [];
+    private IReadOnlyList<FeatureResponse> _features = [];
+
+    private bool CanWrite => Session.Has(SystemPermissions.PlansWrite);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var plans = await Operations.RunAsync<ListPlansHandler, Result<Page<PlanResponse>>>(
+            SystemPermissions.PlansRead, handler => handler.HandleAsync(new ListPlansQuery(null, null, 200), Aborted));
+        _plans = plans.IsSuccess ? plans.Value.Items : [];
+
+        var features = await Operations.RunAsync<ListFeaturesHandler, Result<Page<FeatureResponse>>>(
+            SystemPermissions.PlansRead, handler => handler.HandleAsync(null, 200, Aborted));
+        _features = features.IsSuccess ? features.Value.Items : [];
+    }
+
+    private async Task CreatePlanAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CatalogEntryDialog>("New plan");
+        if (await dialog.Result is { Canceled: false, Data: CatalogEntryDialog.Entry entry }
+            && await ChangeAsync<CreatePlanHandler, PlanResponse>(
+                SystemPermissions.PlansWrite, handler => handler.HandleAsync(new CreatePlanRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description }, Aborted), "The plan was created.") is { } plan)
+        {
+            Navigation.NavigateTo($"/admin/plans/{plan.Id}");
+        }
+    }
+
+    private async Task CreateFeatureAsync()
+    {
+        var parameters = new DialogParameters<CatalogEntryDialog> { { dialog => dialog.AskType, true } };
+        var dialog = await Dialogs.ShowAsync<CatalogEntryDialog>("New feature", parameters);
+        if (await dialog.Result is { Canceled: false, Data: CatalogEntryDialog.Entry entry }
+            && await ChangeAsync<CreateFeatureHandler, FeatureResponse>(
+                SystemPermissions.PlansWrite,
+                handler => handler.HandleAsync(new CreateFeatureRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description, Type = entry.Type }, Aborted),
+                "The feature was created.") is not null)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteFeatureAsync(FeatureResponse feature)
+    {
+        if (await ConfirmAsync($"Delete {feature.Name}?", "Plans lose their value for it.", "Delete")
+            && await ChangeAsync<DeleteFeatureHandler>(SystemPermissions.PlansWrite, handler => handler.HandleAsync(feature.Id, Aborted), "The feature was deleted."))
+        {
+            await LoadAsync();
+        }
+    }
+}

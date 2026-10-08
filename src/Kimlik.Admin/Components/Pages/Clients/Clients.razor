@@ -1,0 +1,77 @@
+@page "/admin/clients"
+@using Kimlik.Application.Clients
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Clients · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Clients</MudText>
+    <MudSpacer />
+    @if (Session.Has(SystemPermissions.ClientsWrite))
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New client</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">The applications that request tokens: apps that sign users in, and backends that act on their own behalf.</MudText>
+
+<MudTable T="ClientResponse" Items="_clients" Hover OnRowClick="args => Open(args.Item)" id="clients">
+    <HeaderContent>
+        <MudTh>Client ID</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Scopes</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Client ID"><MudLink Href="@($"/admin/clients/{context.Id}")"><code>@context.ClientId</code></MudLink></MudTd>
+        <MudTd DataLabel="Name">@context.DisplayName</MudTd>
+        <MudTd DataLabel="Type">@context.Type</MudTd>
+        <MudTd DataLabel="Scopes">@string.Join(" ", context.Scopes)</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<ClientResponse> _clients = [];
+    private string? _nextCursor;
+
+    protected override Task OnInitializedAsync() => LoadMoreAsync();
+
+    private async Task LoadMoreAsync()
+    {
+        var page = await Operations.RunAsync<ListClientsHandler, Result<Page<ClientResponse>>>(
+            SystemPermissions.ClientsRead, handler => handler.HandleAsync(new ListClientsQuery(null, _nextCursor, null), Aborted));
+        if (page.IsSuccess)
+        {
+            _clients.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+    }
+
+    private void Open(ClientResponse? client)
+    {
+        if (client is not null)
+        {
+            Navigation.NavigateTo($"/admin/clients/{client.Id}");
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateClientDialog>("New client", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false, Data: CreatedClientResponse created })
+        {
+            if (created.ClientSecret is { } secret)
+            {
+                await SecretDialog.ShowAsync(Dialogs, "Client secret", $"Secret of {created.Client.ClientId}", secret);
+            }
+
+            Navigation.NavigateTo($"/admin/clients/{created.Client.Id}");
+        }
+    }
+}
