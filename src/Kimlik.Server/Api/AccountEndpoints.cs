@@ -301,17 +301,17 @@ internal static class AccountEndpoints
         ClaimsPrincipal principal, ChangePasswordRequest request, MyAccount account, CancellationToken cancellationToken) =>
         (await account.ChangePasswordAsync(Caller(principal), request, cancellationToken)).ToNoContent();
 
-    private static async Task<Ok<IReadOnlyList<SessionResponse>>> ListSessionsAsync(
-        ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await account.ListSessionsAsync(Caller(principal), cancellationToken));
+    private static async Task<Results<Ok<IReadOnlyList<SessionResponse>>, ProblemHttpResult>> ListSessionsAsync(
+        ClaimsPrincipal principal, ApplicationSessions sessions, CancellationToken cancellationToken) =>
+        (await sessions.ListAsync(Caller(principal), cancellationToken)).ToOk();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> RevokeSessionAsync(
-        ClaimsPrincipal principal, Guid id, MyAccount account, CancellationToken cancellationToken) =>
-        (await account.RevokeSessionAsync(Caller(principal), id, cancellationToken)).ToNoContent();
+        ClaimsPrincipal principal, Guid id, ApplicationSessions sessions, CancellationToken cancellationToken) =>
+        (await sessions.RevokeAsync(Caller(principal), id, cancellationToken)).ToNoContent();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> RevokeAllSessionsAsync(
-        ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
-        (await account.RevokeAllSessionsAsync(Caller(principal), cancellationToken)).ToNoContent();
+        ClaimsPrincipal principal, ApplicationSessions sessions, CancellationToken cancellationToken) =>
+        (await sessions.RevokeAllAsync(Caller(principal), cancellationToken)).ToNoContent();
 
     private static async Task<Results<Ok<IReadOnlyList<UserLoginResponse>>, ProblemHttpResult>> ListLoginsAsync(
         ClaimsPrincipal principal, ExternalLogins logins) =>

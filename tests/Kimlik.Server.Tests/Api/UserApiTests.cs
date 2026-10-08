@@ -1,4 +1,5 @@
 using System.Net;
+using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
@@ -241,8 +242,9 @@ public sealed class UserApiTests(KimlikServerFixture server)
         using var update = await support.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{admin.Id}", """{ "givenName": "Mallory" }""");
         using var roles = await support.Http.PutJsonAsync($"{Users}/{admin.Id}/roles", new SetRolesRequest { Roles = [] });
         using var delete = await support.Http.DeleteAsync($"{Users}/{admin.Id}", CancellationToken);
+        using var signOut = await support.Http.DeleteAsync($"{Users}/{admin.Id}/sessions", CancellationToken);
 
-        foreach (var response in new[] { suspend, update, roles, delete })
+        foreach (var response in new[] { suspend, update, roles, delete, signOut })
         {
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
             (await response.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
@@ -286,6 +288,32 @@ public sealed class UserApiTests(KimlikServerFixture server)
 
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         CapturingEmailSender.LinkIn(await server.Emails.WaitForAsync(user.Email, "Reset your")).ShouldStartWith("/reset-password");
+    }
+
+    [Fact]
+    public async Task Sessions_AreListed_AndSignedOutOneByOneOrEverywhere()
+    {
+        var user = await server.CreateUserAsync();
+        var (first, firstClient, firstTokens) = await server.SignInAndRedeemAsync(user);
+        var (second, _, _) = await server.SignInAndRedeemAsync(user);
+        using var _ = first;
+        using var __ = second;
+        using var api = await server.CreateApiClientAsync();
+
+        using var listed = await api.Http.GetAsync($"{Users}/{user.Id}/sessions", CancellationToken);
+        var sessions = await listed.ReadAsync<List<SessionResponse>>();
+        sessions.Count.ShouldBe(2);
+
+        var firstSession = sessions.Single(session => session.ClientId == firstClient.ClientId);
+        using var revoked = await api.Http.DeleteAsync($"{Users}/{user.Id}/sessions/{firstSession.Id}", CancellationToken);
+        revoked.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        using var refresh = await OidcFlows.RefreshAsync(first.Client, firstClient, firstTokens.GetProperty("refresh_token").GetString()!);
+        (await refresh.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe("invalid_grant");
+
+        using var everywhere = await api.Http.DeleteAsync($"{Users}/{user.Id}/sessions", CancellationToken);
+        everywhere.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        using var none = await api.Http.GetAsync($"{Users}/{user.Id}/sessions", CancellationToken);
+        (await none.ReadAsync<List<SessionResponse>>()).ShouldBeEmpty();
     }
 
     [Fact]

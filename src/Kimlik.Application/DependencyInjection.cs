@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<MfaPolicy>();
         services.AddScoped<TwoFactor>();
         services.AddScoped<MyAccount>();
+        services.AddScoped<ApplicationSessions>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();
         services.AddScoped<ApiKeyStore>();

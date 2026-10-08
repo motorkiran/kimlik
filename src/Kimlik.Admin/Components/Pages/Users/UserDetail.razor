@@ -3,6 +3,7 @@
 @using Kimlik.Application.Mfa
 @using Kimlik.Application.Roles
 @using Kimlik.Application.Users
+@using Kimlik.Contracts.Account
 @using Kimlik.Domain.Common
 @inherits AdminPageBase
 
@@ -101,6 +102,41 @@ else if (_user is { } user)
             </MudPaper>
         </MudItem>
 
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Outlined id="sessions">
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Signed in to</MudText>
+                    <MudSpacer />
+                    @if (CanWrite && _sessions.Count > 0)
+                    {
+                        <MudButton Size="Size.Small" Color="Color.Error" OnClick="RevokeSessionsAsync">Sign out everywhere</MudButton>
+                    }
+                </MudStack>
+                @if (_sessions.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">No applications.</MudText>
+                }
+                <MudList T="string" Dense>
+                    @foreach (var session in _sessions)
+                    {
+                        <MudListItem T="string">
+                            <MudStack Row AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText>@(session.ClientName ?? session.ClientId ?? "Unknown application")</MudText>
+                                    <MudText Typo="Typo.caption">Since <Moment Value="session.CreatedAt" /></MudText>
+                                </div>
+                                <MudSpacer />
+                                @if (CanWrite)
+                                {
+                                    <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => RevokeSessionAsync(session)">Sign out</MudButton>
+                                }
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
         @if (Session.Has(SystemPermissions.ApiKeysRead))
         {
             <MudItem xs="12" md="6">
@@ -172,6 +208,7 @@ else if (_user is { } user)
     private IReadOnlyCollection<string> _roles = [];
     private IReadOnlyList<RoleResponse> _globalRoles = [];
     private IReadOnlyList<UserLoginResponse> _logins = [];
+    private IReadOnlyList<SessionResponse> _sessions = [];
     private IReadOnlyList<ApiKeyResponse> _apiKeys = [];
 
     private readonly List<BreadcrumbItem> _breadcrumbs = [new("Users", "/admin/users")];
@@ -200,6 +237,9 @@ else if (_user is { } user)
 
         var logins = await Operations.RunAsync<ListUserLoginsHandler, Result<IReadOnlyList<UserLoginResponse>>>(SystemPermissions.UsersRead, handler => handler.HandleAsync(Id));
         _logins = logins.IsSuccess ? logins.Value : [];
+
+        var sessions = await Operations.RunAsync<ListUserSessionsHandler, Result<IReadOnlyList<SessionResponse>>>(SystemPermissions.UsersRead, handler => handler.HandleAsync(Id, Aborted));
+        _sessions = sessions.IsSuccess ? sessions.Value : [];
 
         if (Session.Has(SystemPermissions.ApiKeysRead))
         {
@@ -261,6 +301,24 @@ else if (_user is { } user)
     {
         if (await ConfirmAsync($"Disconnect {login.ProviderDisplayName}?", "The user can no longer sign in with this account.", "Disconnect")
             && await ChangeAsync<UnlinkUserLoginHandler>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, login.Provider, Aborted), "The account was disconnected."))
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RevokeSessionAsync(SessionResponse session)
+    {
+        if (await ConfirmAsync($"Sign out of {session.ClientName ?? session.ClientId}?", "The application's tokens stop working, and it has to ask the user to sign in again.", "Sign out")
+            && await ChangeAsync<RevokeUserSessionHandler>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, session.Id, Aborted), "The application was signed out."))
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RevokeSessionsAsync()
+    {
+        if (await ConfirmAsync("Sign out everywhere?", "Every application the user signed in to loses its tokens, and their browser sessions end within minutes.", "Sign out everywhere")
+            && await ChangeAsync<RevokeUserSessionsHandler>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, Aborted), "The user was signed out everywhere."))
         {
             await LoadAsync();
         }

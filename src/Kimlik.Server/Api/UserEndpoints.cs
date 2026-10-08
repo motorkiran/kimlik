@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Kimlik.Application.Common;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Users;
+using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -88,6 +89,26 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapGet("{id:guid}/sessions", ListSessionsAsync)
+            .WithName("ListUserSessions")
+            .WithSummary("List the applications a user is signed in to")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersRead);
+
+        users.MapDelete("{id:guid}/sessions/{sessionId:guid}", RevokeSessionAsync)
+            .WithName("RevokeUserSession")
+            .WithSummary("Sign an application out for a user")
+            .WithDescription("Its tokens stop working, and it has to ask the user to sign in again.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
+        users.MapDelete("{id:guid}/sessions", RevokeSessionsAsync)
+            .WithName("RevokeUserSessions")
+            .WithSummary("Sign a user out everywhere")
+            .WithDescription("Every application session and token of the user ends; browser sessions end within minutes.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
         users.MapPost("{id:guid}/mfa/reset", ResetMfaAsync)
             .WithName("ResetUserMfa")
             .WithSummary("Remove a user's second factor")
@@ -165,6 +186,18 @@ internal static class UserEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
         Guid id, string provider, UnlinkUserLoginHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, provider, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<IReadOnlyList<SessionResponse>>, ProblemHttpResult>> ListSessionsAsync(
+        Guid id, ListUserSessionsHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeSessionAsync(
+        Guid id, Guid sessionId, RevokeUserSessionHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, sessionId, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeSessionsAsync(
+        Guid id, RevokeUserSessionsHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, cancellationToken)).ToNoContent();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> ResetMfaAsync(
         Guid id, ResetUserMfaHandler handler, CancellationToken cancellationToken) =>

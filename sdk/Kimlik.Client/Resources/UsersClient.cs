@@ -1,3 +1,4 @@
+using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 
 namespace Kimlik.Client.Resources;
@@ -55,6 +56,18 @@ public sealed class UsersClient
     /// <summary>Disconnects the user's account at <paramref name="provider"/>, such as <c>google</c>.</summary>
     public Task UnlinkLoginAsync(Guid id, string provider, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Delete, $"users/{id}/logins/{Uri.EscapeDataString(provider)}", body: null, cancellationToken);
+
+    /// <summary>The applications the user is signed in to, newest first.</summary>
+    public Task<IReadOnlyList<SessionResponse>> ListSessionsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.GetAsync<IReadOnlyList<SessionResponse>>($"users/{id}/sessions", cancellationToken);
+
+    /// <summary>Signs one application out for the user: its tokens stop working.</summary>
+    public Task RevokeSessionAsync(Guid id, Guid sessionId, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Delete, $"users/{id}/sessions/{sessionId}", body: null, cancellationToken);
+
+    /// <summary>Signs the user out everywhere: every application session and token ends.</summary>
+    public Task RevokeSessionsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Delete, $"users/{id}/sessions", body: null, cancellationToken);
 
     /// <summary>Replaces the user's global roles.</summary>
     public Task<UserResponse> SetRolesAsync(Guid id, IReadOnlyList<string> roles, CancellationToken cancellationToken = default) =>

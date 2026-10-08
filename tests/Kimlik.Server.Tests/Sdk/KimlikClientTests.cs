@@ -40,6 +40,9 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
         await kimlik.Users.UnlinkLoginAsync(created.Id, "github", CancellationToken);
         (await kimlik.Users.ListLoginsAsync(created.Id, CancellationToken)).ShouldBeEmpty();
 
+        (await kimlik.Users.ListSessionsAsync(created.Id, CancellationToken)).ShouldBeEmpty();
+        await kimlik.Users.RevokeSessionsAsync(created.Id, CancellationToken);
+
         await kimlik.Users.SuspendAsync(created.Id, CancellationToken);
         (await kimlik.Users.ListAsync(search: email, status: UserStatus.Suspended, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem();
 

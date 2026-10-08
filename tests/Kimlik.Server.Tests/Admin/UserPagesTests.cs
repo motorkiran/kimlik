@@ -4,6 +4,7 @@ using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Oidc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kimlik.Server.Tests.Admin;
@@ -44,6 +45,23 @@ public sealed class UserPagesTests(KimlikServerFixture server)
 
         page.Find("#reactivate").Click();
         page.WaitForElement("#suspend");
+    }
+
+    [Fact]
+    public async Task Administrator_SignsAUserOutEverywhere()
+    {
+        var user = await server.CreateUserAsync();
+        var (browser, _, _) = await server.SignInAndRedeemAsync(user);
+        browser.Dispose();
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+
+        var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
+        page.WaitForAssertion(() => page.Find("#sessions").TextContent.ShouldContain("Orders web app"));
+        await page.InvokeAsync(() => page.FindAll("#sessions button").Single(button => button.TextContent.Trim() == "Sign out everywhere").Click());
+        admin.Confirm("Sign out everywhere");
+
+        admin.WaitForNotification("The user was signed out everywhere.");
+        page.WaitForAssertion(() => page.Find("#sessions").TextContent.ShouldContain("No applications."));
     }
 
     [Fact]
