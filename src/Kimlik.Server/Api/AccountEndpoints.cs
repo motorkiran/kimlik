@@ -4,7 +4,6 @@ using Kimlik.Application.Accounts;
 using Kimlik.Application.ApiKeys;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
-using Kimlik.Application.Users;
 using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -195,9 +194,9 @@ internal static class AccountEndpoints
 
     private static Guid Caller(ClaimsPrincipal principal) => AccountCaller.UserId(principal)!.Value;
 
-    private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> GetAccountAsync(
-        ClaimsPrincipal principal, GetUserHandler handler, CancellationToken cancellationToken) =>
-        (await handler.HandleAsync(Caller(principal), cancellationToken)).ToOk();
+    private static async Task<Results<Ok<ProfileResponse>, ProblemHttpResult>> GetAccountAsync(
+        ClaimsPrincipal principal, MyAccount account, CancellationToken cancellationToken) =>
+        (await account.GetProfileAsync(Caller(principal), cancellationToken)).ToOk();
 
     private static async Task<Ok<IReadOnlyList<MyOrganizationResponse>>> ListOrganizationsAsync(
         ClaimsPrincipal principal, MyOrganizations organizations, CancellationToken cancellationToken) =>
@@ -293,8 +292,8 @@ internal static class AccountEndpoints
         ClaimsPrincipal principal, AuthenticatorCodeRequest request, TwoFactor twoFactor, CancellationToken cancellationToken) =>
         (await twoFactor.DisableAsync(Caller(principal), request.Code, cancellationToken)).ToNoContent();
 
-    private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> UpdateProfileAsync(
-        ClaimsPrincipal principal, UpdateUserRequest request, MyAccount account, CancellationToken cancellationToken) =>
+    private static async Task<Results<Ok<ProfileResponse>, ProblemHttpResult>> UpdateProfileAsync(
+        ClaimsPrincipal principal, UpdateProfileRequest request, MyAccount account, CancellationToken cancellationToken) =>
         (await account.UpdateProfileAsync(Caller(principal), request, cancellationToken)).ToOk();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> ChangePasswordAsync(

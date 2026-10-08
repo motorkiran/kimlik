@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
+using Kimlik.Application.Common;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
@@ -22,11 +23,20 @@ public sealed class UpdateUserHandler(IKimlikDbContext context, AccessGuard guar
             return guardResult.Error;
         }
 
+        var publicMetadata = request.HasPublicMetadata ? Metadata.Serialize(request.PublicMetadata) : user.PublicMetadata;
+        var privateMetadata = request.HasPrivateMetadata ? Metadata.Serialize(request.PrivateMetadata) : user.PrivateMetadata;
+        if (publicMetadata.IsFailure || privateMetadata.IsFailure)
+        {
+            return Metadata.TooLarge;
+        }
+
+        var now = timeProvider.GetUtcNow();
         user.UpdateProfile(
             request.HasGivenName ? request.GivenName : user.GivenName,
             request.HasFamilyName ? request.FamilyName : user.FamilyName,
             request.HasLocale ? request.Locale : user.Locale,
-            timeProvider.GetUtcNow());
+            now);
+        user.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
 
         auditLog.Record(AuditActions.UserUpdated, AuditSubject.User(user.Id));
         await context.SaveChangesAsync(cancellationToken);

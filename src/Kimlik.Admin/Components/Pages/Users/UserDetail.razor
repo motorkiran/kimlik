@@ -137,6 +137,10 @@ else if (_user is { } user)
             </MudPaper>
         </MudItem>
 
+        <MudItem xs="12" md="6">
+            <MetadataEditor PublicMetadata="user.PublicMetadata" PrivateMetadata="user.PrivateMetadata" ReadOnly="!CanWrite" OnSave="SaveMetadataAsync" />
+        </MudItem>
+
         @if (Session.Has(SystemPermissions.ApiKeysRead))
         {
             <MudItem xs="12" md="6">
@@ -273,6 +277,15 @@ else if (_user is { } user)
     {
         var request = new SetRolesRequest { Roles = [.. _roles] };
         if (await ChangeAsync<SetUserRolesHandler, UserResponse>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, request, Aborted), "The roles were saved.") is { } user)
+        {
+            Show(user);
+        }
+    }
+
+    private async Task SaveMetadataAsync(MetadataEditor.MetadataChange change)
+    {
+        var request = new UpdateUserRequest { PublicMetadata = change.Public, PrivateMetadata = change.Private };
+        if (await ChangeAsync<UpdateUserHandler, UserResponse>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, request, Aborted), "The metadata was saved.") is { } user)
         {
             Show(user);
         }

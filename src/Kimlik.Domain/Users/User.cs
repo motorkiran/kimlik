@@ -10,6 +10,7 @@ public sealed class User : IdentityUser<Guid>
 {
     public const int NameMaxLength = 100;
     public const int LocaleMaxLength = 16;
+    public const string EmptyMetadata = "{}";
 
     // Used by EF Core.
     private User()
@@ -30,6 +31,12 @@ public sealed class User : IdentityUser<Guid>
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public DateTimeOffset? LastSignInAt { get; private set; }
+
+    /// <summary>A JSON object the application keeps about the user, which the user can read too.</summary>
+    public string PublicMetadata { get; private set; } = EmptyMetadata;
+
+    /// <summary>A JSON object the application keeps about the user, for its backend only.</summary>
+    public string PrivateMetadata { get; private set; } = EmptyMetadata;
 
     /// <summary>The full name, or <see langword="null"/> when no name part is known.</summary>
     public string? Name => (GivenName, FamilyName) switch
@@ -66,6 +73,14 @@ public sealed class User : IdentityUser<Guid>
         GivenName = NullIfBlank(givenName);
         FamilyName = NullIfBlank(familyName);
         Locale = NullIfBlank(locale);
+        UpdatedAt = now;
+    }
+
+    /// <summary>Replaces the metadata; the caller has checked that each is a JSON object.</summary>
+    public void SetMetadata(string publicMetadata, string privateMetadata, DateTimeOffset now)
+    {
+        PublicMetadata = publicMetadata;
+        PrivateMetadata = privateMetadata;
         UpdatedAt = now;
     }
 

@@ -1,7 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Users;
 using Kimlik.Contracts.Account;
-using Kimlik.Contracts.Management;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
@@ -17,8 +16,11 @@ public sealed class MyAccount(
     IAuditLog auditLog,
     TimeProvider timeProvider)
 {
+    public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken cancellationToken) =>
+        await userManager.FindByIdAsync(userId.ToString()) is { } user ? await context.ToProfileAsync(user, cancellationToken) : UserErrors.NotFound;
+
     /// <summary>Changes the profile with JSON Merge Patch semantics, like the Management API.</summary>
-    public async Task<Result<UserResponse>> UpdateProfileAsync(Guid userId, UpdateUserRequest request, CancellationToken cancellationToken)
+    public async Task<Result<ProfileResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken)
     {
         if (await userManager.FindByIdAsync(userId.ToString()) is not { } user)
         {
@@ -35,7 +37,7 @@ public sealed class MyAccount(
         await userManager.UpdateAsync(user);
         await context.SaveChangesAsync(cancellationToken);
 
-        return await context.ToResponseAsync(user, cancellationToken);
+        return await context.ToProfileAsync(user, cancellationToken);
     }
 
     /// <summary>Replaces the password. Every session and token ends, the caller's own included, as after a reset.</summary>

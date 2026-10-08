@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
@@ -314,6 +315,35 @@ public sealed class UserApiTests(KimlikServerFixture server)
         everywhere.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         using var none = await api.Http.GetAsync($"{Users}/{user.Id}/sessions", CancellationToken);
         (await none.ReadAsync<List<SessionResponse>>()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Metadata_IsSetOnCreation_AndReplacedOrClearedOneByOne()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var created = await api.Http.PostJsonAsync(Users, new CreateUserRequest
+        {
+            Email = NewEmail(),
+            PublicMetadata = new JsonObject { ["plan"] = "pro" },
+            PrivateMetadata = new JsonObject { ["stripeId"] = "cus_123", ["seats"] = 5 },
+        });
+        var user = await created.ReadAsync<UserResponse>();
+        user.PrivateMetadata["seats"]!.GetValue<int>().ShouldBe(5);
+
+        using var replaced = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "publicMetadata": { "plan": "team" } }""");
+        var afterReplace = await replaced.ReadAsync<UserResponse>();
+        afterReplace.PublicMetadata.ToJsonString().ShouldBe("""{"plan":"team"}""");
+        afterReplace.PrivateMetadata["stripeId"]!.GetValue<string>().ShouldBe("cus_123");
+
+        using var cleared = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "privateMetadata": null }""");
+        (await cleared.ReadAsync<UserResponse>()).PrivateMetadata.ShouldBeEmpty();
+
+        using var tooLarge = await api.Http.SendJsonAsync(
+            HttpMethod.Patch, $"{Users}/{user.Id}", $$"""{ "publicMetadata": { "notes": "{{new string('x', 9000)}}" } }""");
+        (await tooLarge.ReadProblemCodeAsync()).ShouldBe("metadata.too_large");
+
+        using var notAnObject = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Users}/{user.Id}", """{ "publicMetadata": [1, 2] }""");
+        notAnObject.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]

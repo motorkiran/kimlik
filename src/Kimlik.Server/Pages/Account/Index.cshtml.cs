@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
-using Kimlik.Contracts.Management;
+using Kimlik.Contracts.Account;
 using Kimlik.Domain.Users;
 using Kimlik.Server.SocialLogin;
 using Kimlik.Server.Ui;
@@ -65,7 +65,7 @@ public sealed class ProfileModel(
 
         var updated = await account.UpdateProfileAsync(
             user.Id,
-            new UpdateUserRequest { GivenName = Input.GivenName, FamilyName = Input.FamilyName, Locale = Input.Locale },
+            new UpdateProfileRequest { GivenName = Input.GivenName, FamilyName = Input.FamilyName, Locale = Input.Locale },
             cancellationToken);
 
         Saved = updated.IsSuccess;

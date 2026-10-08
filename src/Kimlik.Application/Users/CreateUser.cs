@@ -24,7 +24,15 @@ public sealed class CreateUserHandler(
     public async Task<Result<UserResponse>> HandleAsync(CreateUserRequest request, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
+        var publicMetadata = Metadata.Serialize(request.PublicMetadata);
+        var privateMetadata = Metadata.Serialize(request.PrivateMetadata);
+        if (publicMetadata.IsFailure || privateMetadata.IsFailure)
+        {
+            return Metadata.TooLarge;
+        }
+
         var user = DomainUser.Create(request.Email, request.GivenName, request.FamilyName, request.Locale, now);
+        user.SetMetadata(publicMetadata.Value, privateMetadata.Value, now);
         if (request.EmailVerified)
         {
             user.MarkEmailVerified(now);

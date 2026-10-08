@@ -5334,7 +5334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/ProfileResponse"
                 }
               }
             }
@@ -5363,7 +5363,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateUserRequest"
+                "$ref": "#/components/schemas/UpdateProfileRequest"
               }
             }
           },
@@ -5375,7 +5375,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/ProfileResponse"
                 }
               }
             }
@@ -8114,6 +8114,28 @@
           "emailVerified": {
             "type": "boolean",
             "description": "Marks the address as verified, for example when it was verified by another system."
+          },
+          "publicMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "A JSON object of up to 8 KB that the user can read too.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "privateMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "A JSON object of up to 8 KB for the application's backend only.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         },
         "description": "Creates a user. Without a password, the user sets one through the password reset flow."
@@ -8328,6 +8350,9 @@
         ]
       },
       "JsonElement": { },
+      "JsonObject": {
+        "type": "object"
+      },
       "MemberResponse": {
         "required": [
           "userId",
@@ -8947,6 +8972,87 @@
             ]
           }
         }
+      },
+      "ProfileResponse": {
+        "required": [
+          "id",
+          "email",
+          "emailVerified",
+          "givenName",
+          "familyName",
+          "name",
+          "locale",
+          "roles",
+          "createdAt",
+          "updatedAt",
+          "lastSignInAt",
+          "publicMetadata"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "givenName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "familyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSignInAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          }
+        },
+        "description": "The signed-in user as they see themselves: with the public metadata, but not the private one."
       },
       "ProvisionedApiResource": {
         "required": [
@@ -9708,6 +9814,36 @@
         },
         "description": "Changes a plan with JSON Merge Patch semantics: an omitted property keeps its value; `features` replaces them all."
       },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "givenName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "familyName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locale": {
+            "maxLength": 16,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and\n`null` clears one. Metadata is the application's, so only the Management API changes it."
+      },
       "UpdateRoleRequest": {
         "type": "object",
         "properties": {
@@ -9804,6 +9940,28 @@
               "null",
               "string"
             ]
+          },
+          "publicMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Replaces the public metadata, a JSON object of up to 8 KB; `null` clears it.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "privateMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Replaces the private metadata, a JSON object of up to 8 KB; `null` clears it.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         },
         "description": "Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and\n`null` clears one."
@@ -9876,7 +10034,9 @@
           "roles",
           "createdAt",
           "updatedAt",
-          "lastSignInAt"
+          "lastSignInAt",
+          "publicMetadata",
+          "privateMetadata"
         ],
         "type": "object",
         "properties": {
@@ -9940,8 +10100,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "privateMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
           }
-        }
+        },
+        "description": "A user. Metadata is what the application keeps about the user: the user can read the public metadata through the\nAccount API, and only the Management API reads the private metadata."
       },
       "UserStatus": {
         "enum": [

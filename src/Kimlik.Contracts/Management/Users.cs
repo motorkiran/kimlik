@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Management;
@@ -9,6 +10,10 @@ public enum UserStatus
     Suspended,
 }
 
+/// <summary>
+/// A user. Metadata is what the application keeps about the user: the user can read the public metadata through the
+/// Account API, and only the Management API reads the private metadata.
+/// </summary>
 public sealed record UserResponse(
     Guid Id,
     string? Email,
@@ -21,7 +26,9 @@ public sealed record UserResponse(
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset? LastSignInAt);
+    DateTimeOffset? LastSignInAt,
+    JsonObject PublicMetadata,
+    JsonObject PrivateMetadata);
 
 /// <summary>Creates a user. Without a password, the user sets one through the password reset flow.</summary>
 public sealed record CreateUserRequest
@@ -46,6 +53,12 @@ public sealed record CreateUserRequest
 
     /// <summary>Marks the address as verified, for example when it was verified by another system.</summary>
     public bool EmailVerified { get; init; }
+
+    /// <summary>A JSON object of up to 8 KB that the user can read too.</summary>
+    public JsonObject? PublicMetadata { get; init; }
+
+    /// <summary>A JSON object of up to 8 KB for the application's backend only.</summary>
+    public JsonObject? PrivateMetadata { get; init; }
 }
 
 /// <summary>
@@ -87,6 +100,28 @@ public sealed record UpdateUserRequest
         }
     }
 
+    /// <summary>Replaces the public metadata, a JSON object of up to 8 KB; <c>null</c> clears it.</summary>
+    public JsonObject? PublicMetadata
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPublicMetadata = true;
+        }
+    }
+
+    /// <summary>Replaces the private metadata, a JSON object of up to 8 KB; <c>null</c> clears it.</summary>
+    public JsonObject? PrivateMetadata
+    {
+        get;
+        init
+        {
+            field = value;
+            HasPrivateMetadata = true;
+        }
+    }
+
     /// <summary>Whether the request sets <see cref="GivenName"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]
     public bool HasGivenName { get; private init; }
@@ -98,6 +133,14 @@ public sealed record UpdateUserRequest
     /// <summary>Whether the request sets <see cref="Locale"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]
     public bool HasLocale { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PublicMetadata"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPublicMetadata { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="PrivateMetadata"/>, possibly to <see langword="null"/>.</summary>
+    [JsonIgnore]
+    public bool HasPrivateMetadata { get; private init; }
 }
 
 /// <summary>An account at another provider, such as Google, that the user signs in with.</summary>

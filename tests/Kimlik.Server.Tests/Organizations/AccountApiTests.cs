@@ -33,7 +33,7 @@ public sealed class AccountApiTests(KimlikServerFixture server)
         (await renamed.ReadAsync<OrganizationResponse>()).Name.ShouldBe("Acme Labs");
 
         using var account = await me.GetAsync("/api/v1/me", CancellationToken);
-        (await account.ReadAsync<UserResponse>()).Id.ShouldBe(user.Id);
+        (await account.ReadAsync<ProfileResponse>()).Id.ShouldBe(user.Id);
     }
 
     [Fact]

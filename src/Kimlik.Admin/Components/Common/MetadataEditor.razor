@@ -1,0 +1,88 @@
+@* The public and private metadata of a user or an organization, edited as JSON objects. *@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+<MudPaper Class="pa-4" Outlined id="metadata">
+    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Metadata</MudText>
+    <MudTextField @bind-Value="_public" Label="Public" Lines="5" ReadOnly="ReadOnly" id="public-metadata"
+                  HelperText="@PublicHelperText" />
+    <MudTextField @bind-Value="_private" Label="Private" Lines="5" ReadOnly="ReadOnly" id="private-metadata"
+                  HelperText="Only the Management API reads it." />
+    @if (!ReadOnly)
+    {
+        <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" id="save-metadata">Save</MudButton>
+    }
+</MudPaper>
+
+@code {
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
+    private JsonObject? _shownPublic;
+    private JsonObject? _shownPrivate;
+    private string? _public;
+    private string? _private;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public JsonObject PublicMetadata { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public JsonObject PrivateMetadata { get; set; } = null!;
+
+    [Parameter]
+    public string PublicHelperText { get; set; } = "The user can read it through the Account API.";
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public EventCallback<MetadataChange> OnSave { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Only new values from Kimlik replace the text, so that other changes on the page keep what is being typed.
+        if (!ReferenceEquals(PublicMetadata, _shownPublic))
+        {
+            _shownPublic = PublicMetadata;
+            _public = PublicMetadata.ToJsonString(Indented);
+        }
+
+        if (!ReferenceEquals(PrivateMetadata, _shownPrivate))
+        {
+            _shownPrivate = PrivateMetadata;
+            _private = PrivateMetadata.ToJsonString(Indented);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (Parse(_public) is not { } publicMetadata || Parse(_private) is not { } privateMetadata)
+        {
+            Snackbar.Add("Metadata must be a JSON object, such as { \"plan\": \"pro\" }.", Severity.Error);
+            return;
+        }
+
+        await OnSave.InvokeAsync(new MetadataChange(publicMetadata, privateMetadata));
+    }
+
+    private static JsonObject? Parse(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonNode.Parse(json) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public sealed record MetadataChange(JsonObject Public, JsonObject Private);
+}

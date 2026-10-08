@@ -19,9 +19,28 @@ public sealed class MyAccountApiTests(KimlikServerFixture server)
 
         using var updated = await me.SendJsonAsync(HttpMethod.Patch, "/api/v1/me", """{ "givenName": "Augusta", "locale": "tr" }""");
 
-        var profile = await updated.ReadAsync<UserResponse>();
+        var profile = await updated.ReadAsync<ProfileResponse>();
         profile.Name.ShouldBe("Augusta Lovelace");
         profile.Locale.ShouldBe("tr");
+    }
+
+    [Fact]
+    public async Task Profile_ShowsThePublicMetadata_ButNeitherShowsNorChangesThePrivateOne()
+    {
+        var user = await server.CreateUserAsync();
+        using var api = await server.CreateApiClientAsync();
+        using var set = await api.Http.SendJsonAsync(
+            HttpMethod.Patch, $"/api/v1/users/{user.Id}", """{ "publicMetadata": { "plan": "pro" }, "privateMetadata": { "stripeId": "cus_123" } }""");
+        using var me = server.WithToken(await server.UserAccessTokenAsync(user));
+
+        using var changed = await me.SendJsonAsync(HttpMethod.Patch, "/api/v1/me", """{ "publicMetadata": { "plan": "free" }, "privateMetadata": {} }""");
+        var json = await changed.Content.ReadAsStringAsync(CancellationToken);
+
+        (await changed.ReadAsync<ProfileResponse>()).PublicMetadata["plan"]!.GetValue<string>().ShouldBe("pro");
+        json.ShouldNotContain("privateMetadata");
+        json.ShouldNotContain("cus_123");
+        using var fetched = await api.Http.GetAsync($"/api/v1/users/{user.Id}", CancellationToken);
+        (await fetched.ReadAsync<UserResponse>()).PrivateMetadata["stripeId"]!.GetValue<string>().ShouldBe("cus_123");
     }
 
     [Fact]

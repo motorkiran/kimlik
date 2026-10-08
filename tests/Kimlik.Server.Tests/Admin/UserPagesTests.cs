@@ -65,6 +65,26 @@ public sealed class UserPagesTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task Administrator_EditsAUsersMetadata_AsJsonObjects()
+    {
+        var user = await server.CreateUserAsync();
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+        var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
+        page.WaitForElement("#save-metadata");
+
+        await page.InvokeAsync(() => page.FindAll("#metadata textarea")[0].Change("[1, 2]"));
+        await page.InvokeAsync(() => page.Find("#save-metadata").Click());
+        admin.WaitForNotification("Metadata must be a JSON object");
+
+        await page.InvokeAsync(() => page.FindAll("#metadata textarea")[0].Change("""{ "plan": "pro" }"""));
+        await page.InvokeAsync(() => page.Find("#save-metadata").Click());
+        admin.WaitForNotification("The metadata was saved.");
+
+        var saved = await server.QueryDatabaseAsync(context => context.Users.Where(candidate => candidate.Id == user.Id).Select(candidate => candidate.PublicMetadata).SingleAsync());
+        saved.ShouldBe("""{"plan": "pro"}""");
+    }
+
+    [Fact]
     public async Task Administrator_GivesAUserARole()
     {
         var (role, _) = await server.CreateRoleAsync();
