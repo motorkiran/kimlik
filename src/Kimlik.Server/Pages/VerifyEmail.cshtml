@@ -1,0 +1,22 @@
+@page "/verify-email"
+@model VerifyEmailModel
+@{
+    ViewData["Title"] = L["Confirm your email address"];
+}
+
+@if (Model.Succeeded)
+{
+    <h1 id="page-title">@L["Your email address is confirmed."]</h1>
+    <p class="lead">@L["You can now sign in."]</p>
+    <div class="actions">
+        <a class="button" asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Continue"]</a>
+    </div>
+}
+else
+{
+    <h1 id="page-title">@L["Confirm your email address"]</h1>
+    <div class="alert alert-error" role="alert">@L["This link is invalid or has expired."]</div>
+    <div class="actions">
+        <a class="button" asp-page="/ResendVerification" asp-route-returnUrl="@Model.ReturnUrl">@L["Request a new verification link"]</a>
+    </div>
+}

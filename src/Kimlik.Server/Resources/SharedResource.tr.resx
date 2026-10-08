@@ -34,20 +34,35 @@
   <data name="Cancel" xml:space="preserve">
     <value>Vazgeç</value>
   </data>
+  <data name="Change password" xml:space="preserve">
+    <value>Şifreyi değiştir</value>
+  </data>
   <data name="Check your inbox" xml:space="preserve">
     <value>Gelen kutunuzu kontrol edin</value>
   </data>
   <data name="Choose a different password." xml:space="preserve">
     <value>Farklı bir şifre seçin.</value>
   </data>
+  <data name="Choose a new password" xml:space="preserve">
+    <value>Yeni şifre belirleyin</value>
+  </data>
   <data name="Choose a password." xml:space="preserve">
     <value>Bir şifre belirleyin.</value>
+  </data>
+  <data name="Confirm new password" xml:space="preserve">
+    <value>Yeni şifreyi tekrarlayın</value>
+  </data>
+  <data name="Confirm your email address" xml:space="preserve">
+    <value>E-posta adresinizi doğrulayın</value>
   </data>
   <data name="Confirm your email address before signing in. Check your inbox for the verification link." xml:space="preserve">
     <value>Giriş yapmadan önce e-posta adresinizi doğrulayın. Doğrulama bağlantısı için gelen kutunuzu kontrol edin.</value>
   </data>
   <data name="Confirm your identity" xml:space="preserve">
     <value>Kimliğinizi doğrulamak</value>
+  </data>
+  <data name="Continue" xml:space="preserve">
+    <value>Devam et</value>
   </data>
   <data name="Create account" xml:space="preserve">
     <value>Hesap oluştur</value>
@@ -58,6 +73,9 @@
   <data name="Deny" xml:space="preserve">
     <value>Reddet</value>
   </data>
+  <data name="Didn't get the email?" xml:space="preserve">
+    <value>E-posta gelmedi mi?</value>
+  </data>
   <data name="Do you want to sign out?" xml:space="preserve">
     <value>Çıkış yapmak istiyor musunuz?</value>
   </data>
@@ -66,6 +84,15 @@
   </data>
   <data name="Enter a valid email address." xml:space="preserve">
     <value>Geçerli bir e-posta adresi girin.</value>
+  </data>
+  <data name="Enter the email address of your account and we will send you a link to choose a new password." xml:space="preserve">
+    <value>Hesabınızın e-posta adresini girin, yeni şifre belirlemeniz için size bir bağlantı gönderelim.</value>
+  </data>
+  <data name="Enter the same password twice." xml:space="preserve">
+    <value>Aynı şifreyi iki kez girin.</value>
+  </data>
+  <data name="Enter your email address and we will send you a new verification link." xml:space="preserve">
+    <value>E-posta adresinizi girin, size yeni bir doğrulama bağlantısı gönderelim.</value>
   </data>
   <data name="Enter your email address." xml:space="preserve">
     <value>E-posta adresinizi girin.</value>
@@ -76,8 +103,17 @@
   <data name="First name" xml:space="preserve">
     <value>Ad</value>
   </data>
+  <data name="Forgot password?" xml:space="preserve">
+    <value>Şifrenizi mi unuttunuz?</value>
+  </data>
   <data name="Go to the home page" xml:space="preserve">
     <value>Ana sayfaya git</value>
+  </data>
+  <data name="If an account exists for that address, we sent a link to reset its password. The link expires in 1 hour." xml:space="preserve">
+    <value>Bu adrese ait bir hesap varsa şifre sıfırlama bağlantısı gönderdik. Bağlantı 1 saat geçerlidir.</value>
+  </data>
+  <data name="If an account with that address still needs confirming, we sent a new link." xml:space="preserve">
+    <value>Bu adrese ait bir hesap doğrulama bekliyorsa yeni bir bağlantı gönderdik.</value>
   </data>
   <data name="Invalid email or password." xml:space="preserve">
     <value>E-posta adresi veya şifre hatalı.</value>
@@ -97,11 +133,26 @@
   <data name="New here?" xml:space="preserve">
     <value>Hesabınız yok mu?</value>
   </data>
+  <data name="New password" xml:space="preserve">
+    <value>Yeni şifre</value>
+  </data>
   <data name="Password" xml:space="preserve">
     <value>Şifre</value>
   </data>
   <data name="Registration is closed. Ask an administrator for an invitation." xml:space="preserve">
     <value>Kayıtlar kapalı. Davet için bir yöneticiye başvurun.</value>
+  </data>
+  <data name="Request a new link" xml:space="preserve">
+    <value>Yeni bağlantı iste</value>
+  </data>
+  <data name="Request a new verification link" xml:space="preserve">
+    <value>Yeni doğrulama bağlantısı iste</value>
+  </data>
+  <data name="Resend verification email" xml:space="preserve">
+    <value>Doğrulama e-postasını yeniden gönder</value>
+  </data>
+  <data name="Reset your password" xml:space="preserve">
+    <value>Şifrenizi sıfırlayın</value>
   </data>
   <data name="See your email address" xml:space="preserve">
     <value>E-posta adresinizi görmek</value>
@@ -109,11 +160,23 @@
   <data name="See your name and profile" xml:space="preserve">
     <value>Adınızı ve profilinizi görmek</value>
   </data>
+  <data name="Send a new verification link" xml:space="preserve">
+    <value>Yeni doğrulama bağlantısı gönder</value>
+  </data>
+  <data name="Send it again" xml:space="preserve">
+    <value>Tekrar gönder</value>
+  </data>
+  <data name="Send link" xml:space="preserve">
+    <value>Bağlantı gönder</value>
+  </data>
   <data name="Sign in" xml:space="preserve">
     <value>Giriş yap</value>
   </data>
   <data name="Sign in to your account or create a new one." xml:space="preserve">
     <value>Hesabınıza giriş yapın veya yeni bir hesap oluşturun.</value>
+  </data>
+  <data name="Sign in with your new password. For your security, your other sessions have been ended." xml:space="preserve">
+    <value>Yeni şifrenizle giriş yapın. Güvenliğiniz için diğer oturumlarınız sonlandırıldı.</value>
   </data>
   <data name="Sign out" xml:space="preserve">
     <value>Çıkış yap</value>
@@ -135,6 +198,9 @@
   </data>
   <data name="The application sent an invalid sign-out request." xml:space="preserve">
     <value>Uygulama geçersiz bir çıkış isteği gönderdi.</value>
+  </data>
+  <data name="This link is invalid or has expired." xml:space="preserve">
+    <value>Bu bağlantı geçersiz veya süresi dolmuş.</value>
   </data>
   <data name="Too many failed attempts. Try again later." xml:space="preserve">
     <value>Çok fazla başarısız deneme yapıldı. Daha sonra tekrar deneyin.</value>
@@ -162,6 +228,15 @@
   </data>
   <data name="You are signed in" xml:space="preserve">
     <value>Giriş yaptınız</value>
+  </data>
+  <data name="You can now sign in." xml:space="preserve">
+    <value>Artık giriş yapabilirsiniz.</value>
+  </data>
+  <data name="Your email address is confirmed." xml:space="preserve">
+    <value>E-posta adresiniz doğrulandı.</value>
+  </data>
+  <data name="Your password has been changed." xml:space="preserve">
+    <value>Şifreniz değiştirildi.</value>
   </data>
   <data name="{0} would like to:" xml:space="preserve">
     <value>{0} şunları yapmak istiyor:</value>

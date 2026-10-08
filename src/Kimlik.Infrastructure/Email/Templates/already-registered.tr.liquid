@@ -1,0 +1,16 @@
+{%- capture subject -%}Zaten bir {{ product.name }} hesabınız var{%- endcapture -%}
+{%- capture html -%}
+<p>Merhaba{% if name %} {{ name }}{% endif %},</p>
+<p>Birisi, umarız sizsiniz, bu e-posta adresiyle bir {{ product.name }} hesabı oluşturmaya çalıştı. Bu adresle zaten bir hesabınız var.</p>
+<p style="margin:28px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Giriş yap</a></p>
+<p style="color:#6b7280;font-size:13px;">Şifrenizi mi unuttunuz? Giriş sayfasından sıfırlayabilirsiniz. Bu siz değilseniz bir şey yapmanıza gerek yok.</p>
+{%- endcapture -%}
+{%- capture text -%}
+Merhaba{% if name %} {{ name }}{% endif %},
+
+Birisi, umarız sizsiniz, bu e-posta adresiyle bir {{ product.name }} hesabı oluşturmaya çalıştı. Bu adresle zaten bir hesabınız var. Buradan giriş yapabilirsiniz:
+
+{{ link }}
+
+Şifrenizi mi unuttunuz? Giriş sayfasından sıfırlayabilirsiniz. Bu siz değilseniz bir şey yapmanıza gerek yok.
+{%- endcapture -%}

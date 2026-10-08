@@ -37,7 +37,13 @@ public sealed class SignUpModel(
             return Page();
         }
 
-        var command = new RegisterUserCommand(Input.Email, Input.Password, Input.GivenName, Input.FamilyName, CultureInfo.CurrentUICulture.Name);
+        var command = new RegisterUserCommand(
+            Input.Email,
+            Input.Password,
+            Input.GivenName,
+            Input.FamilyName,
+            CultureInfo.CurrentUICulture.Name,
+            AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl : null);
         var result = await registerUser.HandleAsync(command, cancellationToken);
 
         if (result.IsSuccess)
@@ -48,7 +54,7 @@ public sealed class SignUpModel(
             }
 
             await signInManager.SignInAsync(result.Value, isPersistent: false);
-            return LocalRedirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl : "/");
+            return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
 
         // When addresses must be verified, a taken address gets the same answer as a new one,

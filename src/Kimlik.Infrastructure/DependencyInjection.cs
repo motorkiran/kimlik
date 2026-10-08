@@ -1,7 +1,9 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Auditing;
+using Kimlik.Infrastructure.Email;
 using Kimlik.Infrastructure.Identity;
+using Kimlik.Infrastructure.Outbox;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -26,6 +28,8 @@ public static class DependencyInjection
         AddPersistence(services);
         AddSecurity(services);
         AddIdentity(services);
+        AddOutbox(services);
+        AddEmail(services);
 
         services.AddScoped<IAuditLog, AuditLog>();
 
@@ -47,7 +51,8 @@ public static class DependencyInjection
             .UseNpgsql(
                 GetConnectionString(serviceProvider.GetRequiredService<IConfiguration>()),
                 npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, KimlikDbContext.Schema))
-            .UseSnakeCaseNamingConvention());
+            .UseSnakeCaseNamingConvention()
+            .AddInterceptors(serviceProvider.GetRequiredService<OutboxSignalInterceptor>()));
 
         services.AddScoped<IKimlikDbContext>(provider => provider.GetRequiredService<KimlikDbContext>());
     }
@@ -75,11 +80,44 @@ public static class DependencyInjection
         services.AddIdentityCore<User>()
             .AddEntityFrameworkStores<KimlikDbContext>()
             .AddDefaultTokenProviders()
+            .AddTokenProvider<PasswordResetTokenProvider<User>>(PasswordResetTokenProviderOptions.ProviderName)
             .AddPasswordValidator<MaximumLengthPasswordValidator<User>>();
 
         services.AddSingleton<ConfigureIdentity>();
         services.AddSingleton<IConfigureOptions<IdentityOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
         services.AddSingleton<IConfigureOptions<PasswordHasherOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
+        services.AddSingleton<IConfigureOptions<DataProtectionTokenProviderOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
+
+        services.AddScoped<IUserSessions, UserSessions>();
+    }
+
+    private static void AddOutbox(IServiceCollection services)
+    {
+        services.AddOptions<OutboxOptions>()
+            .BindConfiguration(OutboxOptions.SectionName)
+            .Validate(options => options.IsValid(), $"{OutboxOptions.SectionName}: intervals must be positive and the batch size between 1 and 1000.")
+            .ValidateOnStart();
+
+        services.AddSingleton(new OutboxMessageTypes([typeof(Application.DependencyInjection).Assembly]));
+        services.AddSingleton<OutboxSignal>();
+        services.AddScoped<OutboxSignalInterceptor>();
+        services.AddScoped<IOutbox, Outbox.Outbox>();
+        services.AddHostedService<OutboxDispatcher>();
+    }
+
+    private static void AddEmail(IServiceCollection services)
+    {
+        services.AddOptions<EmailOptions>()
+            .BindConfiguration(EmailOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddSingleton<IEmailTemplateRenderer, FluidEmailTemplateRenderer>();
+        services.AddSingleton<SmtpEmailSender>();
+        services.AddSingleton<UnconfiguredEmailSender>();
+        services.AddSingleton<IEmailSender>(provider => provider.GetRequiredService<IOptions<EmailOptions>>().Value.IsConfigured
+            ? provider.GetRequiredService<SmtpEmailSender>()
+            : provider.GetRequiredService<UnconfiguredEmailSender>());
     }
 
     private static string? GetConnectionString(IConfiguration configuration) =>

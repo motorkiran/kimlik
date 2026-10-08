@@ -21,5 +21,6 @@ internal static class TestConfiguration
         ["Kimlik:Security:MasterKey"] = MasterKey,
         // Any reuse of a refresh token counts as theft, so the tests need not wait out the leeway.
         ["Kimlik:Tokens:RefreshTokenReuseLeeway"] = "00:00:00",
+        ["Kimlik:Outbox:PollingInterval"] = "00:00:00.200",
     };
 }

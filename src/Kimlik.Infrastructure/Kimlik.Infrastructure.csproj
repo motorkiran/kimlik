@@ -11,11 +11,18 @@
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Fluid.Core" />
+    <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="OpenIddict.Server" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WithCulture="false": the .en/.tr part of the names is a template language, not a satellite assembly culture. -->
+    <EmbeddedResource Include="Email\Templates\*.liquid" LogicalName="Kimlik.Infrastructure.Email.Templates.%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
 
   <ItemGroup>

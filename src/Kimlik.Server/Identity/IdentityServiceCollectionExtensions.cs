@@ -18,11 +18,15 @@ internal static class IdentityServiceCollectionExtensions
         services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
         services.AddSingleton<IConfigureOptions<CookieAuthenticationOptions>, ConfigureSessionCookie>();
 
+        // Sessions notice a changed security stamp (password reset, suspension) within this interval.
+        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(5));
+
         services.AddHttpContextAccessor();
         services.AddScoped<IRequestContext, HttpRequestContext>();
         services.AddScoped<PasswordHashTiming>();
         services.AddScoped<SignOutService>();
         services.AddScoped<AccountErrorMessages>();
+        services.AddSingleton<IAccountLinks, AccountLinks>();
 
         return services;
     }

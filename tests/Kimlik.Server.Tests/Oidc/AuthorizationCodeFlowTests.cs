@@ -26,7 +26,7 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         var parameters = AuthorizationRequest.ReadCallback(callback);
         parameters["state"].ShouldBe(request.State);
 
-        var tokens = await RedeemCodeAsync(browser.Client, client, request, parameters["code"]);
+        var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, client, request, parameters["code"]);
 
         var identityToken = new JsonWebToken(tokens.GetProperty("id_token").GetString());
         identityToken.Subject.ShouldBe(user.Id.ToString());
@@ -52,20 +52,20 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
     [Fact]
     public async Task RefreshToken_IsRotated_AndReuseRevokesTheWholeFamily()
     {
-        var (browser, client, tokens) = await SignInAndRedeemAsync();
+        var (browser, client, tokens) = await server.SignInAndRedeemAsync(await server.CreateUserAsync());
         using var _ = browser;
         var firstRefreshToken = tokens.GetProperty("refresh_token").GetString()!;
 
-        using var refreshed = await RefreshAsync(browser.Client, client, firstRefreshToken);
+        using var refreshed = await OidcFlows.RefreshAsync(browser.Client, client, firstRefreshToken);
         refreshed.StatusCode.ShouldBe(HttpStatusCode.OK);
         var secondRefreshToken = (await refreshed.ReadJsonAsync()).GetProperty("refresh_token").GetString()!;
         secondRefreshToken.ShouldNotBe(firstRefreshToken);
 
         // Replaying the first token looks like theft: it is rejected and the tokens issued after it die too.
-        using var replayed = await RefreshAsync(browser.Client, client, firstRefreshToken);
+        using var replayed = await OidcFlows.RefreshAsync(browser.Client, client, firstRefreshToken);
         (await replayed.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe(Errors.InvalidGrant);
 
-        using var afterReplay = await RefreshAsync(browser.Client, client, secondRefreshToken);
+        using var afterReplay = await OidcFlows.RefreshAsync(browser.Client, client, secondRefreshToken);
         (await afterReplay.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe(Errors.InvalidGrant);
     }
 
@@ -129,7 +129,7 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
     [Fact]
     public async Task EndSession_WithIdTokenHint_SignsOutAndReturnsToClient()
     {
-        var (browser, client, tokens) = await SignInAndRedeemAsync();
+        var (browser, client, tokens) = await server.SignInAndRedeemAsync(await server.CreateUserAsync());
         using var _ = browser;
 
         using var signOut = await browser.GetAsync(
@@ -140,42 +140,4 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         using var nextAuthorization = await browser.GetAsync(new AuthorizationRequest(client.ClientId).Url);
         nextAuthorization.Headers.Location!.AbsolutePath.ShouldBe("/signin");
     }
-
-    private async Task<(Browser Browser, TestWebClient Client, System.Text.Json.JsonElement Tokens)> SignInAndRedeemAsync()
-    {
-        var client = await server.CreateWebClientAsync();
-        var user = await server.CreateUserAsync();
-        var browser = new Browser(server);
-        using var signIn = await browser.SignInAsync(user.Email, user.Password);
-
-        var request = new AuthorizationRequest(client.ClientId);
-        using var callback = await browser.GetAsync(request.Url);
-        var tokens = await RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
-
-        return (browser, client, tokens);
-    }
-
-    private static async Task<System.Text.Json.JsonElement> RedeemCodeAsync(HttpClient httpClient, TestWebClient client, AuthorizationRequest request, string code)
-    {
-        using var response = await httpClient.PostFormAsync("/connect/token",
-        [
-            new("grant_type", "authorization_code"),
-            new("client_id", client.ClientId),
-            new("code", code),
-            new("code_verifier", request.CodeVerifier),
-            new("redirect_uri", request.RedirectUri),
-        ]);
-
-        var body = await response.ReadJsonAsync();
-        response.StatusCode.ShouldBe(HttpStatusCode.OK, body.ToString());
-        return body;
-    }
-
-    private static Task<HttpResponseMessage> RefreshAsync(HttpClient httpClient, TestWebClient client, string refreshToken) =>
-        httpClient.PostFormAsync("/connect/token",
-        [
-            new("grant_type", "refresh_token"),
-            new("client_id", client.ClientId),
-            new("refresh_token", refreshToken),
-        ]);
 }

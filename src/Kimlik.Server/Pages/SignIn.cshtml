@@ -9,7 +9,13 @@
 
 @if (Model.ErrorMessage is not null)
 {
-    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+    <div class="alert alert-error" role="alert">
+        @Model.ErrorMessage
+        @if (Model.ShowResendVerification)
+        {
+            <a asp-page="/ResendVerification" asp-route-returnUrl="@Model.ReturnUrl">@L["Send a new verification link"]</a>
+        }
+    </div>
 }
 
 <form method="post" novalidate>
@@ -26,6 +32,7 @@
     </div>
     <div class="row">
         <label class="checkbox"><input asp-for="Input.RememberMe" /> @L["Keep me signed in"]</label>
+        <a asp-page="/ForgotPassword">@L["Forgot password?"]</a>
     </div>
     <button type="submit" class="button">@L["Sign in"]</button>
 </form>

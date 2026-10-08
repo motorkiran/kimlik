@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Kimlik.Server.Ui;
+namespace Kimlik.Application.Branding;
 
 /// <summary>Look of the hosted pages and emails, from the <c>Kimlik:Branding</c> configuration section.</summary>
 public sealed class BrandingOptions
@@ -11,7 +11,7 @@ public sealed class BrandingOptions
     [StringLength(64, MinimumLength = 1)]
     public string ProductName { get; set; } = "Kimlik";
 
-    /// <summary>Absolute URL of a logo shown above the forms; the product name is shown when unset.</summary>
+    /// <summary>Absolute URL of a logo shown above the forms and in emails; the product name is shown when unset.</summary>
     public Uri? LogoUrl { get; set; }
 
     /// <summary>Accent color as <c>#rrggbb</c>.</summary>

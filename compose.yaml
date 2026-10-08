@@ -37,6 +37,10 @@ services:
       ConnectionStrings__Kimlik: Host=postgres;Database=kimlik;Username=kimlik;Password=kimlik
       Kimlik__Server__PublicUrl: http://localhost:8080/
       Kimlik__Server__RequireHttps: "false"
+      Kimlik__Email__FromAddress: no-reply@kimlik.localhost
+      Kimlik__Email__Smtp__Host: mailpit
+      Kimlik__Email__Smtp__Port: "1025"
+      Kimlik__Email__Smtp__Security: None
       # Development key only. Production installations generate their own: openssl rand -base64 32
       Kimlik__Security__MasterKey: Hx+waeuN8N26ESEiMOsJMWTYMN5CjUbcDE3uSZqtbnE=
     ports:

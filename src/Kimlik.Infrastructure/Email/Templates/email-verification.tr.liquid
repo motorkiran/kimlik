@@ -1,0 +1,16 @@
+{%- capture subject -%}{{ product.name }} için e-posta adresinizi doğrulayın{%- endcapture -%}
+{%- capture html -%}
+<p>Merhaba{% if name %} {{ name }}{% endif %},</p>
+<p>{{ product.name }} hesabınızın kurulumunu tamamlamak için e-posta adresinizi doğrulayın.</p>
+<p style="margin:28px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">E-posta adresimi doğrula</a></p>
+<p style="color:#6b7280;font-size:13px;">Bağlantı 48 saat geçerlidir. Bu hesabı siz oluşturmadıysanız bu e-postayı yok sayabilirsiniz.</p>
+{%- endcapture -%}
+{%- capture text -%}
+Merhaba{% if name %} {{ name }}{% endif %},
+
+{{ product.name }} hesabınızın kurulumunu tamamlamak için e-posta adresinizi doğrulayın:
+
+{{ link }}
+
+Bağlantı 48 saat geçerlidir. Bu hesabı siz oluşturmadıysanız bu e-postayı yok sayabilirsiniz.
+{%- endcapture -%}

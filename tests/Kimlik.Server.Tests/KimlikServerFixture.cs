@@ -1,7 +1,9 @@
 using System.Net;
+using Kimlik.Application.Abstractions;
 using Kimlik.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
@@ -20,6 +22,9 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(30);
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgreSqlImage).Build();
+
+    /// <summary>Every email the server sends during the test run.</summary>
+    public CapturingEmailSender Emails { get; } = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -52,7 +57,8 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
         .UseEnvironment(TestConfiguration.Environment)
         .ConfigureAppConfiguration((_, configuration) =>
-            configuration.AddInMemoryCollection(TestConfiguration.Create(_postgres.GetConnectionString())));
+            configuration.AddInMemoryCollection(TestConfiguration.Create(_postgres.GetConnectionString())))
+        .ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));
 
     public override async ValueTask DisposeAsync()
     {

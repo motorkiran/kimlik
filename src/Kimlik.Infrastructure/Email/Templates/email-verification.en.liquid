@@ -1,0 +1,16 @@
+{%- capture subject -%}Confirm your email address for {{ product.name }}{%- endcapture -%}
+{%- capture html -%}
+<p>Hi{% if name %} {{ name }}{% endif %},</p>
+<p>Confirm your email address to finish setting up your {{ product.name }} account.</p>
+<p style="margin:28px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Confirm email address</a></p>
+<p style="color:#6b7280;font-size:13px;">The link expires in 48 hours. If you did not create an account, you can ignore this email.</p>
+{%- endcapture -%}
+{%- capture text -%}
+Hi{% if name %} {{ name }}{% endif %},
+
+Confirm your email address to finish setting up your {{ product.name }} account:
+
+{{ link }}
+
+The link expires in 48 hours. If you did not create an account, you can ignore this email.
+{%- endcapture -%}

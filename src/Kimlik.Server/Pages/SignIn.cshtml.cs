@@ -30,6 +30,8 @@ public sealed class SignInModel(
 
     public string? ErrorMessage { get; private set; }
 
+    public bool ShowResendVerification { get; private set; }
+
     public bool CanSignUp => accounts.Value.Registration == RegistrationMode.Open;
 
     public void OnGet()
@@ -66,7 +68,7 @@ public sealed class SignInModel(
             auditLog.Record(AuditActions.UserSignedIn, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
             await context.SaveChangesAsync(cancellationToken);
 
-            return LocalRedirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl : "/");
+            return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
         }
 
         if (result.IsLockedOut)
@@ -77,6 +79,7 @@ public sealed class SignInModel(
         if (result.IsNotAllowed)
         {
             // The password was right, so saying why is not an information leak.
+            ShowResendVerification = true;
             return await RejectAsync(user, "email_not_verified", localizer["Confirm your email address before signing in. Check your inbox for the verification link."], cancellationToken);
         }
 

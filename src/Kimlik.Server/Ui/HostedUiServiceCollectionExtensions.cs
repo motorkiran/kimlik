@@ -8,14 +8,9 @@ internal static class HostedUiServiceCollectionExtensions
 {
     public static readonly CultureInfo[] SupportedCultures = [new("en"), new("tr")];
 
-    /// <summary>The hosted pages: Razor Pages, localization and branding.</summary>
+    /// <summary>The hosted pages: Razor Pages and localization.</summary>
     public static IServiceCollection AddHostedUi(this IServiceCollection services)
     {
-        services.AddOptions<BrandingOptions>()
-            .BindConfiguration(BrandingOptions.SectionName)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
         services.AddLocalization(options => options.ResourcesPath = "Resources");
 
         services.AddRazorPages(options => options.Conventions.ConfigureFilter(new SecurityHeaders.ContentSecurityPolicyFilter()))
