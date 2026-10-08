@@ -112,6 +112,23 @@ public sealed class ApiKeyTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task OrganizationKey_OnlyTakesPermissionsOfOrganizationRoles()
+    {
+        var (globalRole, globalPermissions) = await server.CreateRoleAsync();
+        var admin = await server.CreateUserAsync();
+        await server.AssignToUserAsync(admin.Id, globalRole);
+        var organization = await server.CreateOrganizationAsync(admin.Id);
+        await server.SetMemberRolesAsync(organization.Id, admin.Id, organization.Role, SystemRoles.OrganizationAdmin);
+        using var me = server.WithToken(await server.UserAccessTokenAsync(admin));
+
+        // The key would keep it after the creator's global role is gone.
+        using var refused = await me.PostJsonAsync(
+            $"/api/v1/me/organizations/{organization.Id}/api-keys", new CreateApiKeyRequest { Name = "CI", Permissions = [globalPermissions[0]] });
+
+        (await refused.ReadProblemCodeAsync()).ShouldBe("api_key.permission_not_held");
+    }
+
+    [Fact]
     public async Task ManagementApi_ListsAndRevokesKeys_AndVerificationNeedsItsPermission()
     {
         var user = await server.CreateUserAsync();

@@ -39,18 +39,17 @@ public sealed class MyApiKeys(IKimlikDbContext context, AccessResolver access, O
             : await store.ListAsync(context.ApiKeys.Where(key => key.OrganizationId == organizationId), cursor, limit, cancellationToken);
     }
 
-    /// <summary>A key for the organization, with permissions the caller holds in it.</summary>
+    /// <summary>
+    /// A key for the organization, with permissions the caller holds through their roles in it. Their global roles
+    /// do not count: the key outlives them, and would otherwise keep a permission its creator lost.
+    /// </summary>
     public async Task<Result<CreatedApiKeyResponse>> CreateForOrganizationAsync(
         Guid callerId, Guid organizationId, CreateApiKeyRequest request, CancellationToken cancellationToken)
     {
         var caller = await guard.AuthorizeAsync(callerId, organizationId, SystemPermissions.OrganizationApiKeysWrite, cancellationToken);
-        if (caller.IsFailure)
-        {
-            return caller.Error;
-        }
-
-        var held = await access.ForUserAsync(callerId, organizationId, cancellationToken);
-        return await store.CreateAsync(ApiKeyOwner.Organization(organizationId), callerId, held.Permissions, request, cancellationToken);
+        return caller.IsFailure
+            ? caller.Error
+            : await store.CreateAsync(ApiKeyOwner.Organization(organizationId), callerId, caller.Value, request, cancellationToken);
     }
 
     public async Task<Result> RevokeForOrganizationAsync(Guid callerId, Guid organizationId, Guid keyId, CancellationToken cancellationToken)
