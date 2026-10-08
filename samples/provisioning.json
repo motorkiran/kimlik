@@ -1,0 +1,43 @@
+{
+  "$schema": "../docs/schemas/provisioning.schema.json",
+  "permissions": [
+    { "key": "invoices:read", "description": "Read invoices" },
+    { "key": "invoices:write", "description": "Create invoices" }
+  ],
+  "roles": [
+    {
+      "key": "accountant",
+      "name": "Accountant",
+      "description": "Reads and creates invoices.",
+      "permissions": ["invoices:read", "invoices:write"]
+    },
+    {
+      // A custom role may hold system permissions; this one lets the sample API manage users.
+      "key": "user-manager",
+      "name": "User manager",
+      "permissions": ["kimlik.users:read", "kimlik.users:write"]
+    }
+  ],
+  "apiResources": [
+    { "scope": "invoices", "audience": "invoices-api", "displayName": "Manage your invoices" }
+  ],
+  "clients": [
+    {
+      "clientId": "invoices-spa",
+      "displayName": "Invoices",
+      "type": "spa",
+      "redirectUris": ["http://localhost:5173/"],
+      "postLogoutRedirectUris": ["http://localhost:5173/"],
+      "scopes": ["openid", "profile", "email", "offline_access", "invoices"]
+    },
+    {
+      "clientId": "invoices-backend",
+      "displayName": "Invoices backend",
+      "type": "service",
+      "scopes": ["kimlik"],
+      "roles": ["user-manager"],
+      // Read from configuration, here the Samples__InvoicesBackendSecret environment variable.
+      "clientSecret": "${Samples:InvoicesBackendSecret}"
+    }
+  ]
+}

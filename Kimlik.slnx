@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Invoices.Api/Invoices.Api.csproj" />
+  </Folder>
   <Folder Name="/sdk/">
     <Project Path="sdk/Kimlik.AspNetCore/Kimlik.AspNetCore.csproj" />
     <Project Path="sdk/Kimlik.Client/Kimlik.Client.csproj" />

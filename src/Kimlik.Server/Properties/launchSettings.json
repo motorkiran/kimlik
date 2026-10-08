@@ -9,6 +9,17 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "samples": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Kimlik__Provisioning__FilePath": "../../samples/provisioning.json",
+        "Samples__InvoicesBackendSecret": "invoices-backend-development-secret"
+      }
     }
   }
 }

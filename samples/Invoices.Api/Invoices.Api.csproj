@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Description>Sample API and single-page app protected by Kimlik.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Applications reference the Kimlik.AspNetCore and Kimlik.Client packages instead. -->
+    <ProjectReference Include="..\..\sdk\Kimlik.AspNetCore\Kimlik.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\sdk\Kimlik.Client\Kimlik.Client.csproj" />
+  </ItemGroup>
+
+</Project>

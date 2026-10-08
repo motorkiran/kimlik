@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages (milestone M1); access control and the Management API (milestone M2) are in progress. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, a Management API, provisioning and a .NET SDK (milestones M1 and M2). Organizations come next. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -32,6 +32,8 @@ builder.Services.AddKimlikClient(options =>
 
 var user = await kimlik.Users.CreateAsync(new CreateUserRequest { Email = "ada@example.com" }, cancellationToken);
 ```
+
+The [samples](samples/README.md) show a single-page app and its API working with Kimlik end to end.
 
 ## Local development
 
