@@ -379,7 +379,7 @@ Projects are added when their first code lands, so the solution grows milestone 
 |---|---|
 | Domain | Nothing, except `Microsoft.Extensions.Identity.Stores` for the Identity user base type |
 | Contracts | Nothing |
-| Application | Domain, Contracts. Also EF Core (without a provider), `Microsoft.Extensions.Identity.Core` and `OpenIddict.Core`, but never ASP.NET Core or Npgsql. |
+| Application | Domain, Contracts. Also EF Core (without a provider), `Microsoft.Extensions.Identity.Core`, and OpenIddict's abstractions (its managers, for changes) and EF Core entity models (for queries), but never ASP.NET Core or Npgsql. |
 | Infrastructure | Application, Domain |
 | Admin | Application, Contracts |
 | Server | All projects (composition root) |

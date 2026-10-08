@@ -6,6 +6,33 @@ Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and acces
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
+## Use Kimlik from .NET
+
+Protect an API with `Kimlik.AspNetCore`: it validates Kimlik access tokens for the API's audience and checks permissions.
+
+```csharp
+builder.Services.AddKimlik(options =>
+{
+    options.Authority = new Uri("https://id.example.com/");
+    options.Audience = "invoices-api";
+});
+
+app.MapGet("/invoices", (KimlikUser caller) => ...).RequirePermission("invoices:read");
+```
+
+Manage users, roles and clients from a backend with `Kimlik.Client`, as a service client that holds the `kimlik` scope and an administrative role. It gets and renews its tokens by itself.
+
+```csharp
+builder.Services.AddKimlikClient(options =>
+{
+    options.Authority = new Uri("https://id.example.com/");
+    options.ClientId = "backend";
+    options.ClientSecret = builder.Configuration["Kimlik:ClientSecret"];
+});
+
+var user = await kimlik.Users.CreateAsync(new CreateUserRequest { Email = "ada@example.com" }, cancellationToken);
+```
+
 ## Local development
 
 ### Prerequisites

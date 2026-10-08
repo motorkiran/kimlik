@@ -20,6 +20,11 @@
     <Authors>Kimlik contributors</Authors>
     <Product>Kimlik</Product>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/motorkiran/kimlik</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/motorkiran/kimlik</RepositoryUrl>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <!-- Only the SDK and the contracts it shares are NuGet packages; they opt in. -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(CI)' == 'true'">

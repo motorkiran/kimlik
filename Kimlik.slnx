@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/sdk/">
+    <Project Path="sdk/Kimlik.AspNetCore/Kimlik.AspNetCore.csproj" />
+    <Project Path="sdk/Kimlik.Client/Kimlik.Client.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Kimlik.Application/Kimlik.Application.csproj" />
     <Project Path="src/Kimlik.Contracts/Kimlik.Contracts.csproj" />
