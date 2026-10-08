@@ -1,0 +1,10 @@
+@page "/admin/denied"
+@{
+    ViewData["Title"] = L["No access"];
+}
+
+<h1 id="page-title">@L["No access"]</h1>
+<p class="lead">@L["Your account cannot use the admin panel. Ask an administrator for access."]</p>
+<div class="actions">
+    <a class="button button-secondary" asp-page="/Index">@L["Go to the home page"]</a>
+</div>

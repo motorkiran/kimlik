@@ -538,4 +538,10 @@
   <data name="or" xml:space="preserve">
     <value>veya</value>
   </data>
+  <data name="No access" xml:space="preserve">
+    <value>Erişim yok</value>
+  </data>
+  <data name="Your account cannot use the admin panel. Ask an administrator for access." xml:space="preserve">
+    <value>Hesabınız yönetim panelini kullanamıyor. Erişim için bir yöneticiye başvurun.</value>
+  </data>
 </root>

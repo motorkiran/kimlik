@@ -1,6 +1,8 @@
+using Kimlik.Admin;
 using Kimlik.Application;
 using Kimlik.Infrastructure;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Server.Admin;
 using Kimlik.Server.Api;
 using Kimlik.Server.Diagnostics;
 using Kimlik.Server.Hosting;
@@ -25,6 +27,7 @@ builder.Services.AddKimlikRateLimiting();
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthProbes();
+builder.Services.AddAdminPanel();
 
 var app = builder.Build();
 
@@ -46,6 +49,13 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSecurityHeaders();
 
+// Each instance can leave the admin panel out, so that only an internal one serves it.
+var adminPanel = app.Configuration.IsAdminPanelEnabled();
+if (adminPanel)
+{
+    app.UseAdminContentSecurityPolicy();
+}
+
 app.UseHealthProbes();
 app.UseReadinessGate();
 
@@ -54,6 +64,7 @@ app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
@@ -61,5 +72,10 @@ app.MapCultureSwitch();
 app.MapTokenEndpoint();
 app.MapUserInfoEndpoint();
 app.MapManagementApi();
+
+if (adminPanel)
+{
+    app.MapKimlikAdmin();
+}
 
 await app.RunAsync();

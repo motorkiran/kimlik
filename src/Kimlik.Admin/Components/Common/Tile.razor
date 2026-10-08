@@ -1,0 +1,32 @@
+@* A number on the dashboard, linking to where it comes from. *@
+<MudItem xs="12" sm="6" md="4">
+    <MudPaper Class="pa-4" Outlined>
+        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">@Title</MudText>
+        <MudText Typo="Typo.h4" Color="@(Warn ? Color.Error : Color.Default)" data-tile="@Title">@Value</MudText>
+        @if (Detail is not null)
+        {
+            <MudText Typo="Typo.body2">@Detail</MudText>
+        }
+        @if (Href is not null)
+        {
+            <MudLink Href="@Href" Typo="Typo.body2">View</MudLink>
+        }
+    </MudPaper>
+</MudItem>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Title { get; set; }
+
+    [Parameter]
+    public int Value { get; set; }
+
+    [Parameter]
+    public string? Detail { get; set; }
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public bool Warn { get; set; }
+}

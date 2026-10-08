@@ -20,6 +20,7 @@ public sealed class DependencyRuleTests
     private static readonly Assembly Infrastructure = typeof(KimlikDbContext).Assembly;
     private static readonly Assembly Client = typeof(KimlikClient).Assembly;
     private static readonly Assembly AspNetCore = typeof(KimlikUser).Assembly;
+    private static readonly Assembly Admin = typeof(Kimlik.Admin.AdminServiceCollectionExtensions).Assembly;
 
     [Fact]
     public void Domain_DependsOnNoOtherLayerOrFramework()
@@ -53,6 +54,12 @@ public sealed class DependencyRuleTests
     public void Infrastructure_DoesNotDependOnTheHost()
     {
         ReferencedAssemblies(Infrastructure).ShouldNotContain("Kimlik.Server");
+    }
+
+    [Fact]
+    public void AdminPanel_GoesThroughTheApplication()
+    {
+        ReferencedAssemblies(Admin).ShouldNotContain(name => name == "Kimlik.Infrastructure" || name == "Kimlik.Server");
     }
 
     [Fact]

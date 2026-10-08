@@ -1,0 +1,108 @@
+@page "/admin/users"
+@using Kimlik.Application.Users
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Users · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Users</MudText>
+    <MudSpacer />
+    @if (Session.Has(SystemPermissions.UsersWrite))
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreateAsync">New user</MudButton>
+    }
+</MudStack>
+
+<MudStack Row Class="mb-4">
+    <MudTextField T="string" @bind-Value="_search" Label="Search" Placeholder="Email or name" Clearable
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  DebounceInterval="300" OnDebounceIntervalElapsed="_ => ReloadAsync()" />
+    <MudSelect T="UserStatus?" Value="_status" ValueChanged="StatusChangedAsync" Label="Status" Style="max-width: 12rem">
+        <MudSelectItem T="UserStatus?" Value="null">All</MudSelectItem>
+        <MudSelectItem T="UserStatus?" Value="UserStatus.Active">Active</MudSelectItem>
+        <MudSelectItem T="UserStatus?" Value="UserStatus.Suspended">Suspended</MudSelectItem>
+    </MudSelect>
+</MudStack>
+
+<MudTable T="UserResponse" Items="_users" Hover Loading="_loading" OnRowClick="args => Open(args.Item)" id="users">
+    <HeaderContent>
+        <MudTh>Email</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Roles</MudTh>
+        <MudTh>Last sign-in</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Email">
+            <MudLink Href="@($"/admin/users/{context.Id}")">@context.Email</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Status"><UserStatusChip User="context" /></MudTd>
+        <MudTd DataLabel="Roles">@string.Join(", ", context.Roles)</MudTd>
+        <MudTd DataLabel="Last sign-in"><Moment Value="context.LastSignInAt" /></MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No users match.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@if (_nextCursor is not null)
+{
+    <MudButton Class="mt-4" Variant="Variant.Text" OnClick="LoadMoreAsync">Load more</MudButton>
+}
+
+@code {
+    private readonly List<UserResponse> _users = [];
+    private string? _search;
+    private UserStatus? _status;
+    private string? _nextCursor;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task StatusChangedAsync(UserStatus? status)
+    {
+        _status = status;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _users.Clear();
+        _nextCursor = null;
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        _loading = true;
+        var page = await Operations.RunAsync<ListUsersHandler, Result<Page<UserResponse>>>(
+            SystemPermissions.UsersRead, handler => handler.HandleAsync(new ListUsersQuery(_search, _status, _nextCursor, Limit: null), Aborted));
+
+        if (page.IsSuccess)
+        {
+            _users.AddRange(page.Value.Items);
+            _nextCursor = page.Value.NextCursor;
+        }
+
+        _loading = false;
+    }
+
+    private void Open(UserResponse? user)
+    {
+        if (user is not null)
+        {
+            Navigation.NavigateTo($"/admin/users/{user.Id}");
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateUserDialog>("New user");
+        if (await dialog.Result is { Canceled: false, Data: UserResponse created })
+        {
+            Navigation.NavigateTo($"/admin/users/{created.Id}");
+        }
+    }
+}

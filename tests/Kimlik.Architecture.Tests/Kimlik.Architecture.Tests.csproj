@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\sdk\Kimlik.AspNetCore\Kimlik.AspNetCore.csproj" />
     <ProjectReference Include="..\..\sdk\Kimlik.Client\Kimlik.Client.csproj" />
+    <ProjectReference Include="..\..\src\Kimlik.Admin\Kimlik.Admin.csproj" />
     <ProjectReference Include="..\..\src\Kimlik.Infrastructure\Kimlik.Infrastructure.csproj" />
   </ItemGroup>
 

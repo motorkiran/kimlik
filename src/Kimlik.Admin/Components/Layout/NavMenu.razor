@@ -1,0 +1,9 @@
+@inject AdminSession Session
+
+<MudNavMenu>
+    <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+    @if (Session.Has(SystemPermissions.UsersRead))
+    {
+        <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.People">Users</MudNavLink>
+    }
+</MudNavMenu>

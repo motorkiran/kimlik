@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Kimlik.Admin.Security;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
@@ -28,7 +29,10 @@ internal static class IdentityServiceCollectionExtensions
         });
 
         services.AddHttpContextAccessor();
-        services.AddScoped<IRequestContext, HttpRequestContext>();
+        // The caller is the HTTP request's, except in an admin panel operation, which sets its administrator.
+        services.AddScoped<HttpRequestContext>();
+        services.AddScoped<IRequestContext>(provider =>
+            provider.GetService<AdminCaller>() is { IsSet: true } administrator ? administrator : provider.GetRequiredService<HttpRequestContext>());
         services.AddScoped<PasswordHashTiming>();
         services.AddScoped<SignOutService>();
         services.AddScoped<SignInFlow>();

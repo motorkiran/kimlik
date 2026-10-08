@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), and API keys and webhooks (M6). The admin panel comes next. Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), and API keys and webhooks (M6). The admin panel (M7) is under way. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -69,6 +69,7 @@ dotnet run --project src/Kimlik.Server
 
 | URL | Purpose |
 |---|---|
+| http://localhost:5080/admin | Admin panel, for accounts with a system permission such as the development administrator |
 | http://localhost:5080/account | Account pages: profile, password, two-factor authentication, signed-in applications |
 | http://localhost:5080/health/live | Liveness probe |
 | http://localhost:5080/health/ready | Readiness probe (checks the database) |
@@ -114,6 +115,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Mfa__*` | Who must use a second factor (administrators by default, or everyone) and how long a trusted browser may skip it |
 | `Kimlik__Organizations__*` | Whether users can create organizations, the roles creators get, how long invitations last |
 | `Kimlik__Plans__DefaultUserPlan`, `Kimlik__Plans__DefaultOrganizationPlan` | The plan of users and organizations without a current subscription |
+| `Kimlik__Admin__Enabled` | Whether this instance serves the admin panel (default `true`); turn it off on public instances to serve it from an internal one only |
 | `Kimlik__Webhooks__*` | Retry delays (`RetryDelays`), timeout and how long the delivery log is kept |
 | `Kimlik__Audit__RetentionPeriod` | How long audit events are kept, such as `365.00:00:00` (the default) |
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |

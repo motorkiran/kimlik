@@ -1,0 +1,7 @@
+@* A circuit whose session ended (it was revoked, or the account lost its access) starts over at the sign-in page. *@
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized() =>
+        Navigation.NavigateTo($"/signin?ReturnUrl={Uri.EscapeDataString(Navigation.ToBaseRelativePath(Navigation.Uri) is var path ? "/" + path : "/admin")}", forceLoad: true);
+}

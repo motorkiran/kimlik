@@ -1,0 +1,17 @@
+@if (User.Status == UserStatus.Suspended)
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">Suspended</MudChip>
+}
+else
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Active</MudChip>
+}
+@if (!User.EmailVerified)
+{
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Unverified email</MudChip>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required UserResponse User { get; set; }
+}

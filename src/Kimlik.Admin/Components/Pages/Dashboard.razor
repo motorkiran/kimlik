@@ -1,0 +1,42 @@
+@page "/admin"
+@using Kimlik.Application.Dashboard
+@inject AdminOperations Operations
+@inject AdminSession Session
+
+<PageTitle>Dashboard · Kimlik admin</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom>Dashboard</MudText>
+
+@if (_dashboard is { } dashboard)
+{
+    <MudGrid id="dashboard">
+        @if (Session.Has(SystemPermissions.UsersRead))
+        {
+            <Tile Title="Users" Value="dashboard.Users" Detail="@($"{dashboard.SuspendedUsers} suspended")" Href="/admin/users" />
+            <Tile Title="Sign-ins today" Value="dashboard.SignInsToday" />
+        }
+        @if (Session.Has(SystemPermissions.OrganizationsRead))
+        {
+            <Tile Title="Organizations" Value="dashboard.Organizations" />
+        }
+        @if (Session.Has(SystemPermissions.ClientsRead))
+        {
+            <Tile Title="Clients" Value="dashboard.Clients" />
+        }
+        @if (Session.Has(SystemPermissions.SubscriptionsRead))
+        {
+            <Tile Title="Current subscriptions" Value="dashboard.CurrentSubscriptions" />
+        }
+        @if (Session.Has(SystemPermissions.WebhooksRead))
+        {
+            <Tile Title="Failing webhook endpoints" Value="dashboard.FailingWebhookEndpoints" Warn="dashboard.FailingWebhookEndpoints > 0" />
+        }
+    </MudGrid>
+}
+
+@code {
+    private DashboardResponse? _dashboard;
+
+    protected override async Task OnInitializedAsync() =>
+        _dashboard = await Operations.RunAsync<GetDashboardHandler, DashboardResponse>(permission: null, handler => handler.HandleAsync(CancellationToken.None));
+}

@@ -1,0 +1,50 @@
+@using Kimlik.Application.Users
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @bind-IsValid="_valid">
+            <MudTextField @bind-Value="_email" Label="Email" Required RequiredError="Enter an email address." InputType="InputType.Email" MaxLength="256" />
+            <MudStack Row>
+                <MudTextField @bind-Value="_givenName" Label="First name" MaxLength="100" />
+                <MudTextField @bind-Value="_familyName" Label="Last name" MaxLength="100" />
+            </MudStack>
+            <MudTextField @bind-Value="_password" Label="Password" InputType="InputType.Password" MaxLength="128"
+                          HelperText="Leave it empty to let the user choose one through a password reset." />
+            <MudCheckBox @bind-Value="_emailVerified" Label="The email address is verified" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="!_valid" OnClick="CreateAsync">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _valid;
+    private string _email = string.Empty;
+    private string? _givenName;
+    private string? _familyName;
+    private string? _password;
+    private bool _emailVerified;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private async Task CreateAsync()
+    {
+        var request = new CreateUserRequest
+        {
+            Email = _email.Trim(),
+            GivenName = _givenName,
+            FamilyName = _familyName,
+            Password = string.IsNullOrEmpty(_password) ? null : _password,
+            EmailVerified = _emailVerified,
+        };
+
+        if (await ChangeAsync<CreateUserHandler, UserResponse>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(request, Aborted), "The user was created.") is { } user)
+        {
+            Dialog.Close(DialogResult.Ok(user));
+        }
+    }
+}

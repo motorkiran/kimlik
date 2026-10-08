@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+@inject AdminSessionLoader SessionLoader
+@inject AdminSession Session
+
+<MudThemeProvider Theme="AdminTheme.Theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" aria-label="Menu" />
+        <MudText Typo="Typo.h6" Class="ml-2">Kimlik admin</MudText>
+        <MudSpacer />
+        @if (Session.IsLoaded)
+        {
+            <MudText Typo="Typo.body2" Class="mr-4" id="admin-email">@Session.Email</MudText>
+        }
+        <MudButton Href="/signout" Variant="Variant.Text" Color="Color.Inherit">Sign out</MudButton>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Always">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+            @if (Session.IsLoaded)
+            {
+                @Body
+            }
+            else
+            {
+                <MudProgressLinear Indeterminate Color="Color.Primary" />
+            }
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    protected override Task OnInitializedAsync() => SessionLoader.LoadAsync();
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

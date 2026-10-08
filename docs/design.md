@@ -437,7 +437,9 @@ Principles:
 - Blazor in the Interactive Server render mode, with MudBlazor components. The same process serves it under `/admin`.
 - It reuses the hosted sign-in session and requires system permissions.
 - It calls Application handlers in-process, so business rules and authorization are shared with the Management API.
-- It can be disabled per instance, for example to expose it only on an internal instance. Multi-instance deployments need sticky sessions for it.
+- It can be disabled per instance (`Kimlik:Admin:Enabled`), for example to expose it only on an internal instance. Multi-instance deployments need sticky sessions for it.
+- Every operation runs in a service scope of its own, as the signed-in administrator, after checking the system permission the matching Management API endpoint requires. The circuit rechecks the session every minute: a changed security stamp or lost access ends it.
+- Its pages get their own content security policy: Blazor and MudBlazor need scripts from Kimlik and inline styles, which the hosted pages' policy forbids.
 
 ### 6.6 Background processing
 

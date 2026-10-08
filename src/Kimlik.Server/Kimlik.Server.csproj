@@ -6,11 +6,17 @@
     <ContainerFamily>noble-chiseled-extra</ContainerFamily>
   </PropertyGroup>
 
+  <PropertyGroup Label="Admin panel">
+    <!-- Serves Blazor's own script (_framework/blazor.web.js), which the admin panel's components need. -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Kimlik.Server.Tests" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Kimlik.Admin\Kimlik.Admin.csproj" />
     <ProjectReference Include="..\Kimlik.Application\Kimlik.Application.csproj" />
     <ProjectReference Include="..\Kimlik.Contracts\Kimlik.Contracts.csproj" />
     <ProjectReference Include="..\Kimlik.Infrastructure\Kimlik.Infrastructure.csproj" />

@@ -1,0 +1,5 @@
+/* Kimlik admin panel, on top of MudBlazor. */
+
+.mud-table-row {
+    cursor: pointer;
+}
