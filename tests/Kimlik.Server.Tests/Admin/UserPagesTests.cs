@@ -20,7 +20,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         var page = admin.Render<Users>();
         page.Find("input").Input(user.Email);
 
-        page.WaitForAssertion(() => page.FindAll("#users tbody tr").ShouldHaveSingleItem().TextContent.ShouldContain(user.Email), TimeSpan.FromSeconds(5));
+        page.WaitForAssertion(() => page.FindAll("#users tbody tr").ShouldHaveSingleItem().TextContent.ShouldContain(user.Email));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         admin.Confirm("Suspend");
 
         admin.WaitForNotification("The user was suspended.");
-        page.WaitForElement("#reactivate", TimeSpan.FromSeconds(5));
+        page.WaitForElement("#reactivate");
         var actor = await server.QueryDatabaseAsync(context => context.AuditEvents
             .Where(auditEvent => auditEvent.Action == AuditActions.UserSuspended && auditEvent.SubjectId == user.Id.ToString())
             .Select(auditEvent => auditEvent.ActorId)
@@ -43,7 +43,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         actor.ShouldBe(administrator.Id.ToString());
 
         page.Find("#reactivate").Click();
-        page.WaitForElement("#suspend", TimeSpan.FromSeconds(5));
+        page.WaitForElement("#suspend");
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
 
         var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
 
-        page.WaitForAssertion(() => page.Find("h1").TextContent.ShouldBe(user.Email), TimeSpan.FromSeconds(5));
+        page.WaitForAssertion(() => page.Find("h1").TextContent.ShouldBe(user.Email));
         page.FindAll("#suspend, #delete, #save-profile, #save-roles").ShouldBeEmpty();
     }
 }

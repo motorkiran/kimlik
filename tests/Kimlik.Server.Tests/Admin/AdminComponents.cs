@@ -13,6 +13,9 @@ namespace Kimlik.Server.Tests.Admin;
 /// </summary>
 internal sealed class AdminComponents : BunitContext
 {
+    // The components wait on the database of the test server, which a parallel test run keeps busy.
+    static AdminComponents() => DefaultWaitTimeout = TimeSpan.FromSeconds(10);
+
     public AdminComponents(KimlikServerFixture server, Guid administratorId, IReadOnlySet<string>? permissions = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -35,12 +38,12 @@ internal sealed class AdminComponents : BunitContext
 
     /// <summary>Waits until the administrator is told <paramref name="message"/>.</summary>
     public void WaitForNotification(string message) =>
-        Notifications.WaitForAssertion(() => Notifications.Markup.ShouldContain(message), TimeSpan.FromSeconds(5));
+        Notifications.WaitForAssertion(() => Notifications.Markup.ShouldContain(message));
 
     /// <summary>Clicks the button in the open dialog whose text is <paramref name="text"/>.</summary>
     public void Confirm(string text)
     {
-        Dialogs.WaitForAssertion(() => Dialogs.FindAll("button").ShouldContain(button => button.TextContent.Trim() == text), TimeSpan.FromSeconds(5));
+        Dialogs.WaitForAssertion(() => Dialogs.FindAll("button").ShouldContain(button => button.TextContent.Trim() == text));
 
         // Found and clicked in one go, so that no render in between leaves the click on a stale button.
         Dialogs.InvokeAsync(() => Dialogs.FindAll("button").Single(button => button.TextContent.Trim() == text).Click());

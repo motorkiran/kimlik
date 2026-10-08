@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using Kimlik.Application.Access;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
+using Kimlik.Contracts.Management;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Identity;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -101,14 +104,23 @@ internal static class TokenEndpoint
             return OidcResults.Forbid(Errors.InvalidGrant, organization.Error.Message);
         }
 
+        // A second factor that the account or the organization requires now, but the session never had, as for a user
+        // made an administrator since or a switch to an organization that requires one, takes signing in again.
+        var methods = OidcPrincipalFactory.GetAuthenticationMethods(principal);
+        if (!methods.Contains(SignInFlow.MultiFactorMethod, StringComparer.Ordinal)
+            && (organization.Value?.RequireMfa == true || await services.GetRequiredService<MfaPolicy>().IsRequiredAsync(user.Id, cancellationToken)))
+        {
+            return OidcResults.Forbid(Errors.InvalidGrant, "A second factor is required. Sign in again.");
+        }
+
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
             .CreateAsync(
                 user,
                 principal.GetScopes(),
                 principal.GetResources(),
                 authenticatedAt,
-                OidcPrincipalFactory.GetAuthenticationMethods(principal),
-                organization.Value,
+                methods,
+                organization.Value?.Id,
                 cancellationToken);
         identity.SetAuthorizationId(principal.GetAuthorizationId());
 
@@ -119,7 +131,7 @@ internal static class TokenEndpoint
     /// The organization the new tokens act in: the one a refresh token request switches to, or else the one of the
     /// code or refresh token. Membership is checked again either way, so removed members lose the context.
     /// </summary>
-    private static async Task<Result<Guid?>> ResolveOrganizationAsync(
+    private static async Task<Result<OrganizationResponse?>> ResolveOrganizationAsync(
         IServiceProvider services, OpenIddictRequest request, ClaimsPrincipal principal, User user, CancellationToken cancellationToken)
     {
         var reference = request.IsRefreshTokenGrantType() && request.GetParameter(KimlikParameters.Organization)?.ToString() is { Length: > 0 } switchTo
@@ -128,10 +140,10 @@ internal static class TokenEndpoint
 
         if (reference is null)
         {
-            return (Guid?)null;
+            return (OrganizationResponse?)null;
         }
 
         var organization = await services.GetRequiredService<UserOrganizations>().FindAsync(user.Id, reference, cancellationToken);
-        return organization.IsSuccess ? organization.Value.Id : organization.Error;
+        return organization.IsSuccess ? organization.Value : organization.Error;
     }
 }

@@ -3,10 +3,13 @@ using System.Text;
 using System.Text.Json;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
+using Kimlik.Domain.Access;
+using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
 using Kimlik.Server.Tests.Organizations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Kimlik.Server.Tests.Mfa;
@@ -86,6 +89,44 @@ public sealed class MfaStepUpTests(KimlikServerFixture server)
 
         updated.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await updated.ReadAsync<OrganizationResponse>()).RequireMfa.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task PasswordOnlyRefreshToken_CannotSwitchToAnOrganizationThatRequiresASecondFactor()
+    {
+        var user = await server.CreateUserAsync();
+        var organization = await server.CreateOrganizationAsync(requireMfa: true, user.Id);
+        var (browser, client, tokens) = await server.SignInAndRedeemAsync(user);
+        browser.Dispose();
+        using var http = server.CreateClient();
+
+        using var switched = await http.PostFormAsync("/connect/token",
+        [
+            new("grant_type", "refresh_token"),
+            new("client_id", client.ClientId),
+            new("refresh_token", tokens.GetProperty("refresh_token").GetString()!),
+            new(KimlikParameters.Organization, organization.Slug),
+        ]);
+
+        switched.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await switched.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe("invalid_grant");
+    }
+
+    [Fact]
+    public async Task PasswordOnlySession_OfAUserMadeAnAdministrator_MustSignInAgain()
+    {
+        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Kimlik:Mfa:RequireForAdministrators"] = "true" })));
+        await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
+        var user = await server.CreateUserAsync();
+        var (browser, client, tokens) = await server.SignInAndRedeemAsync(user);
+        browser.Dispose();
+        await server.AssignToUserAsync(user.Id, SystemRoles.Admin);
+
+        using var http = kimlik.CreateClient();
+        using var refreshed = await OidcFlows.RefreshAsync(http, client, tokens.GetProperty("refresh_token").GetString()!);
+
+        refreshed.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     private static JsonElement Payload(JsonElement tokens) =>

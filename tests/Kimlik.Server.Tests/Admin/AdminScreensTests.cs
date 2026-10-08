@@ -61,7 +61,7 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
         MudCheckBox<bool>? Box() => page.FindComponents<MudCheckBox<bool>>().Select(box => box.Instance).SingleOrDefault(box =>
             box.UserAttributes.TryGetValue("data-role", out var boxRole) && boxRole as string == role
             && box.UserAttributes.TryGetValue("data-permission", out var boxPermission) && boxPermission as string == extra);
-        page.WaitForState(() => Box() is not null, TimeSpan.FromSeconds(5));
+        page.WaitForState(() => Box() is not null);
         await page.InvokeAsync(() => Box()!.ValueChanged.InvokeAsync(true));
 
         admin.WaitForNotification($"can now {extra}");
@@ -105,7 +105,7 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
             .ValueChanged.InvokeAsync(Kimlik.Contracts.Management.ClientType.Service));
         admin.Confirm("Create");
 
-        var secret = admin.Dialogs.WaitForElement("#secret", TimeSpan.FromSeconds(5));
+        var secret = admin.Dialogs.WaitForElement("#secret");
         secret.GetAttribute("value").ShouldNotBeNullOrEmpty();
     }
 
