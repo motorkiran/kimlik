@@ -16,10 +16,15 @@ public static class SystemPermissions
     public const string PlansWrite = "kimlik.plans:write";
     public const string SubscriptionsRead = "kimlik.subscriptions:read";
     public const string SubscriptionsWrite = "kimlik.subscriptions:write";
+    public const string ApiKeysRead = "kimlik.api_keys:read";
+    public const string ApiKeysWrite = "kimlik.api_keys:write";
+    public const string ApiKeysVerify = "kimlik.api_keys:verify";
 
     public const string OrganizationMembersRead = "kimlik.org.members:read";
     public const string OrganizationMembersWrite = "kimlik.org.members:write";
     public const string OrganizationSettingsWrite = "kimlik.org.settings:write";
+    public const string OrganizationApiKeysRead = "kimlik.org.api_keys:read";
+    public const string OrganizationApiKeysWrite = "kimlik.org.api_keys:write";
 
     /// <summary>The system permissions that apply to the whole installation, held through global roles.</summary>
     public static readonly IReadOnlyDictionary<string, string> Global = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -37,6 +42,9 @@ public static class SystemPermissions
         [PlansWrite] = "Define features and plans.",
         [SubscriptionsRead] = "View subscriptions and entitlements.",
         [SubscriptionsWrite] = "Subscribe users and organizations to plans, and change or cancel subscriptions.",
+        [ApiKeysRead] = "View the API keys of users and organizations.",
+        [ApiKeysWrite] = "Revoke API keys.",
+        [ApiKeysVerify] = "Verify API keys, as a resource server that accepts them.",
     };
 
     /// <summary>The system permissions that apply within one organization, held through organization roles.</summary>
@@ -45,6 +53,8 @@ public static class SystemPermissions
         [OrganizationMembersRead] = "View the organization's members and invitations.",
         [OrganizationMembersWrite] = "Invite and remove members of the organization and change their roles.",
         [OrganizationSettingsWrite] = "Rename or delete the organization.",
+        [OrganizationApiKeysRead] = "View the organization's API keys.",
+        [OrganizationApiKeysWrite] = "Create and revoke the organization's API keys.",
     };
 
     /// <summary>Every system permission with its description.</summary>

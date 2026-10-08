@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Security.Claims;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.ApiKeys;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Users;
@@ -49,6 +50,21 @@ internal static class AccountEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        me.MapGet("api-keys", ListApiKeysAsync).WithName("ListMyApiKeys")
+            .WithSummary("List my API keys")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        me.MapPost("api-keys", CreateApiKeyAsync).WithName("CreateMyApiKey")
+            .WithSummary("Create an API key")
+            .WithDescription("The key acts for me, with permissions I hold through my global roles; it loses those I lose. The secret is returned only this once.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        me.MapDelete("api-keys/{id:guid}", RevokeApiKeyAsync).WithName("RevokeMyApiKey")
+            .WithSummary("Revoke one of my API keys")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         me.MapPost("delete", DeleteAccountAsync).WithName("DeleteMyAccount")
             .WithSummary("Delete my account")
             .WithDescription("Takes the password. The account and its personal data are deleted, and every session ends.")
@@ -95,6 +111,26 @@ internal static class AccountEndpoints
         me.MapDelete("organizations/{id:guid}/members/{userId:guid}", RemoveMemberAsync).WithName("RemoveMyOrganizationMember")
             .WithSummary("Remove a member")
             .WithDescription("Requires `kimlik.org.members:write` in the organization, and every organization permission the member holds.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapGet("organizations/{id:guid}/api-keys", ListOrganizationApiKeysAsync).WithName("ListMyOrganizationApiKeys")
+            .WithSummary("List the API keys of an organization")
+            .WithDescription("Requires `kimlik.org.api_keys:read` in the organization.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapPost("organizations/{id:guid}/api-keys", CreateOrganizationApiKeyAsync).WithName("CreateMyOrganizationApiKey")
+            .WithSummary("Create an API key for an organization")
+            .WithDescription("Requires `kimlik.org.api_keys:write` in the organization. The key acts for the organization, with permissions "
+                + "I hold in it, and keeps them when I leave. The secret is returned only this once.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        me.MapDelete("organizations/{id:guid}/api-keys/{keyId:guid}", RevokeOrganizationApiKeyAsync).WithName("RevokeMyOrganizationApiKey")
+            .WithSummary("Revoke an API key of an organization")
+            .WithDescription("Requires `kimlik.org.api_keys:write` in the organization.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         me.MapGet("organizations/{id:guid}/invitations", ListInvitationsAsync).WithName("ListMyOrganizationInvitations")
@@ -284,6 +320,40 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
         ClaimsPrincipal principal, string provider, ExternalLogins logins, CancellationToken cancellationToken) =>
         (await logins.UnlinkAsync(Caller(principal), provider, keepASignInMethod: true, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<Page<ApiKeyResponse>>, ProblemHttpResult>> ListApiKeysAsync(
+        ClaimsPrincipal principal,
+        [Description("The `nextCursor` of the previous page.")] string? cursor,
+        [Description("Page size, 50 by default and at most 200.")] int? limit,
+        MyApiKeys apiKeys,
+        CancellationToken cancellationToken) =>
+        (await apiKeys.ListAsync(Caller(principal), cursor, limit, cancellationToken)).ToOk();
+
+    private static async Task<Results<Created<CreatedApiKeyResponse>, ProblemHttpResult>> CreateApiKeyAsync(
+        ClaimsPrincipal principal, CreateApiKeyRequest request, MyApiKeys apiKeys, CancellationToken cancellationToken) =>
+        (await apiKeys.CreateAsync(Caller(principal), request, cancellationToken)).ToCreated(created => $"/api/v1/me/api-keys/{created.ApiKey.Id}");
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeApiKeyAsync(
+        ClaimsPrincipal principal, Guid id, MyApiKeys apiKeys, CancellationToken cancellationToken) =>
+        (await apiKeys.RevokeAsync(Caller(principal), id, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<Page<ApiKeyResponse>>, ProblemHttpResult>> ListOrganizationApiKeysAsync(
+        ClaimsPrincipal principal,
+        Guid id,
+        [Description("The `nextCursor` of the previous page.")] string? cursor,
+        [Description("Page size, 50 by default and at most 200.")] int? limit,
+        MyApiKeys apiKeys,
+        CancellationToken cancellationToken) =>
+        (await apiKeys.ListForOrganizationAsync(Caller(principal), id, cursor, limit, cancellationToken)).ToOk();
+
+    private static async Task<Results<Created<CreatedApiKeyResponse>, ProblemHttpResult>> CreateOrganizationApiKeyAsync(
+        ClaimsPrincipal principal, Guid id, CreateApiKeyRequest request, MyApiKeys apiKeys, CancellationToken cancellationToken) =>
+        (await apiKeys.CreateForOrganizationAsync(Caller(principal), id, request, cancellationToken))
+            .ToCreated(created => $"/api/v1/me/organizations/{id}/api-keys/{created.ApiKey.Id}");
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeOrganizationApiKeyAsync(
+        ClaimsPrincipal principal, Guid id, Guid keyId, MyApiKeys apiKeys, CancellationToken cancellationToken) =>
+        (await apiKeys.RevokeForOrganizationAsync(Caller(principal), id, keyId, cancellationToken)).ToNoContent();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeleteAccountAsync(
         ClaimsPrincipal principal, DeleteAccountRequest request, MyAccount account, CancellationToken cancellationToken) =>

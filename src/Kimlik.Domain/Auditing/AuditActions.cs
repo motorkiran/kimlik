@@ -20,6 +20,8 @@ public static class AuditActions
     public const string UserSessionRevoked = "user.session_revoked";
     public const string UserLoginLinked = "user.login_linked";
     public const string UserLoginUnlinked = "user.login_unlinked";
+    public const string ApiKeyCreated = "api_key.created";
+    public const string ApiKeyRevoked = "api_key.revoked";
     public const string UserMfaEnabled = "user.mfa_enabled";
     public const string UserMfaDisabled = "user.mfa_disabled";
     public const string UserMfaReset = "user.mfa_reset";

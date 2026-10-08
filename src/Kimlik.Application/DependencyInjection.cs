@@ -1,6 +1,7 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.ApiKeys;
 using Kimlik.Application.Auditing;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
@@ -61,6 +62,8 @@ public static class DependencyInjection
         services.AddScoped<TwoFactor>();
         services.AddScoped<MyAccount>();
         services.AddScoped<ExternalLogins>();
+        services.AddScoped<ApiKeyStore>();
+        services.AddScoped<MyApiKeys>();
         services.AddScoped<OrganizationGuard>();
         services.AddScoped<MyOrganizations>();
         services.AddScoped<MyInvitations>();

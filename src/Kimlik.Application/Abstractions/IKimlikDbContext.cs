@@ -1,4 +1,5 @@
 using Kimlik.Domain.Access;
+using Kimlik.Domain.ApiKeys;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
@@ -37,6 +38,10 @@ public interface IKimlikDbContext
     DbSet<Plan> Plans { get; }
 
     DbSet<Subscription> Subscriptions { get; }
+
+    DbSet<ApiKey> ApiKeys { get; }
+
+    DbSet<ApiKeyPermission> ApiKeyPermissions { get; }
 
     /// <summary>OpenID Connect clients, for queries. Change them through <c>IOpenIddictApplicationManager</c>, which validates them and hashes secrets.</summary>
     IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications { get; }

@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Access;
+using Kimlik.Domain.ApiKeys;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
@@ -42,6 +43,10 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<Plan> Plans => Set<Plan>();
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+
+    public DbSet<ApiKeyPermission> ApiKeyPermissions => Set<ApiKeyPermission>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 
