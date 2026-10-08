@@ -16,7 +16,7 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 
 | Setting | Default | Description |
 |---|---|---|
-| `Kimlik:Server:RequireHttps` | `true` | Refuses plain HTTP. Turn it off only for local development; behind a proxy that terminates TLS, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` instead. |
+| `Kimlik:Server:RequireHttps` | `true` | Refuses plain HTTP, and tells browsers to keep to HTTPS for a year (`Strict-Transport-Security`, without subdomains). Turn it off only for local development; behind a proxy that terminates TLS, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` instead. |
 | `Kimlik:Admin:Enabled` | `true` | Whether this instance serves the admin panel under `/admin`. |
 | `Kimlik:Database:MigrateOnStartup` | `true` | Applies migrations, the bootstrap administrator and the provisioning file at startup. Turn it off to run `kimlik migrate` as a deployment step instead. |
 | `Kimlik:Provisioning:FilePath` | | A provisioning file to apply whenever the database is prepared. See the README. |

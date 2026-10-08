@@ -26,6 +26,7 @@ builder.Services.AddHostedUi();
 builder.Services.AddKimlikRateLimiting();
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
+builder.Services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
 builder.Services.AddHealthProbes();
 builder.Services.AddAdminPanel();
 
@@ -48,6 +49,13 @@ if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOn
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSecurityHeaders();
+
+// Once a browser has reached Kimlik over HTTPS, it never tries plain HTTP again. Subdomains are left out: Kimlik may
+// run on a domain whose other hosts it does not own.
+if (app.Services.GetRequiredService<IOptions<ServerOptions>>().Value.RequireHttps)
+{
+    app.UseHsts();
+}
 
 // Each instance can leave the admin panel out, so that only an internal one serves it.
 var adminPanel = app.Configuration.IsAdminPanelEnabled();

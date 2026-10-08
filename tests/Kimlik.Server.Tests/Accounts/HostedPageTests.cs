@@ -1,4 +1,6 @@
 using Kimlik.Server.Tests.Oidc;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 
 namespace Kimlik.Server.Tests.Accounts;
 
@@ -40,5 +42,22 @@ public sealed class HostedPageTests(KimlikServerFixture server)
         policy.ShouldContain("frame-ancestors 'none'");
         policy.ShouldMatch("style-src 'self' 'nonce-[A-Za-z0-9+/=]+'");
         response.Headers.GetValues("X-Frame-Options").Single().ShouldBe("DENY");
+    }
+
+    [Fact]
+    public async Task Browsers_AreToldToKeepToHttps_WhenKimlikRequiresIt()
+    {
+        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Kimlik:Server:PublicUrl"] = "https://id.example.test/",
+                ["Kimlik:Server:RequireHttps"] = "true",
+            })));
+        await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
+        using var https = kimlik.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://id.example.test/") });
+
+        using var response = await https.GetAsync("/signin", TestContext.Current.CancellationToken);
+
+        response.Headers.GetValues("Strict-Transport-Security").Single().ShouldBe("max-age=31536000");
     }
 }
