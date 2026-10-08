@@ -33,6 +33,9 @@ public static class ClientErrors
     public static readonly Error RolesNotSupported = Error.Validation(
         "client.roles_not_supported", "Only service clients hold roles; other clients act for signed-in users.");
 
+    public static readonly Error OrganizationNotSupported = Error.Validation(
+        "client.organization_not_supported", "Service clients act on their own behalf, outside any organization.");
+
     public static readonly Error NotConfidential = Error.Validation("client.not_confidential", "Only web and service clients have a secret.");
 
     public static readonly Error WeakSecret = Error.Validation("client.weak_secret", "A client secret is at least 16 characters.");

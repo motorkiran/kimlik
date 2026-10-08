@@ -63,6 +63,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
                 PostLogoutRedirectUris = client.PostLogoutRedirectUris,
                 Scopes = client.Scopes,
                 Roles = client.Type == ClientType.Service ? client.Roles : null,
+                RequireOrganization = client.RequireOrganization,
             });
         }
 

@@ -19,14 +19,16 @@ namespace Kimlik.Server.Oidc;
 public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessResolver access)
 {
     /// <summary>
-    /// Creates the identity for tokens issued to <paramref name="user"/>. The audiences are
-    /// <paramref name="resources"/> when given (a refresh keeps the original ones), otherwise those of the scopes.
+    /// Creates the identity for tokens issued to <paramref name="user"/>, acting in <paramref name="organizationId"/>
+    /// if given; the caller has checked the membership. The audiences are <paramref name="resources"/> when given (a
+    /// refresh keeps the original ones), otherwise those of the scopes.
     /// </summary>
     public async Task<ClaimsIdentity> CreateAsync(
         User user,
         ImmutableArray<string> grantedScopes,
         ImmutableArray<string>? resources,
         DateTimeOffset? authenticatedAt,
+        Guid? organizationId,
         CancellationToken cancellationToken)
     {
         var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
@@ -48,7 +50,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
 
         identity.SetScopes(grantedScopes);
         identity.SetResources(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)]);
-        AddAccess(identity, await access.ForUserAsync(user.Id, cancellationToken));
+        AddAccess(identity, await access.ForUserAsync(user.Id, organizationId, cancellationToken));
         identity.SetDestinations(GetDestinations);
 
         return identity;
@@ -66,7 +68,19 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
 
         AddArrayClaim(identity, KimlikClaimTypes.Roles, grant.Roles);
         AddArrayClaim(identity, KimlikClaimTypes.Permissions, grant.Permissions);
+
+        identity.RemoveClaims(KimlikClaimTypes.OrganizationId);
+        identity.RemoveClaims(KimlikClaimTypes.OrganizationRoles);
+        if (grant.Organization is { } organization)
+        {
+            identity.SetClaim(KimlikClaimTypes.OrganizationId, organization.OrganizationId.ToString());
+            AddArrayClaim(identity, KimlikClaimTypes.OrganizationRoles, organization.Roles);
+        }
     }
+
+    /// <summary>The organization a previously issued token acts in, if any.</summary>
+    public static Guid? GetOrganizationId(ClaimsPrincipal principal) =>
+        Guid.TryParse(principal.GetClaim(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
 
     private static void AddArrayClaim(ClaimsIdentity identity, string type, IReadOnlyList<string> values)
     {
@@ -99,7 +113,9 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             Claims.Email or Claims.EmailVerified when identity.HasScope(Scopes.Email)
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
-            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions => [Destinations.AccessToken],
+            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles => [Destinations.AccessToken],
+
+            KimlikClaimTypes.OrganizationId => [Destinations.AccessToken, Destinations.IdentityToken],
 
             _ => [],
         };

@@ -1,5 +1,8 @@
 using System.Security.Claims;
 using Kimlik.Application.Access;
+using Kimlik.Application.Organizations;
+using Kimlik.Contracts;
+using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -92,10 +95,36 @@ internal static class TokenEndpoint
             return OidcResults.Forbid(Errors.InvalidGrant, "The session has expired. Sign in again.");
         }
 
+        var organization = await ResolveOrganizationAsync(services, request, principal, user, cancellationToken);
+        if (organization.IsFailure)
+        {
+            return OidcResults.Forbid(Errors.InvalidGrant, organization.Error.Message);
+        }
+
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
-            .CreateAsync(user, principal.GetScopes(), principal.GetResources(), authenticatedAt, cancellationToken);
+            .CreateAsync(user, principal.GetScopes(), principal.GetResources(), authenticatedAt, organization.Value, cancellationToken);
         identity.SetAuthorizationId(principal.GetAuthorizationId());
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// The organization the new tokens act in: the one a refresh token request switches to, or else the one of the
+    /// code or refresh token. Membership is checked again either way, so removed members lose the context.
+    /// </summary>
+    private static async Task<Result<Guid?>> ResolveOrganizationAsync(
+        IServiceProvider services, OpenIddictRequest request, ClaimsPrincipal principal, User user, CancellationToken cancellationToken)
+    {
+        var reference = request.IsRefreshTokenGrantType() && request.GetParameter(KimlikParameters.Organization)?.ToString() is { Length: > 0 } switchTo
+            ? switchTo
+            : OidcPrincipalFactory.GetOrganizationId(principal)?.ToString();
+
+        if (reference is null)
+        {
+            return (Guid?)null;
+        }
+
+        var organization = await services.GetRequiredService<UserOrganizations>().FindAsync(user.Id, reference, cancellationToken);
+        return organization.IsSuccess ? organization.Value.Id : organization.Error;
     }
 }

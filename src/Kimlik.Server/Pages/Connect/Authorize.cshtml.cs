@@ -1,4 +1,7 @@
 using System.Collections.Immutable;
+using Kimlik.Application.Clients;
+using Kimlik.Application.Organizations;
+using Kimlik.Contracts;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore;
@@ -25,6 +28,7 @@ public sealed class AuthorizeModel(
     IOpenIddictApplicationManager applications,
     IOpenIddictAuthorizationManager authorizations,
     IOpenIddictScopeManager scopes,
+    UserOrganizations userOrganizations,
     UserManager<User> userManager,
     OidcPrincipalFactory principalFactory,
     IAntiforgery antiforgery,
@@ -88,6 +92,12 @@ public sealed class AuthorizeModel(
             ?? throw new InvalidOperationException("The client application cannot be found.");
         var applicationId = await applications.GetIdAsync(application, cancellationToken);
 
+        var (interruption, organizationId) = await ResolveOrganizationAsync(request, user, application, cancellationToken);
+        if (interruption is not null)
+        {
+            return interruption;
+        }
+
         var existingAuthorizations = await authorizations.FindAsync(
             subject: user.Id.ToString(),
             client: applicationId,
@@ -101,7 +111,7 @@ public sealed class AuthorizeModel(
             await antiforgery.ValidateRequestAsync(HttpContext);
 
             return decision == ConsentAccepted
-                ? await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, cancellationToken)
+                ? await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, organizationId, cancellationToken)
                 : ForbidWith(Errors.AccessDenied, "The user denied the request.");
         }
 
@@ -113,7 +123,7 @@ public sealed class AuthorizeModel(
             case ConsentTypes.Implicit:
             case ConsentTypes.External:
             case ConsentTypes.Explicit when existingAuthorizations.Count > 0 && !request.HasPromptValue(PromptValues.Consent):
-                return await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, cancellationToken);
+                return await IssueCodeAsync(user, applicationId!, request, session.Properties, existingAuthorizations, organizationId, cancellationToken);
 
             case ConsentTypes.Explicit or ConsentTypes.Systematic when request.HasPromptValue(PromptValues.None):
                 return ForbidWith(Errors.ConsentRequired, "Interactive user consent is required.");
@@ -131,9 +141,10 @@ public sealed class AuthorizeModel(
         OpenIddictRequest request,
         AuthenticationProperties? session,
         List<object> existingAuthorizations,
+        Guid? organizationId,
         CancellationToken cancellationToken)
     {
-        var identity = await principalFactory.CreateAsync(user, request.GetScopes(), resources: null, session?.IssuedUtc, cancellationToken);
+        var identity = await principalFactory.CreateAsync(user, request.GetScopes(), resources: null, session?.IssuedUtc, organizationId, cancellationToken);
 
         // A permanent authorization records the consent and ties together every token issued under it.
         var authorization = existingAuthorizations.LastOrDefault()
@@ -141,6 +152,33 @@ public sealed class AuthorizeModel(
         identity.SetAuthorizationId(await authorizations.GetIdAsync(authorization, cancellationToken));
 
         return SignIn(new System.Security.Claims.ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// The organization the tokens act in: the one the request names, if the user belongs to it. A client that
+    /// requires an organization sends users without one to choose theirs first.
+    /// </summary>
+    private async Task<(IActionResult? Interruption, Guid? OrganizationId)> ResolveOrganizationAsync(
+        OpenIddictRequest request, User user, object application, CancellationToken cancellationToken)
+    {
+        if (request.GetParameter(KimlikParameters.Organization)?.ToString() is { Length: > 0 } reference)
+        {
+            var organization = await userOrganizations.FindAsync(user.Id, reference, cancellationToken);
+            return organization.IsSuccess ? (null, organization.Value.Id) : (ForbidWith(Errors.AccessDenied, organization.Error.Message), null);
+        }
+
+        if (!ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)))
+        {
+            return (null, null);
+        }
+
+        if (request.HasPromptValue(PromptValues.None))
+        {
+            return (ForbidWith(Errors.InteractionRequired, "The user has to choose an organization."), null);
+        }
+
+        var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
+        return (LocalRedirect($"{Request.PathBase}/select-organization?returnUrl={Uri.EscapeDataString(retry)}"), null);
     }
 
     private ForbidResult ForbidWith(string error, string description) =>

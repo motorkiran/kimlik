@@ -3,6 +3,7 @@ using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
+using Kimlik.Application.Organizations;
 using Kimlik.Application.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,6 +32,7 @@ public static class DependencyInjection
 
         services.AddScoped<AccessResolver>();
         services.AddScoped<AccessGuard>();
+        services.AddScoped<UserOrganizations>();
         services.AddScoped<PermissionProvisioner>();
         services.AddScoped<RoleProvisioner>();
         services.AddScoped<ApiResourceProvisioner>();

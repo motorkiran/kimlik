@@ -1,0 +1,27 @@
+@page "/select-organization"
+@model SelectOrganizationModel
+@{
+    ViewData["Title"] = L["Choose an organization"];
+}
+
+<h1 id="page-title">@L["Choose an organization"]</h1>
+
+@if (Model.Organizations.Count == 0)
+{
+    <p class="lead">@L["This application works within an organization, and you are not a member of any yet. Ask an organization to invite you."]</p>
+}
+else
+{
+    <p class="lead">@L["This application works within an organization. Which one do you want to continue with?"]</p>
+    <form method="post">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <ul class="choices">
+            @foreach (var organization in Model.Organizations)
+            {
+                <li>
+                    <button type="submit" class="button button-secondary" name="organizationId" value="@organization.Id">@organization.Name</button>
+                </li>
+            }
+        </ul>
+    </form>
+}

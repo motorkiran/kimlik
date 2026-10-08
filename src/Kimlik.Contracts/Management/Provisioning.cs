@@ -94,6 +94,9 @@ public sealed record ProvisionedClient
     [MaxLength(50)]
     public IReadOnlyList<string> Scopes { get; init; } = [];
 
+    /// <summary>Whether every sign-in happens in an organization.</summary>
+    public bool RequireOrganization { get; init; }
+
     /// <summary>Keys of a service client's global roles; when omitted, an existing client keeps its roles.</summary>
     [MaxLength(50)]
     public IReadOnlyList<string>? Roles { get; init; }

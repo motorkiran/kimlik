@@ -30,6 +30,7 @@ public sealed class ClientProvisioner(
                     PostLogoutRedirectUris = declared.PostLogoutRedirectUris,
                     Scopes = declared.Scopes,
                     Roles = declared.Roles ?? [],
+                    RequireOrganization = declared.RequireOrganization,
                 },
                 declared.ClientSecret,
                 cancellationToken);
@@ -55,6 +56,7 @@ public sealed class ClientProvisioner(
                     RedirectUris = declared.RedirectUris,
                     PostLogoutRedirectUris = declared.PostLogoutRedirectUris,
                     Scopes = declared.Scopes,
+                    RequireOrganization = declared.RequireOrganization,
                 },
                 cancellationToken);
             if (updated.IsFailure)
@@ -94,6 +96,7 @@ public sealed class ClientProvisioner(
     private static bool HasSettings(ClientResponse existing, ProvisionedClient declared) =>
         existing.DisplayName == declared.DisplayName.Trim()
         && existing.FirstParty == declared.FirstParty
+        && existing.RequireOrganization == declared.RequireOrganization
         && Declared.SameUris(existing.RedirectUris, declared.RedirectUris)
         && Declared.SameUris(existing.PostLogoutRedirectUris, declared.PostLogoutRedirectUris)
         && Declared.SameSet(existing.Scopes.Where(scope => scope != Scopes.OpenId), declared.Scopes.Where(scope => scope != Scopes.OpenId));

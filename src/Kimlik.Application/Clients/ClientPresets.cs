@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Kimlik.Application.Abstractions;
 using Kimlik.Contracts.Management;
@@ -17,14 +18,18 @@ internal sealed record ClientSettings(
     bool FirstParty,
     IReadOnlyList<string> RedirectUris,
     IReadOnlyList<string> PostLogoutRedirectUris,
-    IReadOnlyList<string> Scopes);
+    IReadOnlyList<string> Scopes,
+    bool RequireOrganization);
 
 /// <summary>
 /// Turns a client type into OpenIddict settings, and back. The type is not stored: it is read from the settings
 /// it produced, so the two cannot drift apart.
 /// </summary>
-internal static partial class ClientPresets
+public static partial class ClientPresets
 {
+    /// <summary>The application property, in OpenIddict's custom properties, that makes sign-ins require an organization.</summary>
+    public const string RequireOrganizationProperty = "kimlik_require_organization";
+
     private const int UriMaxLength = 2000;
 
     /// <summary>Secrets that people choose, as in a provisioning file, must be at least this long.</summary>
@@ -33,16 +38,16 @@ internal static partial class ClientPresets
     /// <summary>The scopes of apps that sign users in. <c>openid</c> needs no permission in OpenIddict.</summary>
     private static readonly HashSet<string> UserScopes = new(StringComparer.Ordinal) { Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess };
 
-    public static bool IsConfidential(ClientType type) => type is ClientType.Web or ClientType.Service;
+    internal static bool IsConfidential(ClientType type) => type is ClientType.Web or ClientType.Service;
 
-    public static bool SignsInUsers(ClientType type) => type is not ClientType.Service;
+    internal static bool SignsInUsers(ClientType type) => type is not ClientType.Service;
 
-    public static bool IsValidClientId(string clientId) => ClientIdPattern().IsMatch(clientId);
+    internal static bool IsValidClientId(string clientId) => ClientIdPattern().IsMatch(clientId);
 
     /// <summary>A 256-bit secret, which OpenIddict stores hashed.</summary>
-    public static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+    internal static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
-    public static Result CheckSecret(ClientType type, string secret)
+    internal static Result CheckSecret(ClientType type, string secret)
     {
         if (!IsConfidential(type))
         {
@@ -52,7 +57,7 @@ internal static partial class ClientPresets
         return secret.Length >= SecretMinimumLength ? Result.Success() : ClientErrors.WeakSecret;
     }
 
-    public static async Task<Result> ValidateAsync(IKimlikDbContext context, ClientType type, ClientSettings settings, CancellationToken cancellationToken)
+    internal static async Task<Result> ValidateAsync(IKimlikDbContext context, ClientType type, ClientSettings settings, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(settings.DisplayName) || settings.DisplayName.Trim().Length > 100)
         {
@@ -79,6 +84,11 @@ internal static partial class ClientPresets
             return ClientErrors.UserScopeNotSupported;
         }
 
+        if (!SignsInUsers(type) && settings.RequireOrganization)
+        {
+            return ClientErrors.OrganizationNotSupported;
+        }
+
         var apiScopes = settings.Scopes.Where(scope => !UserScopes.Contains(scope)).Distinct(StringComparer.Ordinal).ToList();
         var registered = await context.Scopes.CountAsync(scope => apiScopes.Contains(scope.Name!), cancellationToken);
 
@@ -86,7 +96,7 @@ internal static partial class ClientPresets
     }
 
     /// <summary>Applies the type and settings to <paramref name="descriptor"/>, replacing its grants, URIs and scopes.</summary>
-    public static void Apply(OpenIddictApplicationDescriptor descriptor, ClientType type, ClientSettings settings)
+    internal static void Apply(OpenIddictApplicationDescriptor descriptor, ClientType type, ClientSettings settings)
     {
         descriptor.ClientType = IsConfidential(type) ? ClientTypes.Confidential : ClientTypes.Public;
         descriptor.ApplicationType = type == ClientType.Native ? ApplicationTypes.Native : ApplicationTypes.Web;
@@ -128,16 +138,26 @@ internal static partial class ClientPresets
         }
 
         descriptor.Permissions.UnionWith(settings.Scopes.Where(scope => scope != Scopes.OpenId).Select(scope => OidcPermissions.Prefixes.Scope + scope));
+
+        descriptor.Properties.Remove(RequireOrganizationProperty);
+        if (settings.RequireOrganization)
+        {
+            descriptor.Properties[RequireOrganizationProperty] = JsonSerializer.SerializeToElement(true);
+        }
     }
 
-    public static ClientType TypeOf(string? clientType, string? applicationType, IEnumerable<string> permissions) => clientType switch
+    /// <summary>Whether sign-ins to the client must happen in an organization.</summary>
+    public static bool RequiresOrganization(IReadOnlyDictionary<string, JsonElement> properties) =>
+        properties.TryGetValue(RequireOrganizationProperty, out var value) && value.ValueKind == JsonValueKind.True;
+
+    internal static ClientType TypeOf(string? clientType, string? applicationType, IEnumerable<string> permissions) => clientType switch
     {
         ClientTypes.Public => applicationType == ApplicationTypes.Native ? ClientType.Native : ClientType.Spa,
         _ => permissions.Contains(OidcPermissions.GrantTypes.ClientCredentials, StringComparer.Ordinal) ? ClientType.Service : ClientType.Web,
     };
 
     /// <summary>The scopes a client may request; apps that sign users in may always request <c>openid</c>.</summary>
-    public static IReadOnlyList<string> ScopesOf(ClientType type, IEnumerable<string> permissions) =>
+    internal static IReadOnlyList<string> ScopesOf(ClientType type, IEnumerable<string> permissions) =>
     [
         .. SignsInUsers(type) ? [Scopes.OpenId] : Array.Empty<string>(),
         .. permissions

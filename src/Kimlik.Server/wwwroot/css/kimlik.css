@@ -238,6 +238,18 @@ input[aria-invalid="true"],
     border-radius: var(--control-radius);
 }
 
+.choices {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.choices .button {
+    width: 100%;
+}
+
 .footer nav {
     display: flex;
     gap: 1rem;

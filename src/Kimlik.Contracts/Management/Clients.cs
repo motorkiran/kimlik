@@ -32,7 +32,8 @@ public sealed record ClientResponse(
     IReadOnlyList<string> RedirectUris,
     IReadOnlyList<string> PostLogoutRedirectUris,
     IReadOnlyList<string> Scopes,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    bool RequireOrganization);
 
 public sealed record CreateClientRequest
 {
@@ -69,6 +70,12 @@ public sealed record CreateClientRequest
     /// <summary>Keys of the global roles of a service client.</summary>
     [MaxLength(50)]
     public IReadOnlyList<string> Roles { get; init; } = [];
+
+    /// <summary>
+    /// Whether every sign-in happens in an organization. When the authorization request names none, the user
+    /// chooses one of theirs.
+    /// </summary>
+    public bool RequireOrganization { get; init; }
 }
 
 /// <summary>A new client and, for web and service clients, its secret. The secret is shown only this once.</summary>
@@ -96,6 +103,8 @@ public sealed record UpdateClientRequest
     }
 
     public bool? FirstParty { get; init; }
+
+    public bool? RequireOrganization { get; init; }
 
     [MaxLength(20)]
     public IReadOnlyList<string>? RedirectUris

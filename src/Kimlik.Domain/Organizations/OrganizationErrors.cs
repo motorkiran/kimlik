@@ -10,6 +10,9 @@ public static class OrganizationErrors
 
     public static readonly Error MemberNotFound = Error.NotFound("organization.member_not_found", "The user is not a member of the organization.");
 
+    /// <summary>The same answer whether the organization exists or not, so it does not reveal which ones do.</summary>
+    public static readonly Error NotAMember = Error.Forbidden("organization.not_a_member", "The user is not a member of the organization.");
+
     public static readonly Error AlreadyMember = Error.Conflict("organization.already_member", "The user is already a member of the organization.");
 
     public static readonly Error InvalidName = Error.Validation("organization.invalid_name", "A name is required and is at most 100 characters.");

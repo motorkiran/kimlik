@@ -23,7 +23,8 @@ internal static class ClientMapping
             [.. (await applications.GetRedirectUrisAsync(application, cancellationToken)).Order(StringComparer.Ordinal)],
             [.. (await applications.GetPostLogoutRedirectUrisAsync(application, cancellationToken)).Order(StringComparer.Ordinal)],
             ClientPresets.ScopesOf(type, permissions),
-            [.. roles.Order(StringComparer.Ordinal)]);
+            [.. roles.Order(StringComparer.Ordinal)],
+            ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)));
     }
 
     public static async Task<ClientResponse> ToResponseAsync(

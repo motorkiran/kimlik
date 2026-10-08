@@ -3037,7 +3037,8 @@
           "redirectUris",
           "postLogoutRedirectUris",
           "scopes",
-          "roles"
+          "roles",
+          "requireOrganization"
         ],
         "type": "object",
         "properties": {
@@ -3083,6 +3084,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "requireOrganization": {
+            "type": "boolean"
           }
         },
         "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client."
@@ -3206,6 +3210,10 @@
               "type": "string"
             },
             "description": "Keys of the global roles of a service client."
+          },
+          "requireOrganization": {
+            "type": "boolean",
+            "description": "Whether every sign-in happens in an organization. When the authorization request names none, the user\nchooses one of theirs."
           }
         }
       },
@@ -3808,6 +3816,10 @@
               "type": "string"
             }
           },
+          "requireOrganization": {
+            "type": "boolean",
+            "description": "Whether every sign-in happens in an organization."
+          },
           "roles": {
             "maxItems": 50,
             "type": [
@@ -4101,6 +4113,12 @@
             "description": "The new name; a client always has one, so it cannot be cleared."
           },
           "firstParty": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "requireOrganization": {
             "type": [
               "null",
               "boolean"

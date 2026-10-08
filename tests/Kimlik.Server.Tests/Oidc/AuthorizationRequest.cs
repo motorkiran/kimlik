@@ -18,6 +18,9 @@ internal sealed class AuthorizationRequest(string clientId)
 
     public string? Prompt { get; init; }
 
+    /// <summary>The organization to sign in to, by ID or slug.</summary>
+    public string? Organization { get; init; }
+
     public string RedirectUri { get; init; } = TestWebClient.RedirectUri;
 
     public string Url
@@ -35,6 +38,11 @@ internal sealed class AuthorizationRequest(string clientId)
                 ["code_challenge"] = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(CodeVerifier))),
                 ["code_challenge_method"] = "S256",
             };
+
+            if (Organization is not null)
+            {
+                parameters["organization"] = Organization;
+            }
 
             if (Prompt is not null)
             {

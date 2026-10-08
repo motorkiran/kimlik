@@ -22,6 +22,8 @@ public sealed class KimlikUser
         Email = principal.FindFirstValue(JwtRegisteredClaimNames.Email);
         Roles = Values(principal, KimlikClaimTypes.Roles);
         Permissions = Values(principal, KimlikClaimTypes.Permissions);
+        OrganizationId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
+        OrganizationRoles = Values(principal, KimlikClaimTypes.OrganizationRoles);
     }
 
     /// <summary>The user ID, or the client ID of a service client.</summary>
@@ -42,9 +44,17 @@ public sealed class KimlikUser
     /// <summary>Present when the client was granted the <c>email</c> scope.</summary>
     public string? Email { get; }
 
+    /// <summary>The user's global roles, or a service client's roles.</summary>
     public IReadOnlySet<string> Roles { get; }
 
+    /// <summary>What the caller may do: the permissions of its global roles and of its roles in <see cref="OrganizationId"/>.</summary>
     public IReadOnlySet<string> Permissions { get; }
+
+    /// <summary>The organization the token acts in, if the app signed the user in to one.</summary>
+    public Guid? OrganizationId { get; }
+
+    /// <summary>The user's roles in <see cref="OrganizationId"/>.</summary>
+    public IReadOnlySet<string> OrganizationRoles { get; }
 
     public bool HasPermission(string permission) => Permissions.Contains(permission);
 
