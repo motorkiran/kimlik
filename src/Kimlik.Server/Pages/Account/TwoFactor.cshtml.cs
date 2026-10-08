@@ -17,7 +17,7 @@ namespace Kimlik.Server.Pages.Account;
 /// </summary>
 public sealed class TwoFactorModel(
     UserManager<User> userManager,
-    SignInManager<User> signInManager,
+    SignInFlow signInFlow,
     TwoFactor twoFactor,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
@@ -49,7 +49,7 @@ public sealed class TwoFactorModel(
 
         // Creating the key updates the security stamp.
         await ShowKeyAsync(user);
-        await KeepThisSessionAsync(signInManager);
+        await signInFlow.RenewAsync();
         return Page();
     }
 
@@ -75,7 +75,7 @@ public sealed class TwoFactorModel(
             return Page();
         }
 
-        await KeepThisSessionAsync(signInManager);
+        await signInFlow.RenewAsync();
         RecoveryCodes = confirmed.Value.Codes;
         return Page();
     }
@@ -114,7 +114,7 @@ public sealed class TwoFactorModel(
             return await ShowStatusAsync(cancellationToken);
         }
 
-        await KeepThisSessionAsync(signInManager);
+        await signInFlow.RenewAsync();
         Notice = localizer["Two-factor authentication is off."];
         return await ShowStatusAsync(cancellationToken);
     }

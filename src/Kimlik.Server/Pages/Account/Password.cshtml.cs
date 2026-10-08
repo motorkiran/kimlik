@@ -18,7 +18,7 @@ namespace Kimlik.Server.Pages.Account;
 public sealed class PasswordModel(
     UserManager<User> userManager,
     MyAccount account,
-    SignInManager<User> signInManager,
+    SignInFlow signInFlow,
     RequestThrottle throttle,
     AccountErrorMessages errorMessages,
     IOptions<AccountOptions> accounts,
@@ -81,7 +81,7 @@ public sealed class PasswordModel(
             return Page();
         }
 
-        await KeepThisSessionAsync(signInManager);
+        await signInFlow.RenewAsync();
         Changed = true;
         return Page();
     }

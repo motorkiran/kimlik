@@ -1,5 +1,6 @@
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Identity;
 using Kimlik.Server.SocialLogin;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -12,7 +13,7 @@ namespace Kimlik.Server.Pages.Account;
 /// <summary>The accounts at other providers that the user signs in with: connected ones, and the rest to connect.</summary>
 public sealed class LoginsModel(
     UserManager<User> userManager,
-    SignInManager<User> signInManager,
+    SignInFlow signInFlow,
     ExternalProviders providers,
     ExternalLogins logins,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
@@ -53,7 +54,7 @@ public sealed class LoginsModel(
         if (unlinked.IsSuccess)
         {
             // Unlinking updates the security stamp.
-            await KeepThisSessionAsync(signInManager);
+            await signInFlow.RenewAsync();
             Notice = localizer["The account was disconnected."];
         }
         else if (unlinked.Error == AccountErrors.LastSignInMethod)

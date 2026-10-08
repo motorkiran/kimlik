@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Net;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Kimlik.Server.Tests.Mfa;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Kimlik.Server.Tests.Accounts;
 
@@ -65,6 +67,26 @@ public sealed class AccountPageTests(KimlikServerFixture server)
 
         (await browser.GetAsync("/account")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await elsewhere.GetAsync("/account")).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
+    public async Task KeptSession_StillReportsWhenTheUserSignedIn()
+    {
+        var user = await server.CreateUserAsync();
+        var client = await server.CreateWebClientAsync();
+        using var browser = await SignedInAsync(server, user);
+        var signedIn = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await Task.Delay(TimeSpan.FromSeconds(1.5), TestContext.Current.CancellationToken);
+
+        // Changing the password issues this browser's session again, which must not make the sign-in look recent.
+        var page = await browser.GetPageAsync("/account/password");
+        using var changed = await browser.SubmitAsync(page, Passwords(user.Password, "a brand new passphrase"));
+        var request = new AuthorizationRequest(client.ClientId);
+        using var callback = await browser.FollowAsync(await browser.GetAsync(request.Url));
+        var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
+
+        var authenticatedAt = long.Parse(new JsonWebToken(tokens.GetProperty("id_token").GetString()).GetClaim("auth_time").Value, CultureInfo.InvariantCulture);
+        authenticatedAt.ShouldBeLessThanOrEqualTo(signedIn);
     }
 
     [Fact]

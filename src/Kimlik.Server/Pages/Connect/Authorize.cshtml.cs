@@ -84,7 +84,7 @@ public sealed class AuthorizeModel(
             user = null;
         }
 
-        if (user is null || request.HasPromptValue(PromptValues.Login) || IsOlderThanMaxAge(request, session.Properties))
+        if (user is null || request.HasPromptValue(PromptValues.Login) || IsOlderThanMaxAge(request, session))
         {
             if (request.HasPromptValue(PromptValues.None))
             {
@@ -163,7 +163,7 @@ public sealed class AuthorizeModel(
             user,
             request.GetScopes(),
             resources: null,
-            session.Properties?.IssuedUtc,
+            SignInFlow.SignedInAt(session),
             OidcPrincipalFactory.AuthenticationMethodsOf(session.Principal!),
             organizationId,
             cancellationToken);
@@ -241,9 +241,9 @@ public sealed class AuthorizeModel(
     private ForbidResult ForbidWith(string error, string description) =>
         Forbid(OidcResults.ErrorProperties(error, description), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-    private bool IsOlderThanMaxAge(OpenIddictRequest request, AuthenticationProperties? session) =>
+    private bool IsOlderThanMaxAge(OpenIddictRequest request, AuthenticateResult session) =>
         request.MaxAge is { } maxAge
-        && session?.IssuedUtc is { } authenticatedAt
+        && SignInFlow.SignedInAt(session) is { } authenticatedAt
         && timeProvider.GetUtcNow() - authenticatedAt > TimeSpan.FromSeconds(maxAge);
 
     /// <summary>

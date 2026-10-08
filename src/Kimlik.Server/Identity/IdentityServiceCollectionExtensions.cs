@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Kimlik.Admin.Security;
 using Kimlik.Application.Abstractions;
@@ -43,22 +44,22 @@ internal static class IdentityServiceCollectionExtensions
     }
 
     /// <summary>
-    /// The security stamp check rebuilds the session's claims from the user, which would drop how they signed in
-    /// (<see cref="SignInFlow.MethodClaim"/>) and the external provider, if any.
+    /// The security stamp check rebuilds the session's claims from the user, which would drop how and when they signed
+    /// in (<see cref="SignInFlow.MethodClaim"/>, <see cref="SignInFlow.SignedInAtClaim"/>) and the external provider, if any.
     /// </summary>
     private static Task KeepHowTheUserSignedIn(SecurityStampRefreshingPrincipalContext context)
     {
         if (context.NewPrincipal?.Identity is ClaimsIdentity identity && context.CurrentPrincipal is { } current)
         {
             identity.AddClaims(current.Claims
-                .Where(claim => claim.Type is SignInFlow.MethodClaim or ClaimTypes.AuthenticationMethod)
-                .Select(claim => new Claim(claim.Type, claim.Value)));
+                .Where(claim => claim.Type is SignInFlow.MethodClaim or SignInFlow.ProviderClaim or SignInFlow.SignedInAtClaim)
+                .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType)));
         }
 
         return Task.CompletedTask;
     }
 
-    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts, IOptions<MfaOptions> mfa)
+    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts, IOptions<MfaOptions> mfa, TimeProvider timeProvider)
         : IConfigureNamedOptions<CookieAuthenticationOptions>
     {
         public void Configure(string? name, CookieAuthenticationOptions options)
@@ -71,6 +72,19 @@ internal static class IdentityServiceCollectionExtensions
                 options.LoginPath = "/signin";
                 options.LogoutPath = "/signout";
                 options.AccessDeniedPath = "/error";
+
+                // Every new session records when the user signed in; renewals do not sign in again, so they keep it.
+                var signingIn = options.Events.OnSigningIn;
+                options.Events.OnSigningIn = context =>
+                {
+                    if (context.Principal?.Identity is ClaimsIdentity identity && !identity.HasClaim(claim => claim.Type == SignInFlow.SignedInAtClaim))
+                    {
+                        var now = timeProvider.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+                        identity.AddClaim(new Claim(SignInFlow.SignedInAtClaim, now, ClaimValueTypes.Integer64));
+                    }
+
+                    return signingIn(context);
+                };
             }
             else if (name == IdentityConstants.TwoFactorUserIdScheme)
             {

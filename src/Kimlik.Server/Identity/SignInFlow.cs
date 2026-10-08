@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Mfa;
@@ -59,6 +60,12 @@ public sealed class SignInFlow(
     /// </summary>
     public const string ProviderClaim = ClaimTypes.AuthenticationMethod;
 
+    /// <summary>
+    /// When the user signed in, in Unix seconds. The session cookie's own issue time moves whenever the cookie is
+    /// renewed, so it cannot tell how recent the sign-in is.
+    /// </summary>
+    public const string SignedInAtClaim = "kimlik:signed_in_at";
+
     private const string PersistentClaim = "kimlik:persistent";
     private const string StepClaim = "kimlik:step";
 
@@ -111,6 +118,31 @@ public sealed class SignInFlow(
         await signInManager.Context.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
         await RecordAsync(user, method, provider, cancellationToken);
     }
+
+    /// <summary>
+    /// Issues the session again for the same sign-in, after a change that updated the security stamp, which ends the
+    /// user's other sessions and would otherwise end this one too at its next check. Unlike Identity's refresh, it keeps
+    /// everything about how and when the user signed in.
+    /// </summary>
+    public async Task RenewAsync()
+    {
+        var session = await signInManager.Context.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+        if (session.Principal is null || await signInManager.UserManager.GetUserAsync(session.Principal) is not { } user)
+        {
+            return;
+        }
+
+        var kept = session.Principal.Claims
+            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim)
+            .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
+        await signInManager.SignInWithClaimsAsync(user, session.Properties, kept);
+    }
+
+    /// <summary>When the session's user signed in; sessions from before the claim fall back to the cookie's issue time.</summary>
+    public static DateTimeOffset? SignedInAt(AuthenticateResult session) =>
+        long.TryParse(session.Principal?.FindFirstValue(SignedInAtClaim), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
+            : session.Properties?.IssuedUtc;
 
     /// <summary>Records a sign-in that Identity's two-factor sign-in completed.</summary>
     public async Task RecordAsync(User user, string method, string? provider, CancellationToken cancellationToken)
