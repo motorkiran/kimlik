@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Kimlik.Application.Accounts;
 using Kimlik.Contracts.Account;
 using Kimlik.Domain.Users;
@@ -58,7 +57,7 @@ public sealed class PasskeysModel(
         }
 
         var challenge = await ceremonies.BeginCreationAsync(user, HttpContext);
-        return Content(new JsonObject { ["options"] = JsonNode.Parse(challenge.OptionsJson), ["state"] = challenge.State }.ToJsonString(), "application/json");
+        return Content(challenge.ToJson(), "application/json");
     }
 
     public async Task<IActionResult> OnPostAddAsync(CancellationToken cancellationToken)

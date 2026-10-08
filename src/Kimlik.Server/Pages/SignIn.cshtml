@@ -1,4 +1,5 @@
 @page "/signin"
+@using Kimlik.Server.Hosting
 @model SignInModel
 @{
     ViewData["Title"] = L["Sign in"];
@@ -20,9 +21,11 @@
 
 <form method="post" novalidate>
     <input type="hidden" asp-for="ReturnUrl" />
+    <input type="hidden" asp-for="Credential" />
+    <input type="hidden" asp-for="State" />
     <div class="field">
         <label asp-for="Input.Email"></label>
-        <input asp-for="Input.Email" autocomplete="username" autofocus />
+        <input asp-for="Input.Email" autocomplete="username webauthn" autofocus />
         <span asp-validation-for="Input.Email" class="field-error"></span>
     </div>
     <div class="field">
@@ -35,9 +38,16 @@
         <a asp-page="/ForgotPassword">@L["Forgot password?"]</a>
     </div>
     <button type="submit" class="button">@L["Sign in"]</button>
+    <button type="submit" class="button button-secondary" id="passkey-sign-in" formaction="@Url.Page("/SignIn", "Passkey")"
+            data-passkey-sign-in data-autofill data-options="@Url.Page("/SignIn", "PasskeyOptions")" hidden>@L["Sign in with a passkey"]</button>
+    <p class="field-error" data-passkey-error hidden>@L["The passkey could not be used. Try again."]</p>
 </form>
 
 <partial name="_ExternalSignIn" model="Model.ReturnUrl" />
+
+@section Scripts {
+    <script src="~/js/passkeys.js" asp-append-version="true" nonce="@HttpContext.GetCspNonce()" defer></script>
+}
 
 @if (Model.CanSignUp)
 {

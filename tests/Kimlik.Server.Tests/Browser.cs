@@ -61,7 +61,9 @@ internal sealed class Browser : IDisposable
         return response;
     }
 
-    public async Task<HttpResponseMessage> SubmitAsync(WebPage page, IReadOnlyDictionary<string, string>? values = null, string formSelector = "form", (string Name, string Value)? submitter = null)
+    /// <summary>Submits the form to its action, or to <paramref name="action"/>, as a button's <c>formaction</c> does.</summary>
+    public async Task<HttpResponseMessage> SubmitAsync(
+        WebPage page, IReadOnlyDictionary<string, string>? values = null, string formSelector = "form", (string Name, string Value)? submitter = null, string? action = null)
     {
         var form = page.Document.QuerySelector<IHtmlFormElement>(formSelector)
             ?? throw new InvalidOperationException($"No form matches '{formSelector}' on {page.Url}.");
@@ -93,9 +95,9 @@ internal sealed class Browser : IDisposable
             fields.Add(new(button.Name, button.Value));
         }
 
-        var action = form.GetAttribute("action") is { Length: > 0 } explicitAction ? new Uri(page.Url, explicitAction) : page.Url;
+        var target = (action ?? form.GetAttribute("action")) is { Length: > 0 } explicitAction ? new Uri(page.Url, explicitAction) : page.Url;
         using var content = new FormUrlEncodedContent(fields);
-        return await _client.PostAsync(action, content, TestContext.Current.CancellationToken);
+        return await _client.PostAsync(target, content, TestContext.Current.CancellationToken);
     }
 
     public static async Task<WebPage> ReadPageAsync(HttpResponseMessage response, HttpStatusCode expectedStatus = HttpStatusCode.OK)

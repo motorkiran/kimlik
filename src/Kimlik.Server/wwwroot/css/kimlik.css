@@ -189,6 +189,10 @@ input[aria-invalid="true"],
     filter: brightness(1.08);
 }
 
+form > .button + .button {
+    margin-top: 0.625rem;
+}
+
 .button-secondary {
     color: var(--text);
     background: transparent;

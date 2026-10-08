@@ -13,9 +13,12 @@ using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
 
+/// <summary>Signing in with an address and a password, or with a passkey.</summary>
+[RunsScripts]
 public sealed class SignInModel(
     SignInManager<User> signInManager,
     SignInFlow signInFlow,
+    PasskeyCeremonies passkeys,
     PasswordHashTiming passwordHashTiming,
     RequestThrottle throttle,
     IKimlikDbContext context,
@@ -33,10 +36,57 @@ public sealed class SignInModel(
 
     public bool ShowResendVerification { get; private set; }
 
+    /// <summary>The authenticator's answer to a passkey sign-in, as the browser serializes it.</summary>
+    [BindProperty]
+    public string? Credential { get; set; }
+
+    /// <summary>The protected state of the passkey sign-in, as it went out with the options.</summary>
+    [BindProperty]
+    public string? State { get; set; }
+
     public bool CanSignUp => accounts.Value.Registration == RegistrationMode.Open;
 
     public void OnGet()
     {
+    }
+
+    /// <summary>The options for signing in with a passkey, with the state to post back.</summary>
+    public async Task<IActionResult> OnPostPasskeyOptionsAsync() =>
+        Content((await passkeys.BeginAssertionAsync(HttpContext)).ToJson(), "application/json");
+
+    /// <summary>
+    /// Signs in with a passkey. It verifies the user on the device, so it is both factors at once; and since it cannot be
+    /// guessed, a lockout after wrong passwords does not stop it.
+    /// </summary>
+    public async Task<IActionResult> OnPostPasskeyAsync(CancellationToken cancellationToken)
+    {
+        // The address and password fields of the form are not part of this sign-in.
+        ModelState.Clear();
+
+        if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
+            return Page();
+        }
+
+        if (Credential is not { Length: > 0 } || State is not { Length: > 0 }
+            || await passkeys.CompleteAssertionAsync(Credential, State, HttpContext) is not { } assertion)
+        {
+            return await RejectAsync(null, "passkey_rejected", localizer["The passkey could not be verified. Try again."], cancellationToken);
+        }
+
+        var user = assertion.User;
+        if (!user.CanSignIn || !await signInManager.CanSignInAsync(user))
+        {
+            return await RejectAsync(user, user.CanSignIn ? "email_not_verified" : "suspended", localizer["This account cannot sign in."], cancellationToken);
+        }
+
+        // The passkey's signature counter has moved on.
+        await signInManager.UserManager.AddOrUpdatePasskeyAsync(user, assertion.Passkey);
+        var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
+        await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.PasskeyMethod, provider: null, cancellationToken);
+        return LocalRedirect(returnUrl);
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)

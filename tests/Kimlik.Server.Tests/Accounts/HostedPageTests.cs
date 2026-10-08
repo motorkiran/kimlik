@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -36,13 +37,28 @@ public sealed class HostedPageTests(KimlikServerFixture server)
     {
         using var browser = new Browser(server);
 
-        using var response = await browser.GetAsync("/signin");
+        using var response = await browser.GetAsync("/signup");
 
         var policy = response.Headers.GetValues("Content-Security-Policy").Single();
         policy.ShouldContain("script-src 'none'");
         policy.ShouldContain("frame-ancestors 'none'");
         policy.ShouldMatch("style-src 'self' 'nonce-[A-Za-z0-9+/=]+'");
         response.Headers.GetValues("X-Frame-Options").Single().ShouldBe("DENY");
+    }
+
+    [Fact]
+    public async Task OnlyPagesThatNeedIt_RunScripts_WithTheRequestsNonce()
+    {
+        using var browser = new Browser(server);
+
+        using var signIn = await browser.GetAsync("/signin");
+        using var signUp = await browser.GetAsync("/signup");
+
+        var policy = signIn.Headers.GetValues("Content-Security-Policy").Single();
+        var nonce = Regex.Match(policy, "script-src 'nonce-([A-Za-z0-9+/=]+)'");
+        nonce.Success.ShouldBeTrue();
+        (await signIn.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain($"nonce=\"{nonce.Groups[1].Value}\"");
+        signUp.Headers.GetValues("Content-Security-Policy").Single().ShouldContain("script-src 'none'");
     }
 
     [Fact]

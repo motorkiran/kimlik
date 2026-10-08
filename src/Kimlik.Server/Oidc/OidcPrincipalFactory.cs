@@ -106,10 +106,15 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
     /// <summary>
     /// How the user signed in, as method references (RFC 8176): a password (<c>pwd</c>) or an account at another
     /// provider (<c>fed</c>, as Microsoft Entra ID uses it), and a one-time code when a second factor was used (or the
-    /// browser was trusted after one).
+    /// browser was trusted after one); or a passkey (<c>pop</c>), which counts as two factors.
     /// </summary>
     public static IReadOnlyList<string> AuthenticationMethodsOf(ClaimsPrincipal session)
     {
+        if (session.HasClaim(SignInFlow.MethodClaim, SignInFlow.PasskeyMethod))
+        {
+            return [SignInFlow.PasskeyMethod, SignInFlow.MultiFactorMethod];
+        }
+
         var firstFactor = session.HasClaim(claim => claim.Type == SignInFlow.ProviderClaim) ? SignInFlow.FederatedMethod : SignInFlow.PasswordMethod;
 
         return session.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod) ? [firstFactor, "otp", "mfa"] : [firstFactor];

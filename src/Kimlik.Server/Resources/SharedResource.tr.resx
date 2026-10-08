@@ -607,4 +607,16 @@
   <data name="Your passkey has been added." xml:space="preserve">
     <value>Geçiş anahtarınız eklendi.</value>
   </data>
+  <data name="Sign in with a passkey" xml:space="preserve">
+    <value>Geçiş anahtarıyla giriş yap</value>
+  </data>
+  <data name="The passkey could not be used. Try again." xml:space="preserve">
+    <value>Geçiş anahtarı kullanılamadı. Yeniden deneyin.</value>
+  </data>
+  <data name="The passkey could not be verified. Try again." xml:space="preserve">
+    <value>Geçiş anahtarı doğrulanamadı. Yeniden deneyin.</value>
+  </data>
+  <data name="This account cannot sign in." xml:space="preserve">
+    <value>Bu hesapla giriş yapılamıyor.</value>
+  </data>
 </root>

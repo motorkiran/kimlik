@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +16,11 @@ public sealed class PasskeyCeremonies(IPasskeyHandler<User> handler, IDataProtec
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(5);
 
     /// <summary>The options for the browser's WebAuthn API, as JSON, and the protected state to post back with the answer.</summary>
-    public sealed record Challenge(string OptionsJson, string State);
+    public sealed record Challenge(string OptionsJson, string State)
+    {
+        /// <summary>What the pages send the browser: <c>{ "options": ..., "state": "..." }</c>.</summary>
+        public string ToJson() => new JsonObject { ["options"] = JsonNode.Parse(OptionsJson), ["state"] = State }.ToJsonString();
+    }
 
     /// <summary>Starts adding a passkey to <paramref name="user"/>; the authenticator excludes the ones it already holds.</summary>
     public async Task<Challenge> BeginCreationAsync(User user, HttpContext context)
@@ -51,7 +56,7 @@ public sealed class PasskeyCeremonies(IPasskeyHandler<User> handler, IDataProtec
     }
 
     /// <summary>The user and their passkey, with its updated counter, if the authenticator's answer is valid.</summary>
-    public async Task<PasskeyAssertionResult<User>?> CompleteAssertionAsync(string credentialJson, string state, HttpContext context)
+    public async Task<(User User, UserPasskeyInfo Passkey)?> CompleteAssertionAsync(string credentialJson, string state, HttpContext context)
     {
         if (Unprotect(AssertionProtector(), state) is not { } assertionState)
         {
@@ -65,7 +70,7 @@ public sealed class PasskeyCeremonies(IPasskeyHandler<User> handler, IDataProtec
             HttpContext = context,
         });
 
-        return result.Succeeded ? result : null;
+        return result.Succeeded ? (result.User, result.Passkey) : null;
     }
 
     private ITimeLimitedDataProtector CreationProtector(User user) =>

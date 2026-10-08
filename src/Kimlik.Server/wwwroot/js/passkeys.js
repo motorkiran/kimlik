@@ -1,7 +1,7 @@
-// The browser side of Kimlik's passkey ceremonies. A form marked data-passkey="create" adds a passkey, and one marked
-// data-passkey="get" signs in with one: each fetches its options from data-options, has the authenticator answer
-// them, and posts the answer in its Credential and State fields. Elements marked data-passkey-unsupported show when
-// the browser cannot use passkeys; the pages work without this script, only without passkeys.
+// The browser side of Kimlik's passkey ceremonies. A form marked data-passkey="create" adds a passkey, and a button
+// marked data-passkey-sign-in signs in with one: each fetches its options from data-options, has the authenticator
+// answer them, and posts the answer in its form's Credential and State fields. Elements marked data-passkey-unsupported
+// show when the browser cannot use passkeys; the pages work without this script, only without passkeys.
 'use strict';
 
 (() => {
@@ -17,8 +17,8 @@
         return;
     }
 
-    async function fetchOptions(form) {
-        const response = await fetch(form.dataset.options, {
+    async function fetchOptions(form, url) {
+        const response = await fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { RequestVerificationToken: form.elements.__RequestVerificationToken.value },
@@ -31,9 +31,13 @@
         return response.json();
     }
 
-    function post(form, credential, state) {
+    function post(form, credential, state, action) {
         form.elements.Credential.value = JSON.stringify(credential.toJSON());
         form.elements.State.value = state;
+        if (action) {
+            form.action = action;
+        }
+
         form.submit();
     }
 
@@ -52,7 +56,7 @@
         form.addEventListener('submit', async event => {
             event.preventDefault();
             try {
-                const { options, state } = await fetchOptions(form);
+                const { options, state } = await fetchOptions(form, form.dataset.options);
                 const credential = await navigator.credentials.create({ publicKey: PublicKeyCredential.parseCreationOptionsFromJSON(options) });
                 post(form, credential, state);
             } catch (error) {
@@ -61,11 +65,13 @@
         });
     }
 
-    for (const form of document.querySelectorAll('form[data-passkey="get"]')) {
+    // A button marked data-passkey-sign-in signs in with a passkey through its form, posting to the button's formaction.
+    for (const button of document.querySelectorAll('button[data-passkey-sign-in]')) {
+        const form = button.form;
         let autofill = null;
 
         async function signIn(mediation) {
-            const { options, state } = await fetchOptions(form);
+            const { options, state } = await fetchOptions(form, button.dataset.options);
             const request = { publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(options) };
             if (mediation) {
                 autofill = new AbortController();
@@ -73,11 +79,11 @@
                 request.signal = autofill.signal;
             }
 
-            post(form, await navigator.credentials.get(request), state);
+            post(form, await navigator.credentials.get(request), state, button.formAction);
         }
 
-        form.hidden = false;
-        form.addEventListener('submit', async event => {
+        button.hidden = false;
+        button.addEventListener('click', async event => {
             event.preventDefault();
             // The browser runs one request at a time, so the button takes over from the address field's.
             autofill?.abort();
@@ -89,7 +95,7 @@
         });
 
         // The address field offers the browser's passkeys as the person types (conditional mediation).
-        if (form.dataset.autofill !== undefined && typeof PublicKeyCredential.isConditionalMediationAvailable === 'function') {
+        if (button.dataset.autofill !== undefined && typeof PublicKeyCredential.isConditionalMediationAvailable === 'function') {
             PublicKeyCredential.isConditionalMediationAvailable()
                 .then(available => available ? signIn('conditional') : undefined)
                 .catch(error => report(form, error));

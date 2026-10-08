@@ -47,12 +47,14 @@ public sealed class SignInFlow(
 {
     /// <summary>
     /// The authentication method claim Identity puts on sessions: <c>pwd</c> or <c>fed</c> for the first factor alone,
-    /// or <c>mfa</c> after a second factor.
+    /// or <c>mfa</c> after a second factor. A passkey, which verifies the user on the device, counts as both factors:
+    /// its sessions carry <c>pop</c> (proof of possession of a key) and <c>mfa</c>.
     /// </summary>
     public const string MethodClaim = "amr";
     public const string PasswordMethod = "pwd";
     public const string FederatedMethod = "fed";
     public const string MultiFactorMethod = "mfa";
+    public const string PasskeyMethod = "pop";
 
     /// <summary>
     /// The claim naming the provider of a session that started at another provider. It is the one Identity's
@@ -108,7 +110,9 @@ public sealed class SignInFlow(
     /// <summary>Starts the session and records the sign-in.</summary>
     public async Task CompleteAsync(User user, bool persistent, string method, string? provider, CancellationToken cancellationToken)
     {
-        List<Claim> claims = [new(MethodClaim, method)];
+        List<Claim> claims = method == PasskeyMethod
+            ? [new(MethodClaim, PasskeyMethod), new(MethodClaim, MultiFactorMethod)]
+            : [new(MethodClaim, method)];
         if (provider is not null)
         {
             claims.Add(new Claim(ProviderClaim, provider));
