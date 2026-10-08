@@ -34,6 +34,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 
     public DbSet<MembershipRole> MembershipRoles => Set<MembershipRole>();
 
+    public DbSet<Invitation> Invitations => Set<Invitation>();
+
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreScope<Guid>> Scopes => Set<OpenIddictEntityFrameworkCoreScope<Guid>>();

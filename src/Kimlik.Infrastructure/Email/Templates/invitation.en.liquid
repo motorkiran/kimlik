@@ -1,0 +1,16 @@
+{%- capture subject -%}You're invited to join {{ organization }} on {{ product.name }}{%- endcapture -%}
+{%- capture html -%}
+<p>Hi,</p>
+<p>You have been invited to join <strong>{{ organization }}</strong> on {{ product.name }}.</p>
+<p style="margin:28px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Accept the invitation</a></p>
+<p style="color:#6b7280;font-size:13px;">Sign in, or create an account, with {{ email }} to accept. The invitation expires in {{ days }} days. If you were not expecting it, you can ignore this email.</p>
+{%- endcapture -%}
+{%- capture text -%}
+Hi,
+
+You have been invited to join {{ organization }} on {{ product.name }}. Accept the invitation here:
+
+{{ link }}
+
+Sign in, or create an account, with {{ email }} to accept. The invitation expires in {{ days }} days. If you were not expecting it, you can ignore this email.
+{%- endcapture -%}

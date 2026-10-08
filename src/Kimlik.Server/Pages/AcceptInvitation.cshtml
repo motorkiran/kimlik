@@ -1,0 +1,44 @@
+@page "/invitations/accept"
+@model AcceptInvitationModel
+@{
+    ViewData["Title"] = L["Join an organization"];
+}
+
+@if (Model.Joined)
+{
+    <h1 id="page-title">@L["Welcome to {0}", Model.Invitation!.OrganizationName]</h1>
+    <div class="alert alert-success" role="status">@L["You joined the organization. Sign in to its applications to get started."]</div>
+}
+else if (Model.Invitation is null)
+{
+    <h1 id="page-title">@L["Join an organization"]</h1>
+    <div class="alert alert-error" role="alert">@L["This invitation is no longer valid. Ask the organization to send a new one."]</div>
+}
+else
+{
+    <h1 id="page-title">@L["Join {0}", Model.Invitation.OrganizationName]</h1>
+    <p class="lead">@L["You have been invited to join {0}.", Model.Invitation.OrganizationName]</p>
+
+    @if (!Model.SignedIn)
+    {
+        <p>@L["Sign in, or create an account, with {0} to accept.", Model.Invitation.Email]</p>
+        <div class="actions">
+            <a class="button" asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in"]</a>
+            <a class="button button-secondary" asp-page="/SignUp" asp-route-returnUrl="@Model.ReturnUrl">@L["Create an account"]</a>
+        </div>
+    }
+    else if (Model.OtherEmail is not null)
+    {
+        <div class="alert alert-error" role="alert">@L["The invitation was sent to {0}, but you are signed in as {1}. Sign out and sign in with the invited address.", Model.Invitation.Email, Model.OtherEmail]</div>
+        <div class="actions">
+            <a class="button button-secondary" asp-page="/SignOut">@L["Sign out"]</a>
+        </div>
+    }
+    else
+    {
+        <form method="post">
+            <input type="hidden" asp-for="Token" />
+            <button type="submit" class="button">@L["Join {0}", Model.Invitation.OrganizationName]</button>
+        </form>
+    }
+}

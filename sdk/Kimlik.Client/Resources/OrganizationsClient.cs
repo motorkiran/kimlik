@@ -39,4 +39,19 @@ public sealed class OrganizationsClient
 
     public Task RemoveMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Delete, $"organizations/{id}/members/{userId}", body: null, cancellationToken);
+
+    /// <summary>Lists invitations newest first, whatever their status.</summary>
+    public Task<Page<InvitationResponse>> ListInvitationsAsync(Guid id, string? cursor = null, int? limit = null, CancellationToken cancellationToken = default) =>
+        _http.GetAsync<Page<InvitationResponse>>(KimlikHttp.WithQuery($"organizations/{id}/invitations", ("cursor", cursor), ("limit", limit)), cancellationToken);
+
+    /// <summary>Emails a link that lets the owner of the address join with the given roles.</summary>
+    public Task<InvitationResponse> InviteAsync(Guid id, CreateInvitationRequest request, CancellationToken cancellationToken = default) =>
+        _http.SendAsync<InvitationResponse>(HttpMethod.Post, $"organizations/{id}/invitations", request, cancellationToken);
+
+    /// <summary>Sends a new link with a new expiry; the earlier link stops working.</summary>
+    public Task<InvitationResponse> ResendInvitationAsync(Guid id, Guid invitationId, CancellationToken cancellationToken = default) =>
+        _http.SendAsync<InvitationResponse>(HttpMethod.Post, $"organizations/{id}/invitations/{invitationId}/resend", body: null, cancellationToken);
+
+    public Task RevokeInvitationAsync(Guid id, Guid invitationId, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Delete, $"organizations/{id}/invitations/{invitationId}", body: null, cancellationToken);
 }

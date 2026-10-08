@@ -18,6 +18,8 @@ internal sealed class AccountLinks(IOptions<ServerOptions> server) : IAccountLin
 
     public Uri PasswordReset(Guid userId, string token) => Build("reset-password", ("userId", userId.ToString()), ("token", token));
 
+    public Uri Invitation(string token) => Build("invitations/accept", ("token", token));
+
     /// <summary>A path on this site: rooted, and not a protocol-relative or backslash URL that browsers treat as another host.</summary>
     public static bool IsLocalUrl(string? url) =>
         url is { Length: > 0 } && url[0] == '/' && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'));

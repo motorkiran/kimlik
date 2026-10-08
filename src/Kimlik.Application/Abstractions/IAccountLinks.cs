@@ -8,4 +8,6 @@ public interface IAccountLinks
     Uri EmailVerification(Guid userId, string token, string? returnUrl);
 
     Uri PasswordReset(Guid userId, string token);
+
+    Uri Invitation(string token);
 }

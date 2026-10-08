@@ -253,4 +253,28 @@
   <data name="This application works within an organization. Which one do you want to continue with?" xml:space="preserve">
     <value>Bu uygulama bir organizasyon içinde çalışır. Hangisiyle devam etmek istiyorsunuz?</value>
   </data>
+  <data name="Join an organization" xml:space="preserve">
+    <value>Bir organizasyona katılın</value>
+  </data>
+  <data name="Welcome to {0}" xml:space="preserve">
+    <value>{0} organizasyonuna hoş geldiniz</value>
+  </data>
+  <data name="You joined the organization. Sign in to its applications to get started." xml:space="preserve">
+    <value>Organizasyona katıldınız. Başlamak için uygulamalarına giriş yapın.</value>
+  </data>
+  <data name="This invitation is no longer valid. Ask the organization to send a new one." xml:space="preserve">
+    <value>Bu davet artık geçerli değil. Organizasyondan yeni bir davet göndermesini isteyin.</value>
+  </data>
+  <data name="Join {0}" xml:space="preserve">
+    <value>{0} organizasyonuna katıl</value>
+  </data>
+  <data name="You have been invited to join {0}." xml:space="preserve">
+    <value>{0} organizasyonuna katılmaya davet edildiniz.</value>
+  </data>
+  <data name="Sign in, or create an account, with {0} to accept." xml:space="preserve">
+    <value>Kabul etmek için {0} adresiyle giriş yapın ya da hesap oluşturun.</value>
+  </data>
+  <data name="The invitation was sent to {0}, but you are signed in as {1}. Sign out and sign in with the invited address." xml:space="preserve">
+    <value>Davet {0} adresine gönderildi, ancak {1} olarak giriş yaptınız. Çıkış yapıp davet edilen adresle giriş yapın.</value>
+  </data>
 </root>

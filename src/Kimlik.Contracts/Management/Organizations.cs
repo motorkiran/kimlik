@@ -64,3 +64,32 @@ public sealed record AddMemberRequest
     [MaxLength(50)]
     public IReadOnlyList<string> Roles { get; init; } = [];
 }
+
+public enum InvitationStatus
+{
+    Pending,
+    Accepted,
+    Revoked,
+    Expired,
+}
+
+/// <summary>An invitation to join an organization, sent by email. Accepting it adds the roles to the new member.</summary>
+public sealed record InvitationResponse(
+    Guid Id,
+    string Email,
+    IReadOnlyList<string> Roles,
+    InvitationStatus Status,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset CreatedAt);
+
+public sealed record CreateInvitationRequest
+{
+    [Required]
+    [EmailAddress]
+    [StringLength(256)]
+    public required string Email { get; init; }
+
+    /// <summary>Keys of the organization roles the invited user gets on joining.</summary>
+    [MaxLength(50)]
+    public IReadOnlyList<string> Roles { get; init; } = [];
+}

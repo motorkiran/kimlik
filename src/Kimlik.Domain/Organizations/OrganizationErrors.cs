@@ -15,6 +15,19 @@ public static class OrganizationErrors
 
     public static readonly Error AlreadyMember = Error.Conflict("organization.already_member", "The user is already a member of the organization.");
 
+    public static readonly Error InvitationNotFound = Error.NotFound("invitation.not_found", "The invitation does not exist.");
+
+    /// <summary>Accepted, revoked or expired; also what an unknown invitation link gets.</summary>
+    public static readonly Error InvitationClosed = Error.Validation(
+        "invitation.closed", "The invitation has been accepted, revoked or has expired.");
+
+    public static readonly Error InvitationPending = Error.Conflict(
+        "invitation.pending", "The address already has a pending invitation; send that one again instead.");
+
+    /// <summary>Only the person the invitation was sent to may accept it.</summary>
+    public static readonly Error InvitationForSomeoneElse = Error.Forbidden(
+        "invitation.for_someone_else", "The invitation was sent to another email address.");
+
     public static readonly Error InvalidName = Error.Validation("organization.invalid_name", "A name is required and is at most 100 characters.");
 
     public static readonly Error InvalidSlug = Error.Validation(

@@ -29,6 +29,8 @@ public interface IKimlikDbContext
 
     DbSet<MembershipRole> MembershipRoles { get; }
 
+    DbSet<Invitation> Invitations { get; }
+
     /// <summary>OpenID Connect clients, for queries. Change them through <c>IOpenIddictApplicationManager</c>, which validates them and hashes secrets.</summary>
     IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications { get; }
 

@@ -1,0 +1,16 @@
+{%- capture subject -%}{{ product.name }} üzerinde {{ organization }} organizasyonuna davet edildiniz{%- endcapture -%}
+{%- capture html -%}
+<p>Merhaba,</p>
+<p>{{ product.name }} üzerinde <strong>{{ organization }}</strong> organizasyonuna katılmaya davet edildiniz.</p>
+<p style="margin:28px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Daveti kabul et</a></p>
+<p style="color:#6b7280;font-size:13px;">Kabul etmek için {{ email }} adresiyle giriş yapın ya da hesap oluşturun. Davet {{ days }} gün içinde geçerliliğini yitirir. Beklemediğiniz bir davetse bu e-postayı yok sayabilirsiniz.</p>
+{%- endcapture -%}
+{%- capture text -%}
+Merhaba,
+
+{{ product.name }} üzerinde {{ organization }} organizasyonuna katılmaya davet edildiniz. Daveti buradan kabul edebilirsiniz:
+
+{{ link }}
+
+Kabul etmek için {{ email }} adresiyle giriş yapın ya da hesap oluşturun. Davet {{ days }} gün içinde geçerliliğini yitirir. Beklemediğiniz bir davetse bu e-postayı yok sayabilirsiniz.
+{%- endcapture -%}

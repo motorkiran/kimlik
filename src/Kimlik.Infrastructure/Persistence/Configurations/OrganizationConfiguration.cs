@@ -41,3 +41,32 @@ internal sealed class MembershipRoleConfiguration : IEntityTypeConfiguration<Mem
         builder.HasIndex(link => link.RoleId);
     }
 }
+
+internal sealed class InvitationConfiguration : IEntityTypeConfiguration<Invitation>
+{
+    public void Configure(EntityTypeBuilder<Invitation> builder)
+    {
+        builder.Property(invitation => invitation.Id).ValueGeneratedNever();
+        builder.Property(invitation => invitation.Email).HasMaxLength(Invitation.EmailMaxLength);
+        builder.Property(invitation => invitation.NormalizedEmail).HasMaxLength(Invitation.EmailMaxLength);
+        builder.Property(invitation => invitation.TokenHash).HasMaxLength(64);
+        builder.Property(invitation => invitation.Status).HasConversion<string>().HasMaxLength(16);
+
+        builder.HasOne<Organization>().WithMany().HasForeignKey(invitation => invitation.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(invitation => invitation.TokenHash).IsUnique();
+        builder.HasIndex(invitation => new { invitation.OrganizationId, invitation.NormalizedEmail });
+        builder.HasIndex(invitation => invitation.NormalizedEmail);
+
+        builder.HasMany(invitation => invitation.Roles).WithOne().HasForeignKey(link => link.InvitationId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(invitation => invitation.Roles).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class InvitationRoleConfiguration : IEntityTypeConfiguration<InvitationRole>
+{
+    public void Configure(EntityTypeBuilder<InvitationRole> builder)
+    {
+        builder.HasKey(link => new { link.InvitationId, link.RoleId });
+        builder.HasOne<Role>().WithMany().HasForeignKey(link => link.RoleId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

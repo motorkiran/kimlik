@@ -38,4 +38,8 @@ public static class AuditActions
     public const string MembershipCreated = "membership.created";
     public const string MembershipUpdated = "membership.updated";
     public const string MembershipDeleted = "membership.deleted";
+    public const string InvitationCreated = "invitation.created";
+    public const string InvitationResent = "invitation.resent";
+    public const string InvitationRevoked = "invitation.revoked";
+    public const string InvitationAccepted = "invitation.accepted";
 }

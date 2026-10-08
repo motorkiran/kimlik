@@ -75,6 +75,38 @@ internal static class OrganizationEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.OrganizationsWrite);
 
+        organizations.MapGet("{id:guid}/invitations", ListInvitationsAsync)
+            .WithName("ListOrganizationInvitations")
+            .WithSummary("List the invitations of an organization")
+            .WithDescription("Lists invitations newest first, whatever their status.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.OrganizationsRead);
+
+        organizations.MapPost("{id:guid}/invitations", InviteAsync)
+            .WithName("CreateOrganizationInvitation")
+            .WithSummary("Invite someone to an organization")
+            .WithDescription("Emails a link that lets the owner of the address join with the given roles.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequirePermission(SystemPermissions.OrganizationsWrite);
+
+        organizations.MapPost("{id:guid}/invitations/{invitationId:guid}/resend", ResendInvitationAsync)
+            .WithName("ResendOrganizationInvitation")
+            .WithSummary("Send an invitation again")
+            .WithDescription("Sends a new link with a new expiry; the earlier link stops working.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.OrganizationsWrite);
+
+        organizations.MapDelete("{id:guid}/invitations/{invitationId:guid}", RevokeInvitationAsync)
+            .WithName("RevokeOrganizationInvitation")
+            .WithSummary("Revoke an invitation")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.OrganizationsWrite);
+
         return api;
     }
 
@@ -121,4 +153,24 @@ internal static class OrganizationEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> RemoveMemberAsync(
         Guid id, Guid userId, RemoveMemberHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, userId, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<Page<InvitationResponse>>, ProblemHttpResult>> ListInvitationsAsync(
+        Guid id,
+        [Description("The `nextCursor` of the previous page.")] string? cursor,
+        [Description("Page size, 50 by default and at most 200.")] int? limit,
+        ListInvitationsHandler handler,
+        CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(new ListInvitationsQuery(id, cursor, limit), cancellationToken)).ToOk();
+
+    private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> InviteAsync(
+        Guid id, CreateInvitationRequest request, CreateInvitationHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, request, cancellationToken)).ToCreated(invitation => $"{ManagementApi.BasePath}/organizations/{id}/invitations/{invitation.Id}");
+
+    private static async Task<Results<Ok<InvitationResponse>, ProblemHttpResult>> ResendInvitationAsync(
+        Guid id, Guid invitationId, ResendInvitationHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, invitationId, cancellationToken)).ToOk();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RevokeInvitationAsync(
+        Guid id, Guid invitationId, RevokeInvitationHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, invitationId, cancellationToken)).ToNoContent();
 }

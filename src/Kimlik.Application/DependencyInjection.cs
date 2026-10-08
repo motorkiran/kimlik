@@ -24,6 +24,11 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<OrganizationOptions>()
+            .BindConfiguration(OrganizationOptions.SectionName)
+            .Validate(options => options.InvitationLifetime > TimeSpan.Zero, $"{OrganizationOptions.SectionName}:InvitationLifetime must be positive.")
+            .ValidateOnStart();
+
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)
             .ValidateDataAnnotations()

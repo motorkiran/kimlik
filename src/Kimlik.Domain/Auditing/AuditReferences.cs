@@ -26,4 +26,6 @@ public sealed record AuditSubject(string Type, string Id)
     public static AuditSubject Client(Guid applicationId) => new("client", applicationId.ToString());
 
     public static AuditSubject Organization(Guid organizationId) => new("organization", organizationId.ToString());
+
+    public static AuditSubject Invitation(Guid invitationId) => new("invitation", invitationId.ToString());
 }
