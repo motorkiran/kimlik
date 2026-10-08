@@ -47,10 +47,12 @@ public sealed class HostedPageTests(KimlikServerFixture server)
     [Fact]
     public async Task Browsers_AreToldToKeepToHttps_WhenKimlikRequiresIt()
     {
+        // This host shares the database, so it may send other tests' emails: their links stay on localhost. Browsers are
+        // never told to keep localhost to HTTPS, so the request goes to another name.
         await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Kimlik:Server:PublicUrl"] = "https://id.example.test/",
+                ["Kimlik:Server:PublicUrl"] = "https://localhost/",
                 ["Kimlik:Server:RequireHttps"] = "true",
             })));
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
