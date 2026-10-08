@@ -145,7 +145,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 - A consent screen for third-party clients. First-party clients skip consent.
 - An organization picker for clients that require an organization context.
 - Account pages for profile, password, two-factor authentication, connected social accounts, active sessions and account deletion.
-- Localization in English and Turkish. Theming through configuration: product name, logo and primary color.
+- Localization in English and Turkish. Theming through configuration: product name, logo, primary color and custom CSS.
 
 **OpenID Connect / OAuth (OpenIddict)**
 
@@ -239,7 +239,7 @@ The backlog, roughly in priority order:
 10. Breached-password checks, CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`, `max_age`).
 11. Personal data export (KVKK/GDPR).
 12. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
-13. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file, with custom CSS for the hosted pages.
+13. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 14. A JavaScript/TypeScript SDK and a Helm chart.
 15. OpenID Foundation certification.
 

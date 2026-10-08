@@ -17,4 +17,10 @@ public sealed class BrandingOptions
     /// <summary>Accent color as <c>#rrggbb</c>.</summary>
     [RegularExpression("^#[0-9a-fA-F]{6}$")]
     public string PrimaryColor { get; set; } = "#4f46e5";
+
+    /// <summary>
+    /// Path of a CSS file that the hosted pages load after their own styles, such as one mounted into the container. It
+    /// is read once, so a change takes a restart.
+    /// </summary>
+    public string? StylesheetPath { get; set; }
 }

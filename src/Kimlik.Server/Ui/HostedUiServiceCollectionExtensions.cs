@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 using Kimlik.Server.Hosting;
@@ -15,6 +16,7 @@ internal static class HostedUiServiceCollectionExtensions
     public static IServiceCollection AddHostedUi(this IServiceCollection services)
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
+        services.AddSingleton<BrandingStylesheet>();
 
         // Write Turkish and other non-Latin text as UTF-8 instead of numeric entities; characters that are
         // special in HTML are still encoded.
@@ -45,6 +47,24 @@ internal static class HostedUiServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    /// <summary>Serves the custom stylesheet of the hosted pages, when there is one.</summary>
+    public static IEndpointRouteBuilder MapBrandingStylesheet(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGet(BrandingStylesheet.Path, (BrandingStylesheet stylesheet, HttpContext context) =>
+        {
+            if (stylesheet.Content is null)
+            {
+                return Results.NotFound();
+            }
+
+            // The pages link it under a URL that changes with its content.
+            context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            return Results.Text(stylesheet.Content, "text/css", Encoding.UTF8);
+        }).ExcludeFromDescription();
+
+        return endpoints;
     }
 
     /// <summary>Remembers the language a person picks in the page footer.</summary>

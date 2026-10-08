@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddOptions<BrandingOptions>()
             .BindConfiguration(BrandingOptions.SectionName)
             .ValidateDataAnnotations()
+            .Validate(options => string.IsNullOrEmpty(options.StylesheetPath) || File.Exists(options.StylesheetPath), $"{BrandingOptions.SectionName}:StylesheetPath must name an existing file.")
             .ValidateOnStart();
 
         services.AddOptions<OrganizationOptions>()

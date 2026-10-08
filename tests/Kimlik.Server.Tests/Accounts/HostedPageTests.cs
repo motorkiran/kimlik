@@ -1,6 +1,7 @@
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Tests.Accounts;
 
@@ -62,4 +63,40 @@ public sealed class HostedPageTests(KimlikServerFixture server)
 
         response.Headers.GetValues("Strict-Transport-Security").Single().ShouldBe("max-age=31536000");
     }
+
+    [Fact]
+    public async Task CustomStylesheet_IsLoadedAfterThePagesOwn()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"kimlik-{Guid.NewGuid():N}.css");
+        await File.WriteAllTextAsync(path, ".card { border-radius: 0; }", TestContext.Current.CancellationToken);
+        try
+        {
+            await using var kimlik = WithStylesheet(path);
+            using var browser = new Browser(kimlik);
+
+            var page = await browser.GetPageAsync("/signin");
+            var href = page.Document.QuerySelectorAll("link[rel=stylesheet]")[^1].GetAttribute("href")!;
+            using var stylesheet = await browser.GetAsync(href);
+
+            href.ShouldStartWith("/branding.css?v=");
+            stylesheet.Content.Headers.ContentType!.MediaType.ShouldBe("text/css");
+            (await stylesheet.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldBe(".card { border-radius: 0; }");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task MissingStylesheet_StopsKimlikFromStarting()
+    {
+        await using var kimlik = WithStylesheet(Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.css"));
+
+        Should.Throw<OptionsValidationException>(() => kimlik.CreateClient()).Message.ShouldContain("StylesheetPath");
+    }
+
+    private WebApplicationFactory<Program> WithStylesheet(string path) =>
+        server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Kimlik:Branding:StylesheetPath"] = path })));
 }

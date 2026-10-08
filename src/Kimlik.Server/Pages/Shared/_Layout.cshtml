@@ -3,6 +3,7 @@
 @using Kimlik.Server.Ui
 @using Microsoft.Extensions.Options
 @inject IOptions<BrandingOptions> Branding
+@inject BrandingStylesheet Stylesheet
 @{
     var branding = Branding.Value;
     var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
@@ -17,6 +18,10 @@
     <title>@ViewData["Title"] · @branding.ProductName</title>
     <link rel="stylesheet" href="~/css/kimlik.css" asp-append-version="true" />
     <style nonce="@Context.GetCspNonce()">:root { --brand: @branding.PrimaryColor; }</style>
+    @if (Stylesheet.Url is { } stylesheetUrl)
+    {
+        <link rel="stylesheet" href="@Url.Content($"~{stylesheetUrl}")" />
+    }
 </head>
 <body>
     <main class="shell">

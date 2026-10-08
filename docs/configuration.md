@@ -92,6 +92,7 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 | `Kimlik:Branding:ProductName` | `Kimlik` | Shown on the hosted pages, in emails and in authenticator apps. |
 | `Kimlik:Branding:LogoUrl` | | An image shown at the top of the hosted pages instead of the product name. |
 | `Kimlik:Branding:PrimaryColor` | `#4f46e5` | The accent color of the hosted pages and emails. |
+| `Kimlik:Branding:StylesheetPath` | | A CSS file that the hosted pages load after their own styles, such as `/config/kimlik.css` mounted into the container. It must exist when Kimlik starts; Kimlik reads it once, so a change takes a restart, and serves it itself, so the content security policy allows it. |
 
 ## Sign-in with other providers
 

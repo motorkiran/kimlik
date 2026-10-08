@@ -77,6 +77,7 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapCultureSwitch();
+app.MapBrandingStylesheet();
 app.MapTokenEndpoint();
 app.MapUserInfoEndpoint();
 app.MapManagementApi();
