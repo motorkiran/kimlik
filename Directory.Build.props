@@ -28,6 +28,9 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <!-- Only the SDK and the contracts it shares are NuGet packages; they opt in. -->
     <IsPackable>false</IsPackable>
+    <!-- Symbols go to NuGet's symbol server, and Source Link points debuggers at the exact commit on GitHub. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(CI)' == 'true'">

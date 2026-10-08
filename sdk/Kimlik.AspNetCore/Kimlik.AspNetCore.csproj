@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Protects ASP.NET Core APIs with Kimlik: access token validation, permission requirements and the current caller.</Description>
+    <Description>Protects ASP.NET Core APIs with Kimlik: access token and API key validation, permission and feature requirements, the current caller and webhook verification.</Description>
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>kimlik;identity;authorization;oauth;openid-connect;aspnetcore</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

@@ -3,7 +3,13 @@
   <PropertyGroup>
     <Description>Typed client for the Kimlik Management API, with client credentials token handling.</Description>
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>kimlik;identity;management;oauth;openid-connect</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kimlik.Contracts\Kimlik.Contracts.csproj" />

@@ -1,8 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Public contract of Kimlik: Management API models and the names of claims and scopes in Kimlik tokens.</Description>
+    <Description>Public contract of Kimlik: Management and Account API models, webhook events, and the names of claims and scopes in Kimlik tokens.</Description>
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>kimlik;identity;contracts</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>
