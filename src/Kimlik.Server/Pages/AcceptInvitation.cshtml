@@ -24,7 +24,7 @@ else
         <p>@L["Sign in, or create an account, with {0} to accept.", Model.Invitation.Email]</p>
         <div class="actions">
             <a class="button" asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in"]</a>
-            <a class="button button-secondary" asp-page="/SignUp" asp-route-returnUrl="@Model.ReturnUrl">@L["Create an account"]</a>
+            <a class="button button-secondary" asp-page="/SignUp" asp-route-invitation="@Model.Token" asp-route-returnUrl="@Model.ReturnUrl">@L["Create an account"]</a>
         </div>
     }
     else if (Model.OtherEmail is not null)

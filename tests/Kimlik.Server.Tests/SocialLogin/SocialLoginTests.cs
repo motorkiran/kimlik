@@ -2,10 +2,13 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Kimlik.Application.Accounts;
+using Kimlik.Contracts.Management;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Mfa;
 using Kimlik.Server.Tests.Oidc;
+using Kimlik.Server.Tests.Organizations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -175,6 +178,35 @@ public sealed class SocialLoginTests(KimlikServerFixture server)
 
         (await Browser.ReadPageAsync(refused)).Text.ShouldContain("Registration is closed.");
         (await LinkedUserAsync(profile)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task InviteOnlyRegistration_LetsInvitedPeopleIn_WithAnAddressTheProviderVerified()
+    {
+        await using var provider = await TestProvider.StartAsync(server, configuration: new Dictionary<string, string?> { ["Kimlik:Accounts:Registration"] = "InviteOnly" });
+        var invitee = TestProfile.New();
+        var unverified = TestProfile.New(emailVerified: false);
+        using var api = await server.CreateApiClientAsync();
+        var organization = await server.CreateOrganizationAsync();
+        foreach (var profile in new[] { invitee, unverified })
+        {
+            using var invited = await api.Http.PostJsonAsync(
+                $"/api/v1/organizations/{organization.Id}/invitations", new CreateInvitationRequest { Email = profile.Email! });
+        }
+
+        using (var browser = new Browser(provider.Kimlik))
+        {
+            using var signedUp = await SignInAsync(provider, browser, invitee);
+        }
+
+        using (var browser = new Browser(provider.Kimlik))
+        {
+            using var refused = await SignInAsync(provider, browser, unverified);
+            (await Browser.ReadPageAsync(refused)).Text.ShouldContain("Registration is closed.");
+        }
+
+        (await LinkedUserAsync(invitee)).ShouldNotBeNull();
+        (await LinkedUserAsync(unverified)).ShouldBeNull();
     }
 
     [Fact]

@@ -3,6 +3,8 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Contracts.Management;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Api;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Kimlik.Server.Tests.Organizations;
 
@@ -70,6 +72,57 @@ public sealed class InvitationTests(KimlikServerFixture server)
 
         page.Text.ShouldContain($"Sign in, or create an account, with {email} to accept.");
         page.Document.QuerySelector("a[href^='/signup']")!.GetAttribute("href")!.ShouldContain(Uri.EscapeDataString("/invitations/accept"));
+    }
+
+    [Fact]
+    public async Task InviteOnlyRegistration_LetsTheInviteeSignUp_FromTheLink()
+    {
+        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Kimlik:Accounts:Registration"] = "InviteOnly" })));
+        using var api = await server.CreateApiClientAsync();
+        var organization = await server.CreateOrganizationAsync();
+        var email = $"newcomer-{Guid.NewGuid():N}@example.com";
+        using var invited = await api.Http.PostJsonAsync(Invitations(organization), new CreateInvitationRequest { Email = email });
+        var link = CapturingEmailSender.LinkIn(await server.Emails.WaitForAsync(email, "invited to join"));
+        using var browser = new Browser(kimlik);
+
+        (await browser.GetPageAsync("/signup")).Text.ShouldContain("Registration is closed.");
+
+        var invitation = await browser.GetPageAsync(link);
+        var signUp = await browser.GetPageAsync(invitation.Document.QuerySelector("a[href^='/signup']")!.GetAttribute("href")!);
+        var emailField = signUp.Document.QuerySelector("input[name='Input.Email']")!;
+        emailField.GetAttribute("value").ShouldBe(email);
+        emailField.HasAttribute("readonly").ShouldBeTrue();
+
+        // The link reached the invited inbox, so the new account needs no verification email and goes straight back.
+        using var signedUp = await browser.SubmitAsync(signUp, new Dictionary<string, string> { ["Input.Password"] = TestUsers.Password });
+        signedUp.Headers.Location!.OriginalString.ShouldBe(link);
+        var accept = await browser.GetPageAsync(link);
+        var joined = await Browser.ReadPageAsync(await browser.SubmitAsync(accept));
+
+        joined.Text.ShouldContain("Welcome to Acme");
+        server.Emails.SentTo(email).ShouldNotContain(message => message.Subject.Contains("Confirm your email", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task InvitationLink_DoesNotOpenSignUp_ForAnotherAddress()
+    {
+        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Kimlik:Accounts:Registration"] = "InviteOnly" })));
+        using var api = await server.CreateApiClientAsync();
+        var organization = await server.CreateOrganizationAsync();
+        var email = $"newcomer-{Guid.NewGuid():N}@example.com";
+        using var invited = await api.Http.PostJsonAsync(Invitations(organization), new CreateInvitationRequest { Email = email });
+        var token = CapturingEmailSender.LinkIn(await server.Emails.WaitForAsync(email, "invited to join")).Split("token=")[1];
+        using var browser = new Browser(kimlik);
+        var signUp = await browser.GetPageAsync($"/signup?invitation={token}");
+        var other = $"other-{Guid.NewGuid():N}@example.com";
+
+        // The form keeps the invited address, whatever is posted instead.
+        using var signedUp = await browser.SubmitAsync(signUp, new Dictionary<string, string> { ["Input.Email"] = other, ["Input.Password"] = TestUsers.Password });
+
+        (await server.QueryDatabaseAsync(context => context.Users.AnyAsync(user => user.Email == other, CancellationToken))).ShouldBeFalse();
+        (await server.QueryDatabaseAsync(context => context.Users.AnyAsync(user => user.Email == email, CancellationToken))).ShouldBeTrue();
     }
 
     [Fact]

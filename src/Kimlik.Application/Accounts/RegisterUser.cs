@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Common;
+using Kimlik.Application.Organizations;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
@@ -11,11 +12,15 @@ namespace Kimlik.Application.Accounts;
 
 /// <summary>
 /// A sign-up. <c>ReturnUrl</c> is where to continue after the email address is verified, typically a pending
-/// authorization request.
+/// authorization request. <c>InvitationToken</c> comes from the link of an invitation to the address.
 /// </summary>
-public sealed record RegisterUserCommand(string Email, string Password, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null);
+public sealed record RegisterUserCommand(
+    string Email, string Password, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null, string? InvitationToken = null);
 
-/// <summary>Creates an account through self-service sign-up.</summary>
+/// <summary>
+/// Creates an account through self-service sign-up: for anyone when registration is open, and for people invited to
+/// an organization when it is invite-only. The invitation link reached the invited inbox, so it also verifies the address.
+/// </summary>
 public sealed class RegisterUserHandler(
     UserManager<User> userManager,
     IKimlikDbContext context,
@@ -28,12 +33,22 @@ public sealed class RegisterUserHandler(
 {
     public async Task<Result<User>> HandleAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
-        if (options.Value.Registration != RegistrationMode.Open)
+        var now = timeProvider.GetUtcNow();
+        var invited = command.InvitationToken is { Length: > 0 } token
+            && await FindInvitationHandler.FindOpenAsync(context, token, now, cancellationToken) is { } invitation
+            && invitation.NormalizedEmail == userManager.NormalizeEmail(command.Email);
+
+        var registration = options.Value.Registration;
+        if (registration == RegistrationMode.Disabled || (registration == RegistrationMode.InviteOnly && !invited))
         {
             return AccountErrors.RegistrationClosed;
         }
 
-        var user = User.Create(command.Email, command.GivenName, command.FamilyName, command.Locale, timeProvider.GetUtcNow());
+        var user = User.Create(command.Email, command.GivenName, command.FamilyName, command.Locale, now);
+        if (invited)
+        {
+            user.MarkEmailVerified(now);
+        }
 
         var error = await CreateAsync(user, command, cancellationToken);
         if (error is null)
@@ -70,7 +85,7 @@ public sealed class RegisterUserHandler(
 
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
         await defaultRoles.AssignAsync(user.Id, cancellationToken);
-        if (options.Value.RequireVerifiedEmail)
+        if (!user.EmailConfirmed && options.Value.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));
         }

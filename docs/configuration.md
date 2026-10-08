@@ -32,7 +32,7 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 
 | Setting | Default | Description |
 |---|---|---|
-| `Kimlik:Accounts:Registration` | `Open` | `Open` lets anyone create an account; `InviteOnly` leaves it to administrators and invitations; `Disabled` turns sign-up off. |
+| `Kimlik:Accounts:Registration` | `Open` | `Open` lets anyone create an account. `InviteOnly` lets people invited to an organization create one, from the invitation's link or by signing in with a provider that verified the invited address. `Disabled` turns sign-up off. Administrators can always create users. |
 | `Kimlik:Accounts:RequireVerifiedEmail` | `true` | People confirm their email address before they can sign in. |
 | `Kimlik:Accounts:DefaultRoles` | | Global roles every new user gets, such as `["customer"]`: people who sign up or first sign in with another provider, and users created through the Management API. They cannot carry system permissions. |
 | `Kimlik:Accounts:PasswordMinimumLength` | `12` | Between 8 and 128. Kimlik has no composition rules: length makes passwords strong (NIST SP 800-63B). |

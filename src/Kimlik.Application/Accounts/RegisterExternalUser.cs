@@ -2,6 +2,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Common;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
+using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,10 @@ namespace Kimlik.Application.Accounts;
 public sealed record RegisterExternalUserCommand(
     ExternalLogin Login, string Email, bool EmailVerified, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null);
 
-/// <summary>Creates an account, without a password, that signs in with an account at another provider.</summary>
+/// <summary>
+/// Creates an account, without a password, that signs in with an account at another provider. When registration is
+/// invite-only, the provider must have verified an address that has an open invitation.
+/// </summary>
 public sealed class RegisterExternalUserHandler(
     UserManager<User> userManager,
     ExternalLogins logins,
@@ -29,12 +33,15 @@ public sealed class RegisterExternalUserHandler(
 {
     public async Task<Result<User>> HandleAsync(RegisterExternalUserCommand command, CancellationToken cancellationToken)
     {
-        if (options.Value.Registration != RegistrationMode.Open)
+        var now = timeProvider.GetUtcNow();
+        var registration = options.Value.Registration;
+        if (registration == RegistrationMode.Disabled
+            || (registration == RegistrationMode.InviteOnly && !(command.EmailVerified && await IsInvitedAsync(command.Email, now, cancellationToken))))
         {
             return AccountErrors.RegistrationClosed;
         }
 
-        var user = User.Create(command.Email, command.GivenName, command.FamilyName, command.Locale, timeProvider.GetUtcNow());
+        var user = User.Create(command.Email, command.GivenName, command.FamilyName, command.Locale, now);
         user.EmailConfirmed = command.EmailVerified;
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
@@ -70,5 +77,13 @@ public sealed class RegisterExternalUserHandler(
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return user;
+    }
+
+    private Task<bool> IsInvitedAsync(string email, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var normalizedEmail = userManager.NormalizeEmail(email);
+        return context.Invitations.AnyAsync(
+            invitation => invitation.NormalizedEmail == normalizedEmail && invitation.Status == InvitationStatus.Pending && invitation.ExpiresAt > now,
+            cancellationToken);
     }
 }
