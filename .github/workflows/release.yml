@@ -60,9 +60,11 @@ jobs:
           tags="$VERSION"
           # Pre-releases, such as 0.2.0-rc.1, do not move "latest".
           if [[ "$VERSION" != *-* ]]; then tags="$tags;latest"; fi
+          # Restore needs the runtimes too, or the image for each of them cannot be built.
+          runtimes='"linux-x64;linux-arm64"'
           dotnet publish src/Kimlik.Server --configuration Release -p:Version="$VERSION" \
             -t:PublishContainer -p:ContainerRegistry=ghcr.io -p:ContainerRepository="${GITHUB_REPOSITORY,,}" \
-            -p:ContainerImageTags="\"$tags\"" -p:ContainerRuntimeIdentifiers="\"linux-x64;linux-arm64\""
+            -p:ContainerImageTags="\"$tags\"" -p:RuntimeIdentifiers="$runtimes" -p:ContainerRuntimeIdentifiers="$runtimes"
 
       - name: Create the GitHub release
         env:
