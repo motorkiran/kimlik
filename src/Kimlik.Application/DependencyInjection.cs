@@ -1,6 +1,7 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Auditing;
 using Kimlik.Application.Bootstrap;
 using Kimlik.Application.Branding;
 using Kimlik.Application.Mfa;
@@ -39,6 +40,11 @@ public static class DependencyInjection
         services.AddOptions<MfaOptions>()
             .BindConfiguration(MfaOptions.SectionName)
             .Validate(options => options.RememberBrowserFor >= TimeSpan.Zero, $"{MfaOptions.SectionName}:RememberBrowserFor cannot be negative.")
+            .ValidateOnStart();
+
+        services.AddOptions<AuditOptions>()
+            .BindConfiguration(AuditOptions.SectionName)
+            .Validate(options => options.RetentionPeriod > TimeSpan.Zero, $"{AuditOptions.SectionName}:RetentionPeriod must be positive.")
             .ValidateOnStart();
 
         services.AddOptions<BootstrapOptions>()

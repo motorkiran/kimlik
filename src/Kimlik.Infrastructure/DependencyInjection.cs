@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddHostedService<SubscriptionExpirationService>();
         services.AddScoped<ProtocolDataPruner>();
         services.AddHostedService<ProtocolDataPruningService>();
+        services.AddHostedService<AuditRetentionService>();
 
         return services;
     }
