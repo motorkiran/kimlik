@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
+using Microsoft.Extensions.WebEncoders;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Localization;
 
@@ -12,6 +15,10 @@ internal static class HostedUiServiceCollectionExtensions
     public static IServiceCollection AddHostedUi(this IServiceCollection services)
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+        // Write Turkish and other non-Latin text as UTF-8 instead of numeric entities; characters that are
+        // special in HTML are still encoded.
+        services.Configure<WebEncoderOptions>(options => options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
 
         services.AddRazorPages(options => options.Conventions.ConfigureFilter(new SecurityHeaders.ContentSecurityPolicyFilter()))
             .AddViewLocalization()

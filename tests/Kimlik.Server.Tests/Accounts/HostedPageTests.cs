@@ -13,6 +13,7 @@ public sealed class HostedPageTests(KimlikServerFixture server)
 
         page.Document.DocumentElement.GetAttribute("lang").ShouldBe("tr");
         page.Text.ShouldContain("Giriş yap");
+        page.Document.Source.Text.ShouldContain("Giriş yap", customMessage: "Non-Latin text is written as UTF-8, not as numeric entities.");
     }
 
     [Fact]
