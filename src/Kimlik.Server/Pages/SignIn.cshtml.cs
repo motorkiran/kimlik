@@ -53,40 +53,45 @@ public sealed class SignInModel(
             return Page();
         }
 
-        var user = await signInManager.UserManager.FindByEmailAsync(Input.Email);
-        if (user is null)
+        var userManager = signInManager.UserManager;
+        var user = await userManager.FindByEmailAsync(Input.Email);
+
+        // Accounts that cannot sign in answer like unknown ones, and take as long, so the answer reveals no account.
+        // A locked account does not check the password either: a different answer for the right one would let the
+        // guessing go on. Resetting the password lifts the lockout.
+        if (user is null || !user.CanSignIn || await userManager.IsLockedOutAsync(user))
         {
             passwordHashTiming.VerifyAgainstPlaceholder(Input.Password);
-            return await RejectAsync(null, "unknown_email", localizer["Invalid email or password."], cancellationToken);
+            var reason = user is null ? "unknown_email" : user.CanSignIn ? "locked_out" : "suspended";
+            return await RejectAsync(user, reason, InvalidCredentials, cancellationToken);
         }
 
-        if (!user.CanSignIn)
+        // Identity refuses an unverified address before it checks the password, which would tell anyone that the
+        // account exists; checked here, only someone who knows the password learns why.
+        if (!await signInManager.CanSignInAsync(user))
         {
-            return await RejectAsync(user, "suspended", localizer["Invalid email or password."], cancellationToken);
+            if (await userManager.CheckPasswordAsync(user, Input.Password))
+            {
+                ShowResendVerification = true;
+                return await RejectAsync(user, "email_not_verified", localizer["Confirm your email address before signing in. Check your inbox for the verification link."], cancellationToken);
+            }
+
+            await userManager.AccessFailedAsync(user);
+            return await RejectAsync(user, "invalid_password", InvalidCredentials, cancellationToken);
         }
 
         var result = await signInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
-
         if (result.Succeeded)
         {
             var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
             return LocalRedirect(await signInFlow.ContinueAsync(user, Input.RememberMe, provider: null, returnUrl, cancellationToken));
         }
 
-        if (result.IsLockedOut)
-        {
-            return await RejectAsync(user, "locked_out", localizer["Too many failed attempts. Try again later."], cancellationToken);
-        }
-
-        if (result.IsNotAllowed)
-        {
-            // The password was right, so saying why is not an information leak.
-            ShowResendVerification = true;
-            return await RejectAsync(user, "email_not_verified", localizer["Confirm your email address before signing in. Check your inbox for the verification link."], cancellationToken);
-        }
-
-        return await RejectAsync(user, "invalid_password", localizer["Invalid email or password."], cancellationToken);
+        // The attempt that locks the account answers like any other wrong password.
+        return await RejectAsync(user, result.IsLockedOut ? "locked_out" : "invalid_password", InvalidCredentials, cancellationToken);
     }
+
+    private string InvalidCredentials => localizer["Invalid email or password."];
 
     private async Task<IActionResult> RejectAsync(User? user, string reason, string message, CancellationToken cancellationToken)
     {

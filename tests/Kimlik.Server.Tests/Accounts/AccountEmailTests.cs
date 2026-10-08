@@ -88,6 +88,29 @@ public sealed class AccountEmailTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task PasswordReset_LiftsALockout()
+    {
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            using var failed = await browser.SignInAsync(user.Email, "not the password at all");
+        }
+
+        var forgotPage = await browser.GetPageAsync("/forgot-password");
+        using var sent = await browser.SubmitAsync(forgotPage, new Dictionary<string, string> { ["Input.Email"] = user.Email });
+        var resetPage = await browser.GetPageAsync(CapturingEmailSender.LinkIn(await server.Emails.WaitForAsync(user.Email, "Reset your Kimlik password")));
+        using var reset = await browser.SubmitAsync(resetPage, new Dictionary<string, string>
+        {
+            ["Input.Password"] = NewPassword,
+            ["Input.ConfirmPassword"] = NewPassword,
+        });
+
+        using var signedIn = await new Browser(server).SignInAsync(user.Email, NewPassword);
+        signedIn.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
     public async Task PasswordReset_ForUnknownAddress_LooksTheSame_AndSendsNothing()
     {
         var email = $"unknown-{Guid.NewGuid():N}@example.com";

@@ -10,10 +10,10 @@ public sealed record ResetPasswordCommand(Guid UserId, string Token, string NewP
 
 /// <summary>
 /// Sets a new password with the token from the reset email. Every existing session and token of the user
-/// is revoked, because a reset usually means the old password can no longer be trusted. When the account had no
-/// password or its address was not verified yet, the reset is the first proof that the person owns the address, so
-/// accounts at other providers linked before it are unlinked: they may belong to someone who signed up with the
-/// address before its owner did (pre-account hijacking).
+/// is revoked, because a reset usually means the old password can no longer be trusted, and a lockout is lifted.
+/// When the account had no password or its address was not verified yet, the reset is the first proof that the
+/// person owns the address, so accounts at other providers linked before it are unlinked: they may belong to
+/// someone who signed up with the address before its owner did (pre-account hijacking).
 /// </summary>
 public sealed class ResetPasswordHandler(
     UserManager<User> userManager,
@@ -39,10 +39,13 @@ public sealed class ResetPasswordHandler(
                 : AccountErrors.FromIdentity(result.Errors);
         }
 
-        // Following the link sent to the address proves the person owns it.
-        if (!user.EmailConfirmed)
+        // Following the link sent to the address proves the person owns it. It also lifts a lockout, as sign-in does not
+        // tell a locked account apart: whoever guessed at the old password gains nothing from it now.
+        if (!user.EmailConfirmed || user.LockoutEnd is not null || user.AccessFailedCount > 0)
         {
             user.EmailConfirmed = true;
+            user.LockoutEnd = null;
+            user.AccessFailedCount = 0;
             await userManager.UpdateAsync(user);
         }
 

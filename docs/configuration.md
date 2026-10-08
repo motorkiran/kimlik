@@ -36,7 +36,7 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 | `Kimlik:Accounts:RequireVerifiedEmail` | `true` | People confirm their email address before they can sign in. |
 | `Kimlik:Accounts:PasswordMinimumLength` | `12` | Between 8 and 128. Kimlik has no composition rules: length makes passwords strong (NIST SP 800-63B). |
 | `Kimlik:Accounts:MaxFailedSignInAttempts` | `5` | Wrong passwords or codes in a row before the account is locked. |
-| `Kimlik:Accounts:LockoutDuration` | `00:15:00` | How long a locked account stays locked. |
+| `Kimlik:Accounts:LockoutDuration` | `00:15:00` | How long a locked account stays locked, unless its password is reset. Sign-in answers a locked account like a wrong password, so the lockout reveals no account. |
 | `Kimlik:Accounts:SessionLifetime` | `14.00:00:00` | How long a "keep me signed in" session lasts without activity. |
 
 ## Two-factor authentication
