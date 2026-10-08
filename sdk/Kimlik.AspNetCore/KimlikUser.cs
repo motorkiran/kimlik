@@ -6,8 +6,8 @@ using Microsoft.IdentityModel.JsonWebTokens;
 namespace Kimlik.AspNetCore;
 
 /// <summary>
-/// The caller behind a Kimlik access token: a user, or a service client acting on its own behalf. Minimal API
-/// endpoints can take it as a parameter; elsewhere, use <see cref="FromPrincipal"/>.
+/// The caller behind a Kimlik access token or API key: a user, or a service client or an organization's API key acting
+/// on its own behalf. Minimal API endpoints can take it as a parameter; elsewhere, use <see cref="FromPrincipal"/>.
 /// </summary>
 public sealed class KimlikUser
 {
@@ -25,9 +25,10 @@ public sealed class KimlikUser
         OrganizationId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
         OrganizationRoles = Values(principal, KimlikClaimTypes.OrganizationRoles);
         Plan = principal.FindFirstValue(KimlikClaimTypes.Plan);
+        ApiKeyId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.ApiKeyId), out var apiKeyId) ? apiKeyId : null;
     }
 
-    /// <summary>The user ID, or the client ID of a service client.</summary>
+    /// <summary>The user ID, the client ID of a service client, or the ID of an organization's API key.</summary>
     public string Subject { get; }
 
     /// <summary>The client the token was issued to.</summary>
@@ -36,8 +37,11 @@ public sealed class KimlikUser
     /// <summary>Whether the caller is a service client acting on its own behalf rather than for a user.</summary>
     public bool IsServiceClient => Subject == ClientId;
 
-    /// <summary>The user's ID; <see langword="null"/> for a service client.</summary>
-    public Guid? UserId => !IsServiceClient && Guid.TryParse(Subject, out var id) ? id : null;
+    /// <summary>The API key the caller authenticated with, when it used one rather than an access token.</summary>
+    public Guid? ApiKeyId { get; }
+
+    /// <summary>The user's ID; <see langword="null"/> for a service client or an organization's API key.</summary>
+    public Guid? UserId => !IsServiceClient && Subject != ApiKeyId?.ToString() && Guid.TryParse(Subject, out var id) ? id : null;
 
     /// <summary>Present when the client was granted the <c>profile</c> scope.</summary>
     public string? Name { get; }
@@ -51,7 +55,7 @@ public sealed class KimlikUser
     /// <summary>What the caller may do: the permissions of its global roles and of its roles in <see cref="OrganizationId"/>.</summary>
     public IReadOnlySet<string> Permissions { get; }
 
-    /// <summary>The organization the token acts in, if the app signed the user in to one.</summary>
+    /// <summary>The organization the token acts in, if the app signed the user in to one, or whose API key it is.</summary>
     public Guid? OrganizationId { get; }
 
     /// <summary>The user's roles in <see cref="OrganizationId"/>.</summary>

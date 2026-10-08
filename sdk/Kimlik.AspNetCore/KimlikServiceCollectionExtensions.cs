@@ -1,5 +1,7 @@
+using Kimlik.AspNetCore.ApiKeys;
 using Kimlik.AspNetCore.Authorization;
 using Kimlik.AspNetCore.Entitlements;
+using Kimlik.Client;
 using Kimlik.Contracts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,8 +16,9 @@ namespace Kimlik.AspNetCore;
 public static class KimlikServiceCollectionExtensions
 {
     /// <summary>
-    /// Accepts Kimlik access tokens for this API as the default authentication scheme, and enables
-    /// <see cref="PermissionEndpointExtensions.RequirePermission{TBuilder}"/> and <see cref="RequirePermissionAttribute"/>.
+    /// Accepts Kimlik access tokens for this API, and API keys if <see cref="KimlikOptions.ApiKeys"/> enables them, as
+    /// the default authentication scheme, and enables <see cref="PermissionEndpointExtensions.RequirePermission{TBuilder}"/>
+    /// and <see cref="RequirePermissionAttribute"/>.
     /// </summary>
     /// <returns>The authentication builder, to add more schemes.</returns>
     public static AuthenticationBuilder AddKimlik(this IServiceCollection services, Action<KimlikOptions> configure)
@@ -23,14 +26,20 @@ public static class KimlikServiceCollectionExtensions
         services.AddOptions<KimlikOptions>()
             .Configure(configure)
             .Validate(options => options.IsValid(), "Kimlik: Authority must be an absolute URL and Audience is required.")
+            .Validate<IServiceProviderIsService>(
+                (options, registered) => !options.ApiKeys.Enabled || registered.IsService(typeof(KimlikClient)),
+                "Kimlik: API keys are verified through Kimlik.Client; register it with AddKimlikClient, as a service client holding kimlik.api_keys:verify.")
             .ValidateOnStart();
 
         services.AddAuthorization();
+        services.AddMemoryCache();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, PermissionAuthorizationHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, FeatureAuthorizationHandler>());
         services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureKimlikBearer>();
 
-        return services.AddAuthentication(KimlikDefaults.AuthenticationScheme).AddJwtBearer(KimlikDefaults.AuthenticationScheme);
+        return services.AddAuthentication(KimlikDefaults.AuthenticationScheme)
+            .AddJwtBearer(KimlikDefaults.AuthenticationScheme)
+            .AddScheme<AuthenticationSchemeOptions, KimlikApiKeyHandler>(KimlikDefaults.ApiKeyAuthenticationScheme, configureOptions: null);
     }
 
     /// <summary>
@@ -71,6 +80,10 @@ public static class KimlikServiceCollectionExtensions
 
             // Only access tokens (RFC 9068): an ID token issued to some client must not open the API.
             options.TokenValidationParameters.ValidTypes = ["at+jwt"];
+
+            // API keys go to their own handler, which asks Kimlik about them.
+            options.ForwardDefaultSelector = context =>
+                kimlik.Value.ApiKeys.Enabled && KimlikApiKeyHandler.ApiKeyOf(context.Request) is not null ? KimlikDefaults.ApiKeyAuthenticationScheme : null;
         }
 
         public void Configure(JwtBearerOptions options) => Configure(Options.DefaultName, options);

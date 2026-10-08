@@ -11,15 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = builder.Configuration.GetSection("Kimlik");
 var authority = new Uri(settings["Authority"]!);
 
-// Accept Kimlik access tokens issued for this API.
+// Accept Kimlik access tokens issued for this API, and Kimlik API keys.
 builder.Services.AddKimlik(options =>
 {
     options.Authority = authority;
     options.Audience = settings["Audience"];
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+    options.ApiKeys.Enabled = true;
 });
 
-// Call the Kimlik Management API as this API's own service client, which also reads the plan definitions.
+// Call the Kimlik Management API as this API's own service client, which also reads the plan definitions and
+// verifies API keys.
 builder.Services.AddKimlikClient(options =>
 {
     options.Authority = authority;

@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, and account pages (milestone M5). Not ready for production use.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5) and API keys. Webhooks come next. Not ready for production use.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -20,6 +20,8 @@ builder.Services.AddKimlik(options =>
 app.MapGet("/invoices", (KimlikUser caller) => ...).RequirePermission("invoices:read");
 app.MapGet("/invoices/export", ...).RequireFeature("export_pdf");   // with AddKimlikEntitlements()
 ```
+
+With `options.ApiKeys.Enabled = true`, the API also accepts Kimlik API keys (`Authorization: Bearer kmk_…`) that users and organizations create through the Account API. The caller looks the same as with an access token, and the SDK verifies keys through `Kimlik.Client`, as a service client holding `kimlik.api_keys:verify`, caching each answer for 30 seconds.
 
 Manage users, roles and clients from a backend with `Kimlik.Client`, as a service client that holds the `kimlik` scope and an administrative role. It gets and renews its tokens by itself.
 

@@ -23,6 +23,13 @@ public static class KimlikClaimTypes
     /// values come from the plan definitions, which keeps tokens small.
     /// </summary>
     public const string Plan = "plan";
+
+    /// <summary>
+    /// The ID of the API key the caller authenticated with, in the principals that Kimlik.AspNetCore builds for API
+    /// keys. A user's key has the user as its subject; an organization's key acts on its own behalf and is its own
+    /// subject.
+    /// </summary>
+    public const string ApiKeyId = "api_key_id";
 }
 
 /// <summary>Kimlik-specific parameters of authorization and token requests.</summary>

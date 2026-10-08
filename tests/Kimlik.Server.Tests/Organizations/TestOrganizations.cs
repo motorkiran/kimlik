@@ -41,6 +41,16 @@ internal static class TestOrganizations
             return new TestOrganization(organization.Id, organization.Slug, role.Key, permission.Key);
         });
 
+    /// <summary>Replaces a member's roles in the organization.</summary>
+    public static Task<int> SetMemberRolesAsync(this KimlikServerFixture server, Guid organizationId, Guid userId, params string[] roleKeys) =>
+        server.QueryDatabaseAsync(async context =>
+        {
+            var membership = await context.Memberships.Include(candidate => candidate.Roles)
+                .SingleAsync(candidate => candidate.OrganizationId == organizationId && candidate.UserId == userId);
+            membership.SetRoles(await context.Roles.Where(role => roleKeys.Contains(role.Key)).ToListAsync(), DateTimeOffset.UtcNow).IsSuccess.ShouldBeTrue();
+            return await context.SaveChangesAsync();
+        });
+
     public static Task RemoveMemberAsync(this KimlikServerFixture server, Guid organizationId, Guid userId) =>
         server.QueryDatabaseAsync(context => context.Memberships
             .Where(membership => membership.OrganizationId == organizationId && membership.UserId == userId)

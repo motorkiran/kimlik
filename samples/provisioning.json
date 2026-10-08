@@ -15,7 +15,7 @@
       // A custom role may hold system permissions; this one lets the sample API manage users and subscriptions.
       "key": "invoices-backend",
       "name": "Invoices backend",
-      "permissions": ["kimlik.users:read", "kimlik.users:write", "kimlik.plans:read", "kimlik.subscriptions:read", "kimlik.subscriptions:write"]
+      "permissions": ["kimlik.users:read", "kimlik.users:write", "kimlik.plans:read", "kimlik.subscriptions:read", "kimlik.subscriptions:write", "kimlik.api_keys:verify"]
     }
   ],
   "features": [

@@ -309,6 +309,11 @@ Orders API ◀── owner, permissions, plan → same ClaimsPrincipal shape as 
 
 The resource server authenticates to Kimlik as a service client holding `kimlik.api_keys:verify`. The SDK handles this automatically.
 
+- **Format:** `kmk_` followed by 256 random bits in base64url. Kimlik keeps the first 12 characters to show and a SHA-256 hash to look the key up; the secret is shown once.
+- **Permissions:** only the application's, never `kimlik.*`, and only ones the creator holds: a user their global permissions, an organization member their permissions in the organization (creating organization keys takes `kimlik.org.api_keys:write`).
+- **Owner:** a user's key acts for the user and keeps only the permissions the user still holds; it stops working while the user is suspended. An organization's key acts on its own behalf and outlives the member who created it. Owners have at most 100 keys that are not revoked.
+- **In the resource server:** the principal looks like one from an access token: `sub` (the user, or the key itself for an organization's key), `permissions`, `org_id`, `plan`, plus `api_key_id`. The SDK caches each verification for 30 seconds by default, so a revoked key can work that much longer.
+
 ### 5.6 Plan change from external billing
 
 ```

@@ -5,6 +5,8 @@ using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Access;
+using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.Extensions.DependencyInjection;
 using RoleScope = Kimlik.Contracts.Management.RoleScope;
@@ -44,6 +46,23 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
         var gone = await Should.ThrowAsync<KimlikApiException>(() => kimlik.Users.GetAsync(created.Id, CancellationToken));
         gone.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         gone.Code.ShouldBe("user.not_found");
+    }
+
+    [Fact]
+    public async Task ApiKeys_CanBeListedVerifiedAndRevoked_ThroughTheClient()
+    {
+        await using var services = await CreateServicesAsync();
+        var kimlik = services.GetRequiredService<KimlikClient>();
+        var user = await server.CreateUserAsync();
+        using var me = server.WithToken(await server.UserAccessTokenAsync(user));
+        using var response = await me.PostJsonAsync("/api/v1/me/api-keys", new CreateApiKeyRequest { Name = "Reporting", Permissions = [] });
+        var created = await response.ReadAsync<CreatedApiKeyResponse>();
+
+        (await kimlik.ApiKeys.ListAsync(userId: user.Id, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem().Name.ShouldBe("Reporting");
+        (await kimlik.ApiKeys.VerifyAsync(created.Key, CancellationToken)).UserId.ShouldBe(user.Id);
+
+        await kimlik.ApiKeys.RevokeAsync(created.ApiKey.Id, CancellationToken);
+        (await kimlik.ApiKeys.VerifyAsync(created.Key, CancellationToken)).Active.ShouldBeFalse();
     }
 
     [Fact]

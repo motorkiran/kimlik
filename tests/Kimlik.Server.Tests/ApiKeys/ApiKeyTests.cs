@@ -88,7 +88,7 @@ public sealed class ApiKeyTests(KimlikServerFixture server)
         var admin = await server.CreateUserAsync();
         var member = await server.CreateUserAsync();
         var organization = await server.CreateOrganizationAsync(admin.Id, member.Id);
-        await GrantOrganizationAdminAsync(organization, admin.Id);
+        await server.SetMemberRolesAsync(organization.Id, admin.Id, organization.Role, SystemRoles.OrganizationAdmin);
         using var verifier = await VerifierAsync();
 
         using var asMember = server.WithToken(await server.UserAccessTokenAsync(member));
@@ -165,14 +165,4 @@ public sealed class ApiKeyTests(KimlikServerFixture server)
         using var response = await me.PostJsonAsync("/api/v1/me/api-keys", new CreateApiKeyRequest { Name = "Key", Permissions = [permission] });
         return response.StatusCode == HttpStatusCode.Created ? null : await response.ReadProblemCodeAsync();
     }
-
-    private Task<int> GrantOrganizationAdminAsync(TestOrganization organization, Guid userId) =>
-        server.QueryDatabaseAsync(async context =>
-        {
-            var membership = await context.Memberships.Include(candidate => candidate.Roles)
-                .SingleAsync(candidate => candidate.OrganizationId == organization.Id && candidate.UserId == userId, CancellationToken);
-            var roles = await context.Roles.Where(role => role.Key == organization.Role || role.Key == SystemRoles.OrganizationAdmin).ToListAsync(CancellationToken);
-            membership.SetRoles(roles, DateTimeOffset.UtcNow).IsSuccess.ShouldBeTrue();
-            return await context.SaveChangesAsync(CancellationToken);
-        });
 }
