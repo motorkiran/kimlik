@@ -251,7 +251,7 @@ public sealed class AuthorizeModel(
         var persistent = session.Properties?.IsPersistent == true;
         var provider = session.Principal.FindFirstValue(SignInFlow.ProviderClaim);
         var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
-        var step = user.TwoFactorEnabled ? await signInFlow.NextStepAsync(user, cancellationToken) : SignInStep.SetUp;
+        var step = await signInFlow.NextStepAsync(user, cancellationToken, secondStepRequired: true);
 
         if (step == SignInStep.TrustedBrowser)
         {

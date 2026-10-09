@@ -47,16 +47,14 @@ internal static class IdentityServiceCollectionExtensions
     }
 
     /// <summary>
-    /// The security stamp check rebuilds the session's claims from the user, which would drop how and when they signed
-    /// in (<see cref="SignInFlow.MethodClaim"/>, <see cref="SignInFlow.SignedInAtClaim"/>) and the external provider, if any.
+    /// The security stamp check rebuilds the session's claims from the user, which would drop how, when and by whom they
+    /// were signed in (<see cref="SignInFlow.KeptClaims"/>).
     /// </summary>
     private static Task KeepHowTheUserSignedIn(SecurityStampRefreshingPrincipalContext context)
     {
         if (context.NewPrincipal?.Identity is ClaimsIdentity identity && context.CurrentPrincipal is { } current)
         {
-            identity.AddClaims(current.Claims
-                .Where(claim => claim.Type is SignInFlow.MethodClaim or SignInFlow.ProviderClaim or SignInFlow.SignedInAtClaim or SignInFlow.ActorClaim)
-                .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType)));
+            identity.AddClaims(SignInFlow.KeptClaims(current));
         }
 
         return Task.CompletedTask;

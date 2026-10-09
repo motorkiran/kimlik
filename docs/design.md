@@ -227,19 +227,18 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Passkeys as the second step after a password. Passkey sign-in is milestone M9 ([§10.4](#104-passkeys)).
-2. Magic links in sign-in emails, next to the code. Email sign-in codes and accounts without a password are milestone M10 ([§10.5](#105-email-sign-in-codes)).
-3. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
-4. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
-5. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
-6. Developer-hosted sign-in UI through an interaction API.
-7. Hosted or embeddable components for organization management.
-8. Per-subscriber entitlement overrides and add-ons, and usage metering.
-9. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-10. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
-11. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-12. A JavaScript/TypeScript SDK and a Helm chart.
-13. OpenID Foundation certification.
+1. Magic links in sign-in emails, next to the code. Email sign-in codes and accounts without a password are milestone M10 ([§10.5](#105-email-sign-in-codes)), and passkeys, as a sign-in of their own and as the second step, are milestones M9 and M15 ([§10.4](#104-passkeys)).
+2. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
+3. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
+4. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
+5. Developer-hosted sign-in UI through an interaction API.
+6. Hosted or embeddable components for organization management.
+7. Per-subscriber entitlement overrides and add-ons, and usage metering.
+8. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
+9. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
+10. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+11. A JavaScript/TypeScript SDK and a Helm chart.
+12. OpenID Foundation certification.
 
 ### 4.3 Out of scope
 
@@ -757,12 +756,13 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 
 Passkeys (WebAuthn) are a phishing-resistant way to sign in, built on the passkey support of ASP.NET Core Identity in .NET 10.
 
-- **A sign-in of its own.** A passkey signs a person in without a password. Kimlik requires user verification (a PIN or biometric on the device), so a passkey sign-in counts as two factors: it meets the MFA requirements for administrators, organizations and the installation, and tokens report `amr` `["pop", "mfa"]`. Signing in with a password and a TOTP code works as before; passkeys are not offered as the second step after a password. A lockout after wrong passwords does not stop passkeys, which cannot be guessed.
+- **A sign-in of its own.** A passkey signs a person in without a password. Kimlik requires user verification (a PIN or biometric on the device), so a passkey sign-in counts as two factors: it meets the MFA requirements for administrators, organizations and the installation, and tokens report `amr` `["pop", "mfa"]`. A lockout after wrong passwords does not stop passkeys, which cannot be guessed.
+- **The second step.** Whenever a sign-in with a password, an email code or another provider needs a second step, a person with a passkey can use it instead of an authenticator code, on the same page. An account that must use a second factor and has a passkey but no authenticator app verifies with the passkey, instead of being made to set up an app. Passkeys do not turn on two-step sign-in by themselves: an account without an authenticator app that is not required to use a second factor signs in with the first factor alone, or with the passkey on its own. Tokens then report `amr` `[first factor, "pop", "mfa"]`, the browser can be trusted as after a code, and failures are audited as failed second steps.
 - **The relying party** is the host of `Kimlik:Server:PublicUrl`, and Kimlik accepts responses only from that origin. Passkeys are bound to the host, so moving Kimlik to another one leaves them unusable, and people sign in another way to add new ones. No attestation is requested: any authenticator, synced or device-bound, is accepted.
 - **The sign-in page** offers a "Sign in with a passkey" button, and its email field offers the browser's saved passkeys as the person types (conditional UI). Without JavaScript or a browser that supports passkeys, the page works as before.
 - **JavaScript.** One first-party script, `/js/passkeys.js`, runs the browser side: it asks Kimlik for options, calls the WebAuthn API and posts the result in the form. Only the pages that need it load it, under a content security policy that allows scripts with the request's nonce; every other page keeps `script-src 'none'`.
 - **Adding passkeys.** People add, rename and remove passkeys on the account pages, up to 25 each. After a password sign-in, people without a passkey are offered once, and can skip, to add one. Adding a passkey takes a sign-in within the last ten minutes, so a stolen session cannot plant one; otherwise the person signs in again first.
-- **Recovery.** Every account keeps a password or a linked login, so a lost passkey locks nobody out. Accounts without a password are a later phase, with passwordless email sign-in.
+- **Recovery.** Every account keeps another way to sign in, a password, a linked login or codes sent by email ([§10.5](#105-email-sign-in-codes)), so a lost passkey locks nobody out.
 - **Management.** The Account API lists, renames and removes the user's passkeys (`/api/v1/me/passkeys`). The Management API, `Kimlik.Client` and the admin panel list and remove those of any user (`/api/v1/users/{id}/passkeys`), for example after a device is stolen. Passkeys are only created in the browser, on the hosted pages.
 - **Storage.** Identity's passkey data (credential ID, public key, signature counter, transports, flags, name and creation time) is kept in `user_passkeys` through Kimlik's user store. A signature counter that goes backwards fails the sign-in, as it suggests a cloned authenticator.
 - **Audit.** Adding, renaming and removing passkeys is audited, and sign-ins record `pop` as their method.
@@ -1017,6 +1017,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M12: Device authorization and breached passwords** | The device authorization grant ([§8.8](#88-device-authorization)) and breached-password checks ([§10.2](#102-credentials)) | A command-line tool signs a person in through the browser, and breached passwords are refused, in end-to-end tests ✅ |
 | **M13: Admin impersonation** | Administrators sign in as a user for support, with `act` in tokens ([§10.6](#106-administrative-security)) | An administrator acts as a user in the hosted pages and apps, changes nothing on the account, and stops, in end-to-end tests ✅ |
 | **M14: Keys and pushed authorization requests** | `private_key_jwt` client authentication and PAR, in the Management API, the provisioning file and the admin panel ([§8.2](#82-grants-and-client-authentication)) | A client signs in users through PAR and gets tokens with a signed assertion instead of a secret, in end-to-end tests ✅ |
+| **M15: Passkeys as the second step** | Passkeys verify the second step after a password, an email code or another provider ([§10.4](#104-passkeys)) | A password sign-in that needs a second factor completes with a passkey, in end-to-end tests with a software authenticator ✅ |
 
 ---
 

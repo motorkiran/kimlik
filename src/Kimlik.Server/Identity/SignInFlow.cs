@@ -19,7 +19,7 @@ public enum SignInStep
     /// <summary>The browser verified the second factor recently and the user chose to trust it.</summary>
     TrustedBrowser,
 
-    /// <summary>A code from the authenticator app, or a recovery code, comes next.</summary>
+    /// <summary>A code from the authenticator app or a recovery code, or a passkey, comes next.</summary>
     Verify,
 
     /// <summary>The policy requires a second factor that the user has not set up yet.</summary>
@@ -70,6 +70,9 @@ public sealed class SignInFlow(
     /// </summary>
     public const string SignedInAtClaim = "kimlik:signed_in_at";
 
+    /// <summary>The second factor of a session that used a passkey for it; sessions without it used a one-time code.</summary>
+    public const string SecondFactorClaim = "kimlik:second_factor";
+
     /// <summary>The administrator who signed in as the session's user, in a session that impersonates them.</summary>
     public const string ActorClaim = "kimlik:actor";
 
@@ -80,17 +83,25 @@ public sealed class SignInFlow(
     private const string StepClaim = "kimlik:step";
     private const string FirstFactorClaim = "kimlik:first_factor";
 
-    public async Task<SignInStep> NextStepAsync(User user, CancellationToken cancellationToken)
+    /// <summary>
+    /// What follows a correct first factor. An authenticator app always asks for its code; a passkey verifies the second
+    /// step when one is required, by the policy or by <paramref name="secondStepRequired"/> (as for a step-up), so that its
+    /// owner need not set up an app.
+    /// </summary>
+    public async Task<SignInStep> NextStepAsync(User user, CancellationToken cancellationToken, bool secondStepRequired = false)
     {
-        if (user.TwoFactorEnabled)
+        var required = secondStepRequired || (!user.TwoFactorEnabled && await policy.IsRequiredAsync(user.Id, cancellationToken));
+        if (user.TwoFactorEnabled || (required && await HasPasskeyAsync(user)))
         {
             return await policy.MayRememberBrowserAsync(user.Id, cancellationToken) && await signInManager.IsTwoFactorClientRememberedAsync(user)
                 ? SignInStep.TrustedBrowser
                 : SignInStep.Verify;
         }
 
-        return await policy.IsRequiredAsync(user.Id, cancellationToken) ? SignInStep.SetUp : SignInStep.FirstFactor;
+        return required ? SignInStep.SetUp : SignInStep.FirstFactor;
     }
+
+    public async Task<bool> HasPasskeyAsync(User user) => (await signInManager.UserManager.GetPasskeysAsync(user)).Count > 0;
 
     /// <summary>
     /// Goes on after a correct first factor, a password, a code sent by email (<paramref name="firstFactor"/>
@@ -130,10 +141,17 @@ public sealed class SignInFlow(
 
     /// <summary>
     /// Starts the session and records the sign-in. After a second factor (<paramref name="method"/>
-    /// <see cref="MultiFactorMethod"/>), <paramref name="firstFactor"/> says how the user signed in first.
+    /// <see cref="MultiFactorMethod"/>), <paramref name="firstFactor"/> says how the user signed in first, and
+    /// <paramref name="secondFactor"/> is <see cref="PasskeyMethod"/> when a passkey verified the second step.
     /// </summary>
     public async Task CompleteAsync(
-        User user, bool persistent, string method, string? provider, CancellationToken cancellationToken, string? firstFactor = null)
+        User user,
+        bool persistent,
+        string method,
+        string? provider,
+        CancellationToken cancellationToken,
+        string? firstFactor = null,
+        string? secondFactor = null)
     {
         List<Claim> claims = (method, firstFactor) switch
         {
@@ -142,6 +160,11 @@ public sealed class SignInFlow(
             _ => [new(MethodClaim, method)],
         };
 
+        if (method == MultiFactorMethod && secondFactor == PasskeyMethod)
+        {
+            claims.Add(new Claim(SecondFactorClaim, PasskeyMethod));
+        }
+
         if (provider is not null)
         {
             claims.Add(new Claim(ProviderClaim, provider));
@@ -149,7 +172,7 @@ public sealed class SignInFlow(
 
         await signInManager.SignInWithClaimsAsync(user, persistent, claims);
         await signInManager.Context.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
-        await RecordAsync(user, method, provider, firstFactor, cancellationToken);
+        await RecordAsync(user, method, provider, firstFactor, secondFactor, cancellationToken);
     }
 
     /// <summary>
@@ -160,10 +183,7 @@ public sealed class SignInFlow(
     public async Task ImpersonateAsync(User user, ClaimsPrincipal administrator, CancellationToken cancellationToken)
     {
         var administratorId = signInManager.UserManager.GetUserId(administrator)!;
-        var claims = administrator.Claims
-            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim)
-            .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType))
-            .Append(new Claim(ActorClaim, administratorId));
+        var claims = KeptClaims(administrator).Append(new Claim(ActorClaim, administratorId));
         var properties = new AuthenticationProperties
         {
             IsPersistent = false,
@@ -223,11 +243,23 @@ public sealed class SignInFlow(
             return;
         }
 
-        var kept = session.Principal.Claims
-            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or ActorClaim)
-            .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
+        var kept = KeptClaims(session.Principal);
         await signInManager.SignInWithClaimsAsync(user, session.Properties, kept);
     }
+
+    /// <summary>
+    /// The claims about how, when and by whom a session was signed in, which a renewal keeps; the others come from the
+    /// user again.
+    /// </summary>
+    public static IEnumerable<Claim> KeptClaims(ClaimsPrincipal session) => session.Claims
+        .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or SecondFactorClaim or ActorClaim)
+        .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
+
+    /// <summary>How the session's user verified the second step, if they did: with a passkey (<c>pop</c>) or a one-time code.</summary>
+    public static string? SecondFactorOf(ClaimsPrincipal session) =>
+        !session.HasClaim(MethodClaim, MultiFactorMethod) || session.HasClaim(MethodClaim, PasskeyMethod) ? null
+        : session.HasClaim(SecondFactorClaim, PasskeyMethod) ? PasskeyMethod
+        : "otp";
 
     /// <summary>
     /// How recent a sign-in must be for what a stolen session must not do, such as adding a passkey or exporting the
@@ -277,7 +309,8 @@ public sealed class SignInFlow(
     }
 
     /// <summary>Records a sign-in, with the first factor when a second one followed it.</summary>
-    private async Task RecordAsync(User user, string method, string? provider, string? firstFactor, CancellationToken cancellationToken)
+    private async Task RecordAsync(
+        User user, string method, string? provider, string? firstFactor, string? secondFactor, CancellationToken cancellationToken)
     {
         await context.Users
             .Where(candidate => candidate.Id == user.Id)
@@ -287,6 +320,11 @@ public sealed class SignInFlow(
         if (firstFactor is not null && firstFactor != method)
         {
             data["first_factor"] = firstFactor;
+        }
+
+        if (secondFactor is not null)
+        {
+            data["second_factor"] = secondFactor;
         }
 
         if (provider is not null)

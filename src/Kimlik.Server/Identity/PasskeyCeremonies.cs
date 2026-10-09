@@ -48,10 +48,13 @@ public sealed class PasskeyCeremonies(IPasskeyHandler<User> handler, IDataProtec
         return result.Succeeded && result.UserEntity.Id == user.Id.ToString() ? result.Passkey : null;
     }
 
-    /// <summary>Starts a sign-in with any passkey the browser holds for Kimlik.</summary>
-    public async Task<Challenge> BeginAssertionAsync(HttpContext context)
+    /// <summary>
+    /// Starts a sign-in with any passkey the browser holds for Kimlik, or with one of <paramref name="user"/>'s, as the second
+    /// step of their sign-in.
+    /// </summary>
+    public async Task<Challenge> BeginAssertionAsync(HttpContext context, User? user = null)
     {
-        var options = await handler.MakeRequestOptionsAsync(null, context);
+        var options = await handler.MakeRequestOptionsAsync(user, context);
         return new Challenge(options.RequestOptionsJson, AssertionProtector().Protect(options.AssertionState ?? string.Empty, StateLifetime));
     }
 

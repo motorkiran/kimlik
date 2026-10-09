@@ -28,7 +28,7 @@ public sealed class SignInStepUpModel(UserManager<User> userManager, SignInFlow 
 
         var persistent = (await HttpContext.AuthenticateAsync()).Properties?.IsPersistent == true;
         var provider = User.FindFirstValue(SignInFlow.ProviderClaim);
-        var step = user.TwoFactorEnabled ? await signInFlow.NextStepAsync(user, cancellationToken) : SignInStep.SetUp;
+        var step = await signInFlow.NextStepAsync(user, cancellationToken, secondStepRequired: true);
 
         if (step == SignInStep.TrustedBrowser)
         {

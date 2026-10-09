@@ -1,14 +1,18 @@
 @page "/signin/two-factor"
+@using Kimlik.Server.Hosting
 @model SignInTwoFactorModel
 @{
     ViewData["Title"] = L["Two-factor authentication"];
+    var offersPasskey = Model.HasPasskey && !Model.UseRecoveryCode;
 }
 
 <h1 id="page-title">@L["Two-factor authentication"]</h1>
 <p class="lead">
     @(Model.UseRecoveryCode
         ? L["Enter one of the recovery codes you saved when you set up two-factor authentication."]
-        : L["Enter the code from your authenticator app."])
+        : Model.HasAuthenticator
+            ? L["Enter the code from your authenticator app."]
+            : L["Confirm it's you with your passkey."])
 </p>
 
 @if (Model.ErrorMessage is not null)
@@ -19,27 +23,57 @@
 <form method="post" novalidate>
     <input type="hidden" asp-for="ReturnUrl" />
     <input type="hidden" asp-for="UseRecoveryCode" />
-    <div class="field">
-        <label asp-for="Input.Code">@(Model.UseRecoveryCode ? L["Recovery code"] : L["Code"])</label>
-        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="@(Model.UseRecoveryCode ? "text" : "numeric")" autofocus />
-        <span asp-validation-for="Input.Code" class="field-error"></span>
-    </div>
+    <input type="hidden" asp-for="Credential" />
+    <input type="hidden" asp-for="State" />
+    @if (Model.HasAuthenticator)
+    {
+        <div class="field">
+            <label asp-for="Input.Code">@(Model.UseRecoveryCode ? L["Recovery code"] : L["Code"])</label>
+            <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="@(Model.UseRecoveryCode ? "text" : "numeric")" autofocus />
+            <span asp-validation-for="Input.Code" class="field-error"></span>
+        </div>
+    }
     @if (Model.CanTrustBrowser && !Model.UseRecoveryCode)
     {
         <div class="row">
             <label class="checkbox"><input asp-for="Input.TrustBrowser" /> @L["Don't ask again on this browser"]</label>
         </div>
     }
-    <button type="submit" class="button">@L["Verify"]</button>
+    @if (Model.HasAuthenticator)
+    {
+        <button type="submit" class="button">@L["Verify"]</button>
+    }
+    @if (offersPasskey)
+    {
+        <button type="submit" class="button@(Model.HasAuthenticator ? " button-secondary" : null)" id="passkey-verify" formnovalidate
+                formaction="@Url.Page("/SignInTwoFactor", "Passkey")" data-passkey-sign-in data-options="@Url.Page("/SignInTwoFactor", "PasskeyOptions")"
+                hidden>@L["Use a passkey"]</button>
+        <p class="field-error" data-passkey-error hidden>@L["The passkey could not be used. Try again."]</p>
+    }
 </form>
 
-<p class="switch">
-    @if (Model.UseRecoveryCode)
+@if (offersPasskey && !Model.HasAuthenticator)
+{
+    <p class="hint" data-passkey-unsupported>@L["This browser cannot use passkeys. Sign in on the device that has yours."]</p>
+}
+
+@if (Model.HasAuthenticator)
+{
+    <p class="switch">
+        @if (Model.UseRecoveryCode)
+        {
+            <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl">@L["Use your authenticator app"]</a>
+        }
+        else
+        {
+            <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl" asp-route-useRecoveryCode="true">@L["Lost your device? Use a recovery code"]</a>
+        }
+    </p>
+}
+
+@section Scripts {
+    @if (offersPasskey)
     {
-        <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl">@L["Use your authenticator app"]</a>
+        <script src="~/js/passkeys.js" asp-append-version="true" nonce="@HttpContext.GetCspNonce()" defer></script>
     }
-    else
-    {
-        <a asp-page="/SignInTwoFactor" asp-route-returnUrl="@Model.ReturnUrl" asp-route-useRecoveryCode="true">@L["Lost your device? Use a recovery code"]</a>
-    }
-</p>
+}

@@ -766,4 +766,13 @@
   <data name="Stop" xml:space="preserve">
     <value>Durdur</value>
   </data>
+  <data name="Confirm it's you with your passkey." xml:space="preserve">
+    <value>Geçiş anahtarınızla siz olduğunuzu doğrulayın.</value>
+  </data>
+  <data name="Use a passkey" xml:space="preserve">
+    <value>Geçiş anahtarı kullan</value>
+  </data>
+  <data name="This browser cannot use passkeys. Sign in on the device that has yours." xml:space="preserve">
+    <value>Bu tarayıcı geçiş anahtarı kullanamıyor. Geçiş anahtarınızın bulunduğu cihazda giriş yapın.</value>
+  </data>
 </root>
