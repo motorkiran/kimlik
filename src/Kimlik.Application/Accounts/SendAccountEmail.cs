@@ -46,7 +46,7 @@ public sealed class SendAccountEmailHandler(
             AccountEmail.PasswordReset => ("password-reset",
                 links.PasswordReset(user.Id, await userManager.GeneratePasswordResetTokenAsync(user))),
             AccountEmail.AlreadyRegistered => ("already-registered", links.SignIn()),
-            AccountEmail.SignInCode => ("sign-in-code", links.SignIn()),
+            AccountEmail.SignInCode => ("sign-in-code", null),
             _ => throw new ArgumentOutOfRangeException(nameof(message), message.Kind, "Unknown account email."),
         };
 
@@ -59,14 +59,17 @@ public sealed class SendAccountEmailHandler(
         {
             ["name"] = user.GivenName ?? user.Name,
             ["email"] = user.Email,
-            ["link"] = link!.AbsoluteUri,
         };
 
         if (message.Kind == AccountEmail.SignInCode)
         {
             // Created now, as the email goes out, and replacing any earlier code.
-            model["code"] = await userManager.GenerateUserTokenAsync(user, EmailSignIn.TokenProvider, EmailSignIn.Purpose);
+            var code = await userManager.GenerateUserTokenAsync(user, EmailSignIn.TokenProvider, EmailSignIn.Purpose);
+            model["code"] = code;
+            link = links.SignInWithCode(code);
         }
+
+        model["link"] = link!.AbsoluteUri;
 
         var email = await renderer.RenderAsync(template, user.Locale, model, cancellationToken);
         await sender.SendAsync(new EmailMessage(user.Email, email.Subject, email.HtmlBody, email.TextBody), cancellationToken);

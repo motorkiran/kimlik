@@ -15,6 +15,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Keys instead of client secrets: web and service clients can authenticate with `private_key_jwt` (RFC 7523), from a JWK Set of public keys registered through the Management API, the provisioning file or the admin panel; a new secret replaces the keys. Assertions are typed `client-authentication+jwt`.
 - Pushed authorization requests (PAR, RFC 9126) at `/connect/par`, which a client can be set to require (`requirePushedAuthorization`).
 - Passkeys as the second step: after a password, an email code or another provider, a passkey verifies the second step instead of an authenticator code, and accounts that must use a second factor and have a passkey are no longer made to set up an app (`amr` `[first factor, "pop", "mfa"]`).
+- Sign-in links: sign-in code emails also carry a "Sign in" link that fills the code in, in the browser that asked for it and nowhere else; opening it never signs anyone in by itself, so mail scanners cannot use the code.
 
 ### Fixed
 

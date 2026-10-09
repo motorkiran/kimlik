@@ -10,6 +10,8 @@ internal sealed class AccountLinks(IOptions<ServerOptions> server) : IAccountLin
 {
     public Uri SignIn() => Build("signin");
 
+    public Uri SignInWithCode(string code) => Build("signin/code", ("code", code));
+
     public Uri EmailVerification(Guid userId, string token, string? returnUrl) => Build(
         "verify-email",
         ("userId", userId.ToString()),

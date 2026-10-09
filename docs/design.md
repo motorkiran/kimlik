@@ -227,18 +227,17 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Magic links in sign-in emails, next to the code. Email sign-in codes and accounts without a password are milestone M10 ([§10.5](#105-email-sign-in-codes)), and passkeys, as a sign-in of their own and as the second step, are milestones M9 and M15 ([§10.4](#104-passkeys)).
-2. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
-3. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
-4. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
-5. Developer-hosted sign-in UI through an interaction API.
-6. Hosted or embeddable components for organization management.
-7. Per-subscriber entitlement overrides and add-ons, and usage metering.
-8. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-9. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
-10. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-11. A JavaScript/TypeScript SDK and a Helm chart.
-12. OpenID Foundation certification.
+1. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio. Email sign-in codes and accounts without a password are milestone M10, with links next to the codes in M16 ([§10.5](#105-email-sign-in-codes)), and passkeys, as a sign-in of their own and as the second step, are milestones M9 and M15 ([§10.4](#104-passkeys)).
+2. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
+3. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
+4. Developer-hosted sign-in UI through an interaction API.
+5. Hosted or embeddable components for organization management.
+6. Per-subscriber entitlement overrides and add-ons, and usage metering.
+7. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
+8. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
+9. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+10. A JavaScript/TypeScript SDK and a Helm chart.
+11. OpenID Foundation certification.
 
 ### 4.3 Out of scope
 
@@ -776,6 +775,7 @@ People can sign in with a one-time code sent to their address instead of a passw
 - **Codes** have six digits, work once and for ten minutes, and only the latest one sent to an account works. Wrong codes count toward the account's lockout, as wrong passwords and TOTP codes do, and a locked account accepts no code until the lockout ends. Requests for codes share the per-account cooldown of account emails and the per-address rate limit of sign-in.
 - **No code at rest in the clear.** Asking for a code queues an email for the account; the outbox handler that sends it creates the code and keeps only a keyed hash of it, so the database never holds a usable code.
 - **The sign-in page** offers "Email me a sign-in code" under the password field. After the person asks, the page for the code shows the same way whether an account has the address or not, and nothing is sent when none has, so the answer reveals no account. The address waits in a short-lived cookie, protected like the others, until the code is entered. A correct code also verifies an address that was not verified yet.
+- **A link next to the code.** The email also carries a "Sign in" link that fills the code in for the person, who then selects "Sign in" once. Opening the link never signs anyone in by itself, so mail scanners that follow links neither use the code nor sign in. It works only in the browser that asked for the code, which holds the waiting sign-in and where it was going: opened elsewhere, the page shows the code to enter in that browser, so a link forwarded, or clicked by someone an attacker sent a code to, signs no other browser in.
 - **Accounts without a password.** On the sign-up page the password is optional: without one, the account is created and a code is sent in place of the verification link, and entering it verifies the address and signs the person in. People who have a password can remove it on the account pages, confirming with it, and set one again later.
 - **Turning it off.** `Kimlik:Accounts:EmailSignIn` is on by default. Off, the sign-in page offers no codes, sign-up takes a password, and passwords cannot be removed; accounts without one sign in with a passkey or another provider, or set a password through a reset.
 - **Audit.** Sign-ins record `email` as their method, and wrong codes are recorded as failed sign-ins.
@@ -1018,6 +1018,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M13: Admin impersonation** | Administrators sign in as a user for support, with `act` in tokens ([§10.6](#106-administrative-security)) | An administrator acts as a user in the hosted pages and apps, changes nothing on the account, and stops, in end-to-end tests ✅ |
 | **M14: Keys and pushed authorization requests** | `private_key_jwt` client authentication and PAR, in the Management API, the provisioning file and the admin panel ([§8.2](#82-grants-and-client-authentication)) | A client signs in users through PAR and gets tokens with a signed assertion instead of a secret, in end-to-end tests ✅ |
 | **M15: Passkeys as the second step** | Passkeys verify the second step after a password, an email code or another provider ([§10.4](#104-passkeys)) | A password sign-in that needs a second factor completes with a passkey, in end-to-end tests with a software authenticator ✅ |
+| **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ |
 
 ---
 

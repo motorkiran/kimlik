@@ -3,6 +3,8 @@
 <p>Merhaba{% if name %} {{ name }}{% endif %},</p>
 <p>{{ product.name }} hesabınıza giriş yapmak için bu kodu girin:</p>
 <p style="margin:28px 0;font-size:32px;font-weight:700;letter-spacing:8px;font-family:ui-monospace,Menlo,Consolas,monospace;">{{ code }}</p>
+<p>Ya da kodu istediğiniz tarayıcıda bu düğmeyle giriş yapın:</p>
+<p style="margin:20px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Giriş yap</a></p>
 <p style="color:#6b7280;font-size:13px;">Kod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir. Giriş yapmaya çalışmadıysanız bu e-postayı yok sayabilirsiniz; kod olmadan kimse giriş yapamaz.</p>
 {%- endcapture -%}
 {%- capture text -%}
@@ -11,6 +13,10 @@ Merhaba{% if name %} {{ name }}{% endif %},
 {{ product.name }} hesabınıza giriş yapmak için bu kodu girin:
 
 {{ code }}
+
+Ya da bu bağlantıyı kodu istediğiniz tarayıcıda açın:
+
+{{ link }}
 
 Kod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir. Giriş yapmaya çalışmadıysanız bu e-postayı yok sayabilirsiniz; kod olmadan kimse giriş yapamaz.
 {%- endcapture -%}

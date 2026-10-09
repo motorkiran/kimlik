@@ -78,7 +78,7 @@ public sealed class SignInModel(
         }
 
         await emailSignIn.RequestAsync(email.Trim(), cancellationToken);
-        pendingEmailCode.Start(HttpContext, email.Trim(), Input.RememberMe);
+        pendingEmailCode.Start(HttpContext, email.Trim(), Input.RememberMe, ReturnUrl);
         return RedirectToPage("/SignInCode", new { ReturnUrl });
     }
 

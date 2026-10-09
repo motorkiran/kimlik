@@ -10,7 +10,8 @@ namespace Kimlik.Server.Pages;
 
 /// <summary>
 /// Where people enter the code sent to their address. It looks the same whether an account has the address or not;
-/// a right code signs them in as a password would, with the second factor next if the account needs one.
+/// a right code signs them in as a password would, with the second factor next if the account needs one. The link in
+/// the email fills the code in, in the browser that asked for it; elsewhere, the page shows the code to enter there.
 /// </summary>
 public sealed class SignInCodeModel(
     EmailSignIn emailSignIn,
@@ -31,14 +32,35 @@ public sealed class SignInCodeModel(
 
     public string? ErrorMessage { get; private set; }
 
-    public IActionResult OnGet()
+    /// <summary>Whether the code came filled in, from the link in the email.</summary>
+    public bool FilledIn { get; private set; }
+
+    /// <summary>The code of a link opened in another browser than the one that asked for it, to enter there.</summary>
+    public string? CodeForAnotherBrowser { get; private set; }
+
+    public IActionResult OnGet(string? code)
     {
+        // Only what a code looks like is shown back.
+        code = code is { Length: 6 } && code.All(char.IsAsciiDigit) ? code : null;
         if (pendingEmailCode.Read(HttpContext) is not { } pending)
         {
-            return RedirectToPage("/SignIn", new { ReturnUrl });
+            if (code is null)
+            {
+                return RedirectToPage("/SignIn", new { ReturnUrl });
+            }
+
+            CodeForAnotherBrowser = code;
+            return Page();
         }
 
         Email = pending.Email;
+        ReturnUrl ??= pending.ReturnUrl;
+        if (code is not null)
+        {
+            Input.Code = code;
+            FilledIn = true;
+        }
+
         return Page();
     }
 
@@ -50,6 +72,7 @@ public sealed class SignInCodeModel(
         }
 
         Email = pending.Email;
+        ReturnUrl ??= pending.ReturnUrl;
         if (!ModelState.IsValid)
         {
             return Page();

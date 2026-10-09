@@ -2,6 +2,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Tests.Mfa;
 using Kimlik.Server.Tests.Oidc;
@@ -36,6 +38,31 @@ public sealed partial class EmailSignInTests(KimlikServerFixture server)
         var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
 
         Methods(tokens).ShouldBe(["email"]);
+    }
+
+    [Fact]
+    public async Task Link_FillsInTheCode_OnlyInTheBrowserThatAskedForIt()
+    {
+        var user = await server.CreateUserAsync();
+        var client = await server.CreateWebClientAsync();
+        var request = new AuthorizationRequest(client.ClientId);
+        using var browser = new Browser(server);
+        using var asked = await AskForCodeAsync(browser, user.Email, request.Url);
+        var email = await server.Emails.WaitForAsync(user.Email, "sign-in code");
+        var code = Code().Match(email.Subject).Value;
+        var link = CapturingEmailSender.LinkIn(email);
+
+        // Elsewhere, the link only shows the code, to enter in the browser that asked for it.
+        using var elsewhere = new Browser(server);
+        var shown = await elsewhere.GetPageAsync(link);
+        shown.Document.QuerySelector("#code")!.TextContent.ShouldBe(code);
+        shown.Document.QuerySelector("#sign-in").ShouldBeNull();
+
+        var page = await browser.GetPageAsync(link);
+        page.Document.QuerySelector<IHtmlInputElement>("input[name='Input.Code']")!.Value.ShouldBe(code);
+        using var signedIn = await browser.SubmitAsync(page);
+
+        signedIn.Headers.Location!.OriginalString.ShouldBe(request.Url);
     }
 
     [Fact]

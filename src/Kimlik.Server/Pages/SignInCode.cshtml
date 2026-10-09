@@ -1,12 +1,25 @@
 @page "/signin/code"
 @model SignInCodeModel
 @{
-    ViewData["Title"] = L["Check your email"];
+    ViewData["Title"] = Model.CodeForAnotherBrowser is null ? L["Check your email"] : L["Use the browser where you asked for the code"];
+}
+
+@if (Model.CodeForAnotherBrowser is { } code)
+{
+    <h1 id="page-title">@L["Use the browser where you asked for the code"]</h1>
+    <p class="lead">@L["This link signs in only the browser where you asked for the code. Enter the code there:"]</p>
+    <p class="one-time-code" id="code">@code</p>
+    <p class="switch"><a asp-page="/SignIn">@L["Sign in on this browser instead"]</a></p>
+    return;
 }
 
 <h1 id="page-title">@L["Check your email"]</h1>
 <p class="lead">@L["If an account has the address {0}, we sent it a code. Enter it to sign in.", Model.Email ?? string.Empty]</p>
 
+@if (Model.FilledIn)
+{
+    <div class="alert alert-success" role="status">@L["Your code is filled in. Select Sign in to continue."]</div>
+}
 @if (Model.Message is not null)
 {
     <div class="alert alert-success" role="status">@Model.Message</div>
@@ -20,10 +33,10 @@
     <input type="hidden" asp-for="ReturnUrl" />
     <div class="field">
         <label asp-for="Input.Code"></label>
-        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" autofocus />
+        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" autofocus="@(Model.FilledIn ? null : "autofocus")" />
         <span asp-validation-for="Input.Code" class="field-error"></span>
     </div>
-    <button type="submit" class="button">@L["Sign in"]</button>
+    <button type="submit" class="button" id="sign-in" autofocus="@(Model.FilledIn ? "autofocus" : null)">@L["Sign in"]</button>
     <button type="submit" class="button button-secondary" id="resend-code" formaction="@Url.Page("/SignInCode", "Resend")" formnovalidate>@L["Send a new code"]</button>
 </form>
 

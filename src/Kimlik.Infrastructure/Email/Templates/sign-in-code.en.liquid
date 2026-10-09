@@ -3,6 +3,8 @@
 <p>Hi{% if name %} {{ name }}{% endif %},</p>
 <p>Enter this code to sign in to {{ product.name }}:</p>
 <p style="margin:28px 0;font-size:32px;font-weight:700;letter-spacing:8px;font-family:ui-monospace,Menlo,Consolas,monospace;">{{ code }}</p>
+<p>Or sign in with this button, in the browser where you asked for the code:</p>
+<p style="margin:20px 0;"><a href="{{ link }}" style="display:inline-block;padding:12px 20px;background:{{ product.color }};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Sign in</a></p>
 <p style="color:#6b7280;font-size:13px;">The code expires in 10 minutes and works only once. If you did not try to sign in, you can ignore this email; nobody can sign in without the code.</p>
 {%- endcapture -%}
 {%- capture text -%}
@@ -11,6 +13,10 @@ Hi{% if name %} {{ name }}{% endif %},
 Enter this code to sign in to {{ product.name }}:
 
 {{ code }}
+
+Or open this link in the browser where you asked for the code:
+
+{{ link }}
 
 The code expires in 10 minutes and works only once. If you did not try to sign in, you can ignore this email; nobody can sign in without the code.
 {%- endcapture -%}

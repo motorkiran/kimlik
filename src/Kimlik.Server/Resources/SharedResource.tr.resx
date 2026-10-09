@@ -775,4 +775,16 @@
   <data name="This browser cannot use passkeys. Sign in on the device that has yours." xml:space="preserve">
     <value>Bu tarayıcı geçiş anahtarı kullanamıyor. Geçiş anahtarınızın bulunduğu cihazda giriş yapın.</value>
   </data>
+  <data name="Use the browser where you asked for the code" xml:space="preserve">
+    <value>Kodu istediğiniz tarayıcıyı kullanın</value>
+  </data>
+  <data name="This link signs in only the browser where you asked for the code. Enter the code there:" xml:space="preserve">
+    <value>Bu bağlantı yalnızca kodu istediğiniz tarayıcıda giriş yapar. Kodu orada girin:</value>
+  </data>
+  <data name="Sign in on this browser instead" xml:space="preserve">
+    <value>Bunun yerine bu tarayıcıda giriş yap</value>
+  </data>
+  <data name="Your code is filled in. Select Sign in to continue." xml:space="preserve">
+    <value>Kodunuz dolduruldu. Devam etmek için Giriş yap'ı seçin.</value>
+  </data>
 </root>
