@@ -86,6 +86,11 @@ public sealed class CreatePlanHandler(IKimlikDbContext context, IAuditLog auditL
         {
             return PlanErrors.PlanExists;
         }
+        catch (DbUpdateException exception) when (exception.IsForeignKeyViolation())
+        {
+            // A feature was deleted while the plan was being saved.
+            return PlanErrors.UnknownFeature;
+        }
 
         return plan.ToResponse(features.Values);
     }
@@ -134,7 +139,16 @@ public sealed class UpdatePlanHandler(IKimlikDbContext context, IAuditLog auditL
         }
 
         auditLog.Record(AuditActions.PlanUpdated, AuditSubject.Plan(id));
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsForeignKeyViolation())
+        {
+            // A feature was deleted while the plan was being saved.
+            return PlanErrors.UnknownFeature;
+        }
+
         return plan.ToResponse(features.Values);
     }
 }

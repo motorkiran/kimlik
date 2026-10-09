@@ -4,6 +4,7 @@ using Kimlik.Contracts.Management;
 
 namespace Kimlik.Server.Tests.Api;
 
+[Collection(typeof(Admin.FeatureCatalog))]
 public sealed class PlanApiTests(KimlikServerFixture server)
 {
     private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
