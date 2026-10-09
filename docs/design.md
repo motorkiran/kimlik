@@ -227,8 +227,8 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Passkeys as the second step after a password, and accounts without a password (with passwordless email sign-in). Passkey sign-in itself is milestone M9 ([§10.4](#104-passkeys)).
-2. Passwordless email sign-in (one-time code or magic link).
+1. Passkeys as the second step after a password. Passkey sign-in is milestone M9 ([§10.4](#104-passkeys)).
+2. Magic links in sign-in emails, next to the code. Email sign-in codes and accounts without a password are milestone M10 ([§10.5](#105-email-sign-in-codes)).
 3. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
 4. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
 5. Admin impersonation, with an `act` claim (RFC 8693).
@@ -755,19 +755,31 @@ Passkeys (WebAuthn) are a phishing-resistant way to sign in, built on the passke
 - **Audit.** Adding, renaming and removing passkeys is audited, and sign-ins record `pop` as their method.
 - **Testing.** End-to-end tests drive the ceremonies with a software authenticator that creates and signs real WebAuthn responses.
 
-### 10.5 Administrative security
+### 10.5 Email sign-in codes
+
+People can sign in with a one-time code sent to their address instead of a password, and create accounts without a password at all.
+
+- **A first factor.** The code proves access to the inbox, as a password reset already does, so it replaces the password and nothing more: a second factor that the account has, or must set up, follows as after a password. Tokens report `amr` `["email"]`, or `["email", "otp", "mfa"]` after a second factor; RFC 8176 has no value for email, so Kimlik uses `email`.
+- **Codes** have six digits, work once and for ten minutes, and only the latest one sent to an account works. Wrong codes count toward the account's lockout, as wrong passwords and TOTP codes do, and a locked account accepts no code until the lockout ends. Requests for codes share the per-account cooldown of account emails and the per-address rate limit of sign-in.
+- **No code at rest in the clear.** Asking for a code queues an email for the account; the outbox handler that sends it creates the code and keeps only a keyed hash of it, so the database never holds a usable code.
+- **The sign-in page** offers "Email me a sign-in code" under the password field. After the person asks, the page for the code shows the same way whether an account has the address or not, and nothing is sent when none has, so the answer reveals no account. The address waits in a short-lived cookie, protected like the others, until the code is entered. A correct code also verifies an address that was not verified yet.
+- **Accounts without a password.** On the sign-up page the password is optional: without one, the account is created and a code is sent in place of the verification link, and entering it verifies the address and signs the person in. People who have a password can remove it on the account pages, confirming with it, and set one again later.
+- **Turning it off.** `Kimlik:Accounts:EmailSignIn` is on by default. Off, the sign-in page offers no codes, sign-up takes a password, and passwords cannot be removed; accounts without one sign in with a passkey or another provider, or set a password through a reset.
+- **Audit.** Sign-ins record `email` as their method, and wrong codes are recorded as failed sign-ins.
+
+### 10.6 Administrative security
 
 - The admin panel and the Management API require system permissions. The `kimlik-admin` role can only be granted through bootstrap or by another administrator.
 - Every administrative change is audited with the actor, the target and the changed fields.
 - Administrators must use MFA by default. Accounts holding system permissions enroll at their next sign-in, and the admin panel accepts only sessions authenticated with MFA.
 
-### 10.6 Privacy (KVKK/GDPR)
+### 10.7 Privacy (KVKK/GDPR)
 
 - **Data minimization:** Kimlik stores only what identity and access require, plus metadata the developer defines.
 - **Account deletion** is available both as self-service and to admins, and it removes personal data. Audit events reference only the user ID and are kept for a configurable retention period (365 days by default).
 - **Personal data export** is planned for a later phase.
 
-### 10.7 Supply chain
+### 10.8 Supply chain
 
 - The dependency policy in [§14.4](#144-dependency-policy).
 - Dependabot, CodeQL and secret scanning.
@@ -982,6 +994,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M7: Admin panel completion** | All remaining MVP screens | Every MVP management task can be done in the UI ✅ (product settings come from configuration, [ADR 0001](adr/0001-product-settings-from-configuration.md)) |
 | **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image. NuGet publishing waits until the `Kimlik.*` prefix is reserved ([§17.1](#171-open-questions)) | v0.1.0 released ✅ (container image and GitHub release, 2026-10-08) |
 | **M9: Passkeys** | Passkey sign-in with conditional UI; adding passkeys on the account pages and after sign-in; passkeys in the Account and Management APIs, the SDK and the admin panel ([§10.4](#104-passkeys)) | A passkey created in the browser signs in and meets MFA requirements, in end-to-end tests with a software authenticator ✅ |
+| **M10: Email sign-in codes** | Sign-in with one-time email codes, sign-up without a password, and removing a password ([§10.5](#105-email-sign-in-codes)) | People sign up and sign in without a password, and a required second factor still follows, in end-to-end tests |
 
 ---
 
