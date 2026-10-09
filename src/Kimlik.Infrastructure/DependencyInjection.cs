@@ -106,7 +106,16 @@ public static class DependencyInjection
             .AddTokenProvider<PasswordResetTokenProvider<User>>(PasswordResetTokenProviderOptions.ProviderName)
             .AddTokenProvider<TotpTokenProvider>(TokenOptions.DefaultAuthenticatorProvider)
             .AddTokenProvider<EmailSignInCodeProvider>(EmailSignIn.TokenProvider)
-            .AddPasswordValidator<MaximumLengthPasswordValidator<User>>();
+            .AddPasswordValidator<MaximumLengthPasswordValidator<User>>()
+            .AddPasswordValidator<BreachedPasswordValidator>();
+
+        services.AddHttpClient(BreachedPasswordValidator.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://api.pwnedpasswords.com/");
+            client.Timeout = TimeSpan.FromSeconds(3);
+            client.DefaultRequestHeaders.Add("Add-Padding", "true");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Kimlik");
+        });
 
         services.AddSingleton<ConfigureIdentity>();
         services.AddSingleton<IConfigureOptions<IdentityOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());

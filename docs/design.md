@@ -236,7 +236,7 @@ The backlog, roughly in priority order:
 7. Developer-hosted sign-in UI through an interaction API.
 8. Hosted or embeddable components for organization management.
 9. Per-subscriber entitlement overrides and add-ons, and usage metering.
-10. Breached-password checks, CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`, `max_age`).
+10. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
 11. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
 12. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 13. A JavaScript/TypeScript SDK and a Helm chart.
@@ -723,6 +723,7 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 ### 10.2 Credentials
 
 - **Passwords** use the ASP.NET Core Identity hasher (PBKDF2-HMAC-SHA512). The iteration count is raised to the current OWASP guidance (at least 210,000), and passwords are rehashed automatically at sign-in. Argon2id can be added later behind the same interface.
+- **Breached passwords** are refused when they are set, as NIST SP 800-63B asks: Kimlik looks new passwords up in Have I Been Pwned's Pwned Passwords through its k-anonymity range API, so only the first five characters of the SHA-1 hash leave it, and asks for padded answers. If the service cannot be reached, the password is accepted, so an outage blocks nobody. `Kimlik:Accounts:BreachedPasswordCheck` turns it off.
 - **Client secrets** are hashed by OpenIddict.
 - **API keys** are 256-bit random secrets hashed with SHA-256. That is sufficient for high-entropy secrets and fast to verify.
 - **Email verification and password reset tokens** come from ASP.NET Core Identity token providers. They are short-lived and bound to the user's security stamp.

@@ -679,4 +679,7 @@
   <data name="For your security, sign in again before you download your data." xml:space="preserve">
     <value>Güvenliğiniz için verilerinizi indirmeden önce yeniden giriş yapın.</value>
   </data>
+  <data name="This password has appeared in a data breach. Choose a different one." xml:space="preserve">
+    <value>Bu şifre bir veri ihlalinde ortaya çıkmış. Başka bir şifre seçin.</value>
+  </data>
 </root>

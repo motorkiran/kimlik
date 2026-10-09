@@ -9,6 +9,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Passkeys (WebAuthn): sign in with a passkey, from a button or the browser's suggestions in the address field, as two factors that meet MFA requirements (`amr` `["pop", "mfa"]`); add, rename and remove passkeys on the account pages, with a one-time offer after a password sign-in; manage them through the Account and Management APIs, `Kimlik.Client` and the admin panel.
 - Email sign-in codes: a one-time code sent by email replaces the password as a first factor (`amr` `["email"]`), with a required second factor still following; sign-up without a password, and removing a password on the account pages (`Kimlik:Accounts:EmailSignIn`, on by default).
 - Personal data export (KVKK article 11, GDPR article 15): people download what Kimlik holds about them from the account pages after a recent sign-in, and administrators export it, with the private metadata, through the Management API, `Kimlik.Client` and the admin panel.
+- Breached-password checks: new passwords that appear in known data breaches are refused, through Have I Been Pwned's k-anonymity range API (`Kimlik:Accounts:BreachedPasswordCheck`, on by default).
 
 ### Fixed
 

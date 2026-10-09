@@ -17,6 +17,9 @@ public static class AccountErrors
 
     public static readonly Error PasswordRejected = Error.Validation("account.password_rejected", "The password does not meet the password policy.");
 
+    public static readonly Error PasswordBreached = Error.Validation(
+        "account.password_breached", "The password has appeared in a data breach; choose another.");
+
     public static readonly Error WrongPassword = Error.Validation("account.wrong_password", "The password is not right.");
 
     /// <summary>Too many wrong passwords or codes in a row; the account accepts none until the lockout ends.</summary>
@@ -84,6 +87,11 @@ public static class AccountErrors
             return PasswordTooLong;
         }
 
+        if (codes.Contains(PasswordBreachedCode))
+        {
+            return PasswordBreached;
+        }
+
         return codes.Any(code => code.StartsWith("Password", StringComparison.Ordinal))
             ? PasswordRejected
             : Error.Failure("account.identity_error", string.Join(", ", codes));
@@ -91,4 +99,7 @@ public static class AccountErrors
 
     /// <summary>The Identity error code reported by Kimlik's maximum length password validator.</summary>
     public const string PasswordTooLongCode = "PasswordTooLong";
+
+    /// <summary>The Identity error code reported when a password appears in a known data breach.</summary>
+    public const string PasswordBreachedCode = "PasswordBreached";
 }

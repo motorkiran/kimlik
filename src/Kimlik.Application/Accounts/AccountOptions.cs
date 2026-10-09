@@ -18,6 +18,12 @@ public sealed class AccountOptions
     /// </summary>
     public bool EmailSignIn { get; set; } = true;
 
+    /// <summary>
+    /// New passwords that appear in known data breaches are refused, through Have I Been Pwned's k-anonymity range API.
+    /// Turn it off where Kimlik cannot reach the internet.
+    /// </summary>
+    public bool BreachedPasswordCheck { get; set; } = true;
+
     /// <summary>Length is what makes passwords strong, so there are no composition rules (NIST SP 800-63B).</summary>
     [Range(8, PasswordMaximumLength)]
     public int PasswordMinimumLength { get; set; } = 12;
