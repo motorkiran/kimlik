@@ -7,7 +7,7 @@ namespace Kimlik.Server.Hosting;
 
 internal static class RateLimitingServiceCollectionExtensions
 {
-    private static readonly PathString[] ProtocolEndpoints = ["/connect/token", "/connect/introspect", "/connect/revoke"];
+    private static readonly PathString[] ProtocolEndpoints = ["/connect/token", "/connect/introspect", "/connect/revoke", "/connect/device"];
 
     public static IServiceCollection AddKimlikRateLimiting(this IServiceCollection services)
     {

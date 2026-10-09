@@ -64,7 +64,7 @@ public sealed class AdminPanelTests(KimlikServerFixture server)
         await server.AssignToUserAsync(admin.Id, SystemRoles.Admin);
 
         using var panel = await browser.GetAsync("/admin");
-        panel.Headers.Location!.OriginalString.ShouldBe("/admin/step-up?returnUrl=%2Fadmin");
+        panel.Headers.Location!.OriginalString.ShouldBe("/signin/step-up?returnUrl=%2Fadmin");
 
         using var stepUp = await browser.GetAsync(panel.Headers.Location!.OriginalString);
         stepUp.Headers.Location!.OriginalString.ShouldStartWith("/signin/set-up-two-factor?returnUrl=%2Fadmin");

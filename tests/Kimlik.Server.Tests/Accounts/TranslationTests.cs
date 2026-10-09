@@ -10,7 +10,7 @@ namespace Kimlik.Server.Tests.Accounts;
 /// </summary>
 public sealed partial class TranslationTests
 {
-    private static readonly string[] Folders = ["Pages", "Identity"];
+    private static readonly string[] Folders = ["Pages", "Identity", "Oidc"];
 
     [Fact]
     public void EveryText_HasATurkishTranslation()

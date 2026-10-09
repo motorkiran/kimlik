@@ -682,4 +682,34 @@
   <data name="This password has appeared in a data breach. Choose a different one." xml:space="preserve">
     <value>Bu şifre bir veri ihlalinde ortaya çıkmış. Başka bir şifre seçin.</value>
   </data>
+  <data name="Allow it only if you started signing in on that device yourself, and it shows the code {0}." xml:space="preserve">
+    <value>Yalnızca o cihazda girişi siz başlattıysanız ve cihaz {0} kodunu gösteriyorsa izin verin.</value>
+  </data>
+  <data name="Allow this device?" xml:space="preserve">
+    <value>Bu cihaza izin verilsin mi?</value>
+  </data>
+  <data name="Enter the code your device shows." xml:space="preserve">
+    <value>Cihazınızın gösterdiği kodu girin.</value>
+  </data>
+  <data name="Go back to your device; it is signed in now." xml:space="preserve">
+    <value>Cihazınıza dönün; giriş yapıldı.</value>
+  </data>
+  <data name="Request denied" xml:space="preserve">
+    <value>İstek reddedildi</value>
+  </data>
+  <data name="Sign in on your device" xml:space="preserve">
+    <value>Cihazınızda giriş yapın</value>
+  </data>
+  <data name="That code is not valid, or it has expired. Check the code on your device." xml:space="preserve">
+    <value>Bu kod geçerli değil ya da süresi dolmuş. Cihazınızdaki kodu kontrol edin.</value>
+  </data>
+  <data name="The device was not signed in." xml:space="preserve">
+    <value>Cihazda giriş yapılmadı.</value>
+  </data>
+  <data name="You're all set" xml:space="preserve">
+    <value>Her şey hazır</value>
+  </data>
+  <data name="{0} on another device would like to:" xml:space="preserve">
+    <value>Başka bir cihazdaki {0} şunları yapmak istiyor:</value>
+  </data>
 </root>

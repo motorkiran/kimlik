@@ -232,7 +232,7 @@ The backlog, roughly in priority order:
 3. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
 4. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
 5. Admin impersonation, with an `act` claim (RFC 8693).
-6. Device authorization grant (RFC 8628) and token exchange (RFC 8693).
+6. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)).
 7. Developer-hosted sign-in UI through an interaction API.
 8. Hosted or embeddable components for organization management.
 9. Per-subscriber entitlement overrides and add-ons, and usage metering.
@@ -554,10 +554,13 @@ erDiagram
 | End session | `/connect/endsession` |
 | Introspection | `/connect/introspect` |
 | Revocation | `/connect/revoke` |
+| Device authorization | `/connect/device` |
+| Device verification (hosted page) | `/connect/verify` |
 
 ### 8.2 Grants and client authentication
 
 - **MVP grants:** `authorization_code` (PKCE with S256 is required for every client), `refresh_token` and `client_credentials`.
+- **Device authorization** (RFC 8628, `urn:ietf:params:oauth:grant-type:device_code`) for native clients, such as command-line tools and TV apps ([§8.8](#88-device-authorization)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
 - **Client authentication:** `client_secret_basic` and `client_secret_post`. `private_key_jwt` comes in a later phase.
 - **Redirect URIs** are matched exactly.
@@ -627,6 +630,15 @@ erDiagram
 - RP-initiated logout goes through the end-session endpoint, with registered post-logout redirect URIs.
 - Users and admins can list and revoke sessions. Suspending a user revokes all of the user's authorizations and tokens.
 - Front-channel and back-channel logout come in a later phase.
+
+### 8.8 Device authorization
+
+Native clients can sign people in from another device (RFC 8628), as command-line tools and TV apps do.
+
+- The client asks `/connect/device` for a code, shows it with the link to `/connect/verify`, and polls the token endpoint. The person signs in on any browser, enters the code unless the link carried it, and allows or denies the device.
+- The page always asks, first-party apps included, since the request comes from another device, and it tells people to allow it only if they started signing in there and it shows the same code. A session without the second factor its account needs adds it first.
+- An approval is an ad hoc authorization, so it is listed among the user's sessions and can be signed out, and it is audited (`user.device_approved`).
+- A native client without a redirect URI uses only this flow. The device flow does not take an organization yet.
 
 ---
 
@@ -996,6 +1008,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M9: Passkeys** | Passkey sign-in with conditional UI; adding passkeys on the account pages and after sign-in; passkeys in the Account and Management APIs, the SDK and the admin panel ([§10.4](#104-passkeys)) | A passkey created in the browser signs in and meets MFA requirements, in end-to-end tests with a software authenticator ✅ |
 | **M10: Email sign-in codes** | Sign-in with one-time email codes, sign-up without a password, and removing a password ([§10.5](#105-email-sign-in-codes)) | People sign up and sign in without a password, and a required second factor still follows, in end-to-end tests ✅ |
 | **M11: Personal data export** | Exports of a user's data for the user and for administrators ([§10.7](#107-privacy-kvkkgdpr)) | Exports cover every kind of personal data Kimlik stores, in end-to-end tests ✅ |
+| **M12: Device authorization and breached passwords** | The device authorization grant ([§8.8](#88-device-authorization)) and breached-password checks ([§10.2](#102-credentials)) | A command-line tool signs a person in through the browser, and breached passwords are refused, in end-to-end tests ✅ |
 
 ---
 

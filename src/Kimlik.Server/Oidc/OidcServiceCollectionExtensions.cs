@@ -41,11 +41,14 @@ internal static class OidcServiceCollectionExtensions
                     .SetUserInfoEndpointUris("connect/userinfo")
                     .SetEndSessionEndpointUris("connect/endsession")
                     .SetIntrospectionEndpointUris("connect/introspect")
-                    .SetRevocationEndpointUris("connect/revoke");
+                    .SetRevocationEndpointUris("connect/revoke")
+                    .SetDeviceAuthorizationEndpointUris("connect/device")
+                    .SetEndUserVerificationEndpointUris("connect/verify");
 
                 options.AllowAuthorizationCodeFlow()
                     .AllowRefreshTokenFlow()
-                    .AllowClientCredentialsFlow();
+                    .AllowClientCredentialsFlow()
+                    .AllowDeviceAuthorizationFlow();
 
                 // PKCE for every client, confidential ones included (OAuth 2.0 Security BCP, RFC 9700).
                 options.RequireProofKeyForCodeExchange();
@@ -60,6 +63,7 @@ internal static class OidcServiceCollectionExtensions
                     .EnableTokenEndpointPassthrough()
                     .EnableUserInfoEndpointPassthrough()
                     .EnableEndSessionEndpointPassthrough()
+                    .EnableEndUserVerificationEndpointPassthrough()
                     // Errors that cannot be returned to the client are rendered by the hosted pages.
                     .EnableErrorPassthrough();
             });
@@ -69,6 +73,7 @@ internal static class OidcServiceCollectionExtensions
         services.AddSingleton<IConfigureOptions<OpenIddictServerAspNetCoreOptions>>(provider => provider.GetRequiredService<ConfigureOpenIddictServer>());
 
         services.AddScoped<OidcPrincipalFactory>();
+        services.AddScoped<ScopeDescriptions>();
 
         // Must come after AddServer: see TokenKeyServiceCollectionExtensions.AddTokenKeys.
         services.AddTokenKeys(HealthProbeExtensions.ReadinessTag);

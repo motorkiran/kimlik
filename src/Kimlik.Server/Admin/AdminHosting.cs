@@ -50,7 +50,7 @@ internal static class AdminHosting
             {
                 var needsSecondFactor = authorizeResult.AuthorizationFailure?.FailureReasons.Any(reason => reason.Message == AdminAccess.SecondFactorNeeded) == true;
                 var returnUrl = Uri.EscapeDataString($"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}");
-                context.Response.Redirect(needsSecondFactor ? $"{context.Request.PathBase}/admin/step-up?returnUrl={returnUrl}" : $"{context.Request.PathBase}/admin/denied");
+                context.Response.Redirect(needsSecondFactor ? $"{context.Request.PathBase}/signin/step-up?returnUrl={returnUrl}" : $"{context.Request.PathBase}/admin/denied");
                 return Task.CompletedTask;
             }
 

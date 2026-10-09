@@ -1,0 +1,52 @@
+@page "/connect/verify"
+@model VerifyModel
+@{
+    ViewData["Title"] = L["Sign in on your device"];
+}
+
+@if (Model.Outcome == VerifyModel.Approved)
+{
+    <h1 id="page-title">@L["You're all set"]</h1>
+    <p class="lead">@L["Go back to your device; it is signed in now."]</p>
+}
+else if (Model.Outcome == VerifyModel.Denied)
+{
+    <h1 id="page-title">@L["Request denied"]</h1>
+    <p class="lead">@L["The device was not signed in."]</p>
+}
+else if (string.IsNullOrEmpty(Model.UserCode) || Model.InvalidCode)
+{
+    <h1 id="page-title">@L["Sign in on your device"]</h1>
+    <p class="lead">@L["Enter the code your device shows."]</p>
+    @if (Model.InvalidCode)
+    {
+        <div class="alert alert-error" role="alert">@L["That code is not valid, or it has expired. Check the code on your device."]</div>
+    }
+    <form method="get" action="@Request.PathBase/connect/verify" id="enter-code">
+        <div class="field">
+            <label for="user_code">@L["Code"]</label>
+            <input id="user_code" name="user_code" autocomplete="off" autocapitalize="characters" autofocus required />
+        </div>
+        <button type="submit" class="button">@L["Continue"]</button>
+    </form>
+}
+else
+{
+    <h1 id="page-title">@L["Allow this device?"]</h1>
+    <p class="lead">@L["{0} on another device would like to:", Model.ApplicationName ?? string.Empty]</p>
+    <ul class="scopes">
+        @foreach (var scope in Model.ScopeDescriptions)
+        {
+            <li>@scope</li>
+        }
+    </ul>
+    <p class="hint">@L["Allow it only if you started signing in on that device yourself, and it shows the code {0}.", Model.UserCode]</p>
+
+    <form method="post" action="@Request.PathBase/connect/verify" asp-antiforgery="true" id="decide">
+        <input type="hidden" name="user_code" value="@Model.UserCode" />
+        <div class="actions">
+            <button type="submit" class="button" name="decision" value="allow">@L["Allow"]</button>
+            <button type="submit" class="button button-secondary" name="decision" value="deny">@L["Deny"]</button>
+        </div>
+    </form>
+}

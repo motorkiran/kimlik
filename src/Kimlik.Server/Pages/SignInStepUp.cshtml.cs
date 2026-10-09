@@ -10,15 +10,16 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Kimlik.Server.Pages;
 
 /// <summary>
-/// Adds the second factor that the admin panel requires to a session that started without one: the user verifies a
-/// code, or sets up an authenticator, and comes back. A trusted browser counts as verified.
+/// Adds a second factor to a session that started without one, where it is required, as by the admin panel or for
+/// approving a device: the user verifies a code, or sets up an authenticator, and comes back. A trusted browser counts as
+/// verified.
 /// </summary>
 [Authorize]
-public sealed class AdminStepUpModel(UserManager<User> userManager, SignInFlow signInFlow) : PageModel
+public sealed class SignInStepUpModel(UserManager<User> userManager, SignInFlow signInFlow) : PageModel
 {
     public async Task<IActionResult> OnGetAsync(string? returnUrl, CancellationToken cancellationToken)
     {
-        returnUrl = AccountLinks.IsLocalUrl(returnUrl) ? returnUrl! : "/admin";
+        returnUrl = AccountLinks.IsLocalUrl(returnUrl) ? returnUrl! : "/";
         if (User.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod) || await userManager.GetUserAsync(User) is not { } user)
         {
             return LocalRedirect(returnUrl);

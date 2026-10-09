@@ -78,7 +78,8 @@ public static partial class ClientPresets
             return ClientErrors.RedirectUrisNotSupported;
         }
 
-        if (SignsInUsers(type) && settings.RedirectUris.Count == 0)
+        // A native client without one, such as a command-line tool, signs people in through the device flow only.
+        if (SignsInUsers(type) && type != ClientType.Native && settings.RedirectUris.Count == 0)
         {
             return ClientErrors.RedirectUriRequired;
         }
@@ -134,6 +135,12 @@ public static partial class ClientPresets
                 OidcPermissions.ResponseTypes.Code,
             ]);
             descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+
+            // Apps on devices without a browser, or command-line tools, sign people in from another device (RFC 8628).
+            if (type == ClientType.Native)
+            {
+                descriptor.Permissions.UnionWith([OidcPermissions.Endpoints.DeviceAuthorization, OidcPermissions.GrantTypes.DeviceCode]);
+            }
         }
         else
         {

@@ -40,7 +40,7 @@ internal static class TokenEndpoint
             return await IssueClientTokenAsync(request, context.RequestServices, cancellationToken);
         }
 
-        if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
+        if (request.IsAuthorizationCodeGrantType() || request.IsDeviceCodeGrantType() || request.IsRefreshTokenGrantType())
         {
             return await IssueUserTokenAsync(context, request, cancellationToken);
         }
@@ -72,8 +72,8 @@ internal static class TokenEndpoint
     }
 
     /// <summary>
-    /// Exchanges an authorization code or a refresh token. The account is checked again on every exchange,
-    /// so suspended, locked-out or deleted users lose access as soon as their access token expires.
+    /// Exchanges an authorization code, a device code or a refresh token. The account is checked again on every
+    /// exchange, so suspended, locked-out or deleted users lose access as soon as their access token expires.
     /// </summary>
     private static async Task<IResult> IssueUserTokenAsync(HttpContext context, OpenIddictRequest request, CancellationToken cancellationToken)
     {

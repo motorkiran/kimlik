@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Security.Claims;
 using Kimlik.Application.Clients;
 using Kimlik.Application.Mfa;
@@ -14,7 +13,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Primitives;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -31,15 +29,14 @@ namespace Kimlik.Server.Pages.Connect;
 public sealed class AuthorizeModel(
     IOpenIddictApplicationManager applications,
     IOpenIddictAuthorizationManager authorizations,
-    IOpenIddictScopeManager scopes,
+    ScopeDescriptions scopeDescriptions,
     UserOrganizations userOrganizations,
     SignInFlow signInFlow,
     MfaPolicy mfaPolicy,
     UserManager<User> userManager,
     OidcPrincipalFactory principalFactory,
     IAntiforgery antiforgery,
-    TimeProvider timeProvider,
-    IStringLocalizer<SharedResource> localizer) : PageModel
+    TimeProvider timeProvider) : PageModel
 {
     private const string ConsentField = "consent";
     private const string ConsentAccepted = "accept";
@@ -145,7 +142,7 @@ public sealed class AuthorizeModel(
 
             default:
                 ApplicationName = await applications.GetLocalizedDisplayNameAsync(application, cancellationToken) ?? request.ClientId;
-                ScopeDescriptions = await DescribeScopesAsync(request.GetScopes(), cancellationToken);
+                ScopeDescriptions = await scopeDescriptions.DescribeAsync(request.GetScopes(), cancellationToken);
                 return Page();
         }
     }
@@ -261,28 +258,5 @@ public sealed class AuthorizeModel(
         }
 
         return Request.PathBase + Request.Path + QueryString.Create(parameters);
-    }
-
-    private async Task<IReadOnlyList<string>> DescribeScopesAsync(ImmutableArray<string> requestedScopes, CancellationToken cancellationToken)
-    {
-        var descriptions = new List<string>();
-
-        foreach (var scope in requestedScopes)
-        {
-            var description = scope switch
-            {
-                Scopes.OpenId => localizer["Confirm your identity"].Value,
-                Scopes.Profile => localizer["See your name and profile"].Value,
-                Scopes.Email => localizer["See your email address"].Value,
-                Scopes.OfflineAccess => localizer["Stay signed in to it"].Value,
-                _ => await scopes.FindByNameAsync(scope, cancellationToken) is { } apiScope
-                    ? await scopes.GetLocalizedDisplayNameAsync(apiScope, cancellationToken) ?? scope
-                    : scope,
-            };
-
-            descriptions.Add(description);
-        }
-
-        return descriptions;
     }
 }
