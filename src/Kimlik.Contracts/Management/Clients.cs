@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Management;
@@ -22,6 +23,7 @@ public enum ClientType
 /// <summary>
 /// An application that requests tokens. <c>scopes</c> are what it may request; <c>roles</c> are the global
 /// roles of a service client.
+/// A web or service client with <c>jsonWebKeySet</c> authenticates with those keys (<c>private_key_jwt</c>) instead of a secret.
 /// </summary>
 public sealed record ClientResponse(
     Guid Id,
@@ -33,7 +35,9 @@ public sealed record ClientResponse(
     IReadOnlyList<string> PostLogoutRedirectUris,
     IReadOnlyList<string> Scopes,
     IReadOnlyList<string> Roles,
-    bool RequireOrganization);
+    bool RequireOrganization,
+    bool RequirePushedAuthorization,
+    JsonObject? JsonWebKeySet);
 
 public sealed record CreateClientRequest
 {
@@ -76,12 +80,31 @@ public sealed record CreateClientRequest
     /// chooses one of theirs.
     /// </summary>
     public bool RequireOrganization { get; init; }
+
+    /// <summary>
+    /// Whether the client must push its authorization requests to <c>/connect/par</c> (RFC 9126) and send the browser
+    /// with only the <c>request_uri</c> it gets back, so no authorization parameter travels through the browser.
+    /// </summary>
+    public bool RequirePushedAuthorization { get; init; }
+
+    /// <summary>
+    /// For a web or service client that authenticates with keys rather than a secret (<c>private_key_jwt</c>, RFC 7523):
+    /// a JWK Set of up to 10 public signing keys, RSA of 2048 bits or more or EC on P-256, P-384 or P-521. Such a client
+    /// gets no secret: it signs each request's assertion with one of the keys, typed <c>client-authentication+jwt</c> and
+    /// with Kimlik's issuer as its audience.
+    /// </summary>
+    public JsonObject? JsonWebKeySet { get; init; }
 }
 
-/// <summary>A new client and, for web and service clients, its secret. The secret is shown only this once.</summary>
+/// <summary>
+/// A new client and, for web and service clients without keys, its secret. The secret is shown only this once.
+/// </summary>
 public sealed record CreatedClientResponse(ClientResponse Client, string? ClientSecret);
 
-/// <summary>A new client secret, shown only this once. The previous secret stops working at once.</summary>
+/// <summary>
+/// A new client secret, shown only this once. The previous secret, or the keys the client authenticated with, stop working
+/// at once.
+/// </summary>
 public sealed record ClientSecretResponse(string ClientSecret);
 
 /// <summary>
@@ -105,6 +128,8 @@ public sealed record UpdateClientRequest
     public bool? FirstParty { get; init; }
 
     public bool? RequireOrganization { get; init; }
+
+    public bool? RequirePushedAuthorization { get; init; }
 
     [MaxLength(20)]
     public IReadOnlyList<string>? RedirectUris
@@ -139,6 +164,20 @@ public sealed record UpdateClientRequest
         }
     }
 
+    /// <summary>
+    /// New keys for a web or service client (see <see cref="CreateClientRequest.JsonWebKeySet"/>), which replace its secret
+    /// or its previous keys. They cannot be cleared: generating a new secret replaces them.
+    /// </summary>
+    public JsonObject? JsonWebKeySet
+    {
+        get;
+        init
+        {
+            field = value;
+            HasJsonWebKeySet = true;
+        }
+    }
+
     /// <summary>Whether the request sets <see cref="DisplayName"/>.</summary>
     [JsonIgnore]
     public bool HasDisplayName { get; private init; }
@@ -154,4 +193,8 @@ public sealed record UpdateClientRequest
     /// <summary>Whether the request sets <see cref="Scopes"/>.</summary>
     [JsonIgnore]
     public bool HasScopes { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="JsonWebKeySet"/>.</summary>
+    [JsonIgnore]
+    public bool HasJsonWebKeySet { get; private init; }
 }

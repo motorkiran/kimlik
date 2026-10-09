@@ -37,6 +37,7 @@ internal static class OidcServiceCollectionExtensions
             .AddServer(options =>
             {
                 options.SetAuthorizationEndpointUris("connect/authorize")
+                    .SetPushedAuthorizationEndpointUris("connect/par")
                     .SetTokenEndpointUris("connect/token")
                     .SetUserInfoEndpointUris("connect/userinfo")
                     .SetEndSessionEndpointUris("connect/endsession")

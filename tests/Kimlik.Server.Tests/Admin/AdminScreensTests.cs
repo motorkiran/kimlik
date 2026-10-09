@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using Bunit;
 using Kimlik.Admin.Components.Pages.Access;
 using Kimlik.Admin.Components.Pages.Clients;
@@ -8,6 +9,7 @@ using Kimlik.Admin.Components.Pages.Plans;
 using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Oidc;
 using Kimlik.Server.Tests.Organizations;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
@@ -106,6 +108,24 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
 
         var secret = admin.Dialogs.WaitForElement("#secret");
         secret.GetAttribute("value").ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ServiceClient_SwitchesFromItsSecretToKeys()
+    {
+        var serviceClient = await server.CreateServiceClientAsync();
+        var id = await server.QueryDatabaseAsync(context => context.Applications.Where(application => application.ClientId == serviceClient.ClientId)
+            .Select(application => application.Id).SingleAsync());
+        using var key = RSA.Create(2048);
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+        var page = admin.Render<ClientDetail>(parameters => parameters.Add(detail => detail.Id, id));
+        page.WaitForElement("#save-keys");
+
+        await page.InvokeAsync(() => page.Find("#credentials textarea").Change(TestKeys.KeySet(key, "admin-1").ToJsonString()));
+        await page.InvokeAsync(() => page.Find("#save-keys").Click());
+
+        admin.WaitForNotification("The keys were saved.");
+        page.WaitForAssertion(() => page.Find("#credentials").TextContent.ShouldContain("Authenticates with its keys"));
     }
 
     [Fact]

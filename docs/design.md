@@ -236,7 +236,7 @@ The backlog, roughly in priority order:
 7. Hosted or embeddable components for organization management.
 8. Per-subscriber entitlement overrides and add-ons, and usage metering.
 9. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-10. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
+10. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
 11. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 12. A JavaScript/TypeScript SDK and a Helm chart.
 13. OpenID Foundation certification.
@@ -548,6 +548,7 @@ erDiagram
 | Discovery | `/.well-known/openid-configuration` |
 | JWKS | `/.well-known/jwks` |
 | Authorization | `/connect/authorize` |
+| Pushed authorization requests | `/connect/par` |
 | Token | `/connect/token` |
 | UserInfo | `/connect/userinfo` |
 | End session | `/connect/endsession` |
@@ -561,7 +562,8 @@ erDiagram
 - **MVP grants:** `authorization_code` (PKCE with S256 is required for every client), `refresh_token` and `client_credentials`.
 - **Device authorization** (RFC 8628, `urn:ietf:params:oauth:grant-type:device_code`) for native clients, such as command-line tools and TV apps ([§8.8](#88-device-authorization)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
-- **Client authentication:** `client_secret_basic` and `client_secret_post`. `private_key_jwt` comes in a later phase.
+- **Client authentication:** web and service clients authenticate with a secret (`client_secret_basic` or `client_secret_post`) or with keys (`private_key_jwt`, RFC 7523), one or the other. Registering a JWK Set of public signing keys (RSA or EC, at most 10, without private parameters) replaces the secret, and generating a new secret removes the keys. The client signs a short-lived JWT for each request, typed `client-authentication+jwt` (draft-ietf-oauth-rfc7523bis) and with Kimlik's issuer as its audience, so no shared secret leaves the client and no other JWT passes as an assertion.
+- **Pushed authorization requests** (PAR, RFC 9126) at `/connect/par`, for every client that signs users in: the client posts the authorization parameters directly, authenticating if confidential, and sends the browser with only the `request_uri` it got back. A client can be set to require PAR (`requirePushedAuthorization`), so its authorization parameters never travel through the browser.
 - **Redirect URIs** are matched exactly.
 
 ### 8.3 Token formats and lifetimes
@@ -1014,6 +1016,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M11: Personal data export** | Exports of a user's data for the user and for administrators ([§10.7](#107-privacy-kvkkgdpr)) | Exports cover every kind of personal data Kimlik stores, in end-to-end tests ✅ |
 | **M12: Device authorization and breached passwords** | The device authorization grant ([§8.8](#88-device-authorization)) and breached-password checks ([§10.2](#102-credentials)) | A command-line tool signs a person in through the browser, and breached passwords are refused, in end-to-end tests ✅ |
 | **M13: Admin impersonation** | Administrators sign in as a user for support, with `act` in tokens ([§10.6](#106-administrative-security)) | An administrator acts as a user in the hosted pages and apps, changes nothing on the account, and stops, in end-to-end tests ✅ |
+| **M14: Keys and pushed authorization requests** | `private_key_jwt` client authentication and PAR, in the Management API, the provisioning file and the admin panel ([§8.2](#82-grants-and-client-authentication)) | A client signs in users through PAR and gets tokens with a signed assertion instead of a secret, in end-to-end tests ✅ |
 
 ---
 

@@ -1,6 +1,8 @@
 @page "/admin/clients/{Id:guid}"
 @using Kimlik.Application.Clients
 @using Kimlik.Application.Roles
+@using System.Text.Json
+@using System.Text.Json.Nodes
 @using Kimlik.Domain.Common
 @inherits AdminPageBase
 
@@ -29,6 +31,7 @@ else if (_client is { } client)
                     <MudTextField @bind-Value="_postLogoutRedirectUris" Label="Post-logout redirect URIs" Lines="2" ReadOnly="!CanWrite" HelperText="One per line." />
                     <MudCheckBox @bind-Value="_firstParty" Label="First party: skip the consent screen" ReadOnly="!CanWrite" />
                     <MudCheckBox @bind-Value="_requireOrganization" Label="Users sign in to an organization" ReadOnly="!CanWrite" />
+                    <MudCheckBox @bind-Value="_requirePushedAuthorization" Label="Require pushed authorization requests (PAR)" ReadOnly="!CanWrite" />
                 }
                 <MudSelect T="string" Label="Scopes" MultiSelection @bind-SelectedValues="_scopes" ReadOnly="!CanWrite">
                     @foreach (var scope in _availableScopes)
@@ -61,6 +64,24 @@ else if (_client is { } client)
                 </MudPaper>
             }
 
+            @if (client.Type is ClientType.Web or ClientType.Service)
+            {
+                <MudPaper Class="pa-4 mb-4" Outlined id="credentials">
+                    <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Credentials</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        @(client.JsonWebKeySet is null
+                            ? "Authenticates with a secret. Public keys replace it: the client then signs a JWT for each request (private_key_jwt)."
+                            : "Authenticates with its keys (private_key_jwt). A new secret replaces them.")
+                    </MudText>
+                    <MudTextField @bind-Value="_keys" Label="Public keys (JWK Set)" Lines="6" ReadOnly="!CanWrite"
+                                  HelperText="RSA of 2048 bits or more, or EC on P-256, P-384 or P-521; public parameters only." />
+                    @if (CanWrite)
+                    {
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveKeysAsync" id="save-keys">Save keys</MudButton>
+                    }
+                </MudPaper>
+            }
+
             @if (CanWrite)
             {
                 <MudPaper Class="pa-4" Outlined>
@@ -86,6 +107,9 @@ else if (_client is { } client)
     private string? _postLogoutRedirectUris;
     private bool _firstParty;
     private bool _requireOrganization;
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    private bool _requirePushedAuthorization;
+    private string? _keys;
     private IReadOnlyCollection<string> _scopes = [];
     private IReadOnlyCollection<string> _roles = [];
     private IReadOnlyList<string> _availableScopes = [];
@@ -121,6 +145,8 @@ else if (_client is { } client)
         _postLogoutRedirectUris = string.Join('\n', client.PostLogoutRedirectUris);
         _firstParty = client.FirstParty;
         _requireOrganization = client.RequireOrganization;
+        _requirePushedAuthorization = client.RequirePushedAuthorization;
+        _keys = client.JsonWebKeySet?.ToJsonString(Indented);
         _scopes = client.Scopes;
         _roles = client.Roles;
         _breadcrumbs.RemoveRange(1, _breadcrumbs.Count - 1);
@@ -138,10 +164,36 @@ else if (_client is { } client)
                 PostLogoutRedirectUris = ClientScopes.Lines(_postLogoutRedirectUris),
                 FirstParty = _firstParty,
                 RequireOrganization = _requireOrganization,
+                RequirePushedAuthorization = _requirePushedAuthorization,
                 Scopes = [.. _scopes],
             };
 
         if (await ChangeAsync<UpdateClientHandler, ClientResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The client was saved.") is { } client)
+        {
+            Show(client);
+        }
+    }
+
+    private async Task SaveKeysAsync()
+    {
+        JsonObject? keys;
+        try
+        {
+            keys = JsonNode.Parse(_keys ?? string.Empty) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            keys = null;
+        }
+
+        if (keys is null)
+        {
+            Snackbar.Add("Keys must be a JWK Set, such as { \"keys\": [ ... ] }.", Severity.Error);
+            return;
+        }
+
+        var request = new UpdateClientRequest { JsonWebKeySet = keys };
+        if (await ChangeAsync<UpdateClientHandler, ClientResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, request, Aborted), "The keys were saved.") is { } client)
         {
             Show(client);
         }
@@ -158,10 +210,11 @@ else if (_client is { } client)
 
     private async Task RegenerateSecretAsync()
     {
-        if (await ConfirmAsync("Issue a new secret?", "The current secret stops working at once; the client needs the new one to get tokens.", "Issue")
+        if (await ConfirmAsync("Issue a new secret?", "The current secret, or the client's keys, stop working at once; the client needs the new secret to get tokens.", "Issue")
             && await ChangeAsync<RegenerateClientSecretHandler, ClientSecretResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, Aborted), "A new secret was issued.") is { } secret)
         {
             await SecretDialog.ShowAsync(Dialogs, "Client secret", $"Secret of {_client!.ClientId}", secret.ClientSecret);
+            Show(_client! with { JsonWebKeySet = null });
         }
     }
 

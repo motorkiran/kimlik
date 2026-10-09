@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Kimlik.Application.Clients;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
@@ -10,6 +12,7 @@ using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -36,10 +39,22 @@ public sealed class AuthorizeModel(
     UserManager<User> userManager,
     OidcPrincipalFactory principalFactory,
     IAntiforgery antiforgery,
+    IDataProtectionProvider dataProtection,
     TimeProvider timeProvider) : PageModel
 {
     private const string ConsentField = "consent";
     private const string ConsentAccepted = "accept";
+
+    /// <summary>
+    /// The parameter, added to the request when it comes back from the sign-in that <c>prompt=login</c> asked for, that
+    /// says when Kimlik asked. The prompt cannot simply be dropped from a pushed request (RFC 9126), which the URL only
+    /// refers to.
+    /// </summary>
+    private const string LoginPromptedAtParameter = "kimlik_login_prompted";
+
+    private static readonly TimeSpan LoginPromptLifetime = TimeSpan.FromMinutes(15);
+
+    private ITimeLimitedDataProtector LoginPrompts => dataProtection.CreateProtector("Kimlik.Oidc.LoginPrompt").ToTimeLimitedDataProtector();
 
     public string? Error { get; private set; }
 
@@ -81,7 +96,7 @@ public sealed class AuthorizeModel(
             user = null;
         }
 
-        if (user is null || request.HasPromptValue(PromptValues.Login) || IsOlderThanMaxAge(request, session))
+        if (user is null || (request.HasPromptValue(PromptValues.Login) && !SignedInSincePrompted(session)) || IsOlderThanMaxAge(request, session))
         {
             if (request.HasPromptValue(PromptValues.None))
             {
@@ -258,19 +273,40 @@ public sealed class AuthorizeModel(
         && timeProvider.GetUtcNow() - authenticatedAt > TimeSpan.FromSeconds(maxAge);
 
     /// <summary>
-    /// Where to return after signing in: the same authorization request without <c>prompt=login</c>,
-    /// so the user is not asked to sign in again in a loop.
+    /// Where to return after signing in: the same authorization request, which says when Kimlik asked for the sign-in
+    /// when <c>prompt=login</c> did, so that the sign-in that follows answers it and the user is not asked again in a loop.
     /// </summary>
     private string BuildRetryUri(OpenIddictRequest request)
     {
-        var parameters = RequestParameters.Where(parameter => parameter.Key != Parameters.Prompt).ToList();
-
-        var prompt = string.Join(' ', request.GetPromptValues().Remove(PromptValues.Login));
-        if (prompt.Length > 0)
+        var parameters = RequestParameters.Where(parameter => parameter.Key != LoginPromptedAtParameter).ToList();
+        if (request.HasPromptValue(PromptValues.Login))
         {
-            parameters.Add(new(Parameters.Prompt, prompt));
+            var now = timeProvider.GetUtcNow();
+            var promptedAt = now.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+            parameters.Add(new(LoginPromptedAtParameter, LoginPrompts.Protect(promptedAt, now + LoginPromptLifetime)));
         }
 
         return Request.PathBase + Request.Path + QueryString.Create(parameters);
+    }
+
+    /// <summary>Whether the user signed in after Kimlik asked them to, for <c>prompt=login</c>.</summary>
+    private bool SignedInSincePrompted(AuthenticateResult session)
+    {
+        // In the query, or in the form of a consent decision, which carries the request's parameters.
+        var marker = RequestParameters.FirstOrDefault(parameter => parameter.Key == LoginPromptedAtParameter).Value.ToString();
+        if (marker.Length == 0 || SignInFlow.SignedInAt(session) is not { } signedInAt)
+        {
+            return false;
+        }
+
+        try
+        {
+            return long.TryParse(LoginPrompts.Unprotect(marker), NumberStyles.None, CultureInfo.InvariantCulture, out var promptedAt)
+                && signedInAt.ToUnixTimeSeconds() >= promptedAt;
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
     }
 }

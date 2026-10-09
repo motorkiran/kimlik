@@ -1,12 +1,14 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Kimlik.Application.Abstractions;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using OidcPermissions = OpenIddict.Abstractions.OpenIddictConstants.Permissions;
@@ -20,7 +22,8 @@ internal sealed record ClientSettings(
     IReadOnlyList<string> RedirectUris,
     IReadOnlyList<string> PostLogoutRedirectUris,
     IReadOnlyList<string> Scopes,
-    bool RequireOrganization);
+    bool RequireOrganization,
+    bool RequirePushedAuthorization);
 
 /// <summary>
 /// Turns a client type into OpenIddict settings, and back. The type is not stored: it is read from the settings
@@ -66,6 +69,23 @@ public static partial class ClientPresets
         return secret.Length >= SecretMinimumLength ? Result.Success() : ClientErrors.WeakSecret;
     }
 
+    /// <summary>The keys a client declares, if any: only web and service clients authenticate with keys.</summary>
+    internal static Result<JsonWebKeySet?> CheckKeys(ClientType type, JsonObject? keys)
+    {
+        if (keys is null)
+        {
+            return (JsonWebKeySet?)null;
+        }
+
+        if (!IsConfidential(type))
+        {
+            return ClientErrors.KeysNotSupported;
+        }
+
+        var parsed = ClientKeys.Parse(keys);
+        return parsed.IsSuccess ? parsed.Value : parsed.Error;
+    }
+
     internal static async Task<Result> ValidateAsync(IKimlikDbContext context, ClientType type, ClientSettings settings, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(settings.DisplayName) || settings.DisplayName.Trim().Length > 100)
@@ -99,6 +119,11 @@ public static partial class ClientPresets
             return ClientErrors.OrganizationNotSupported;
         }
 
+        if (!SignsInUsers(type) && settings.RequirePushedAuthorization)
+        {
+            return ClientErrors.PushedAuthorizationNotSupported;
+        }
+
         var apiScopes = settings.Scopes.Where(scope => !UserScopes.Contains(scope)).Distinct(StringComparer.Ordinal).ToList();
         var registered = await context.Scopes.CountAsync(scope => apiScopes.Contains(scope.Name!), cancellationToken);
 
@@ -127,6 +152,7 @@ public static partial class ClientPresets
             descriptor.Permissions.UnionWith(
             [
                 OidcPermissions.Endpoints.Authorization,
+                OidcPermissions.Endpoints.PushedAuthorization,
                 OidcPermissions.Endpoints.Token,
                 OidcPermissions.Endpoints.EndSession,
                 OidcPermissions.Endpoints.Revocation,
@@ -135,6 +161,10 @@ public static partial class ClientPresets
                 OidcPermissions.ResponseTypes.Code,
             ]);
             descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+            if (settings.RequirePushedAuthorization)
+            {
+                descriptor.Requirements.Add(Requirements.Features.PushedAuthorizationRequests);
+            }
 
             // Apps on devices without a browser, or command-line tools, sign people in from another device (RFC 8628).
             if (type == ClientType.Native)

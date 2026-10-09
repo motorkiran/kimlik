@@ -230,6 +230,9 @@
           "requireOrganization": {
             "type": "boolean"
           },
+          "requirePushedAuthorization": {
+            "type": "boolean"
+          },
           "roles": {
             "type": [
               "array",
@@ -242,6 +245,12 @@
           "clientSecret": {
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "jsonWebKeySet": {
+            "type": [
+              "object",
               "null"
             ]
           }

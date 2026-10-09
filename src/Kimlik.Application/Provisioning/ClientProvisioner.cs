@@ -17,6 +17,11 @@ public sealed class ClientProvisioner(
 {
     public async Task<Result<ProvisioningChange>> ApplyAsync(ProvisionedClient declared, CancellationToken cancellationToken)
     {
+        if (declared.ClientSecret is not null && declared.JsonWebKeySet is not null)
+        {
+            return ClientErrors.SecretOrKeys;
+        }
+
         if (await applications.FindByClientIdAsync(declared.ClientId, cancellationToken) is not { } application)
         {
             var created = await create.CreateAsync(
@@ -31,6 +36,8 @@ public sealed class ClientProvisioner(
                     Scopes = declared.Scopes,
                     Roles = declared.Roles ?? [],
                     RequireOrganization = declared.RequireOrganization,
+                    RequirePushedAuthorization = declared.RequirePushedAuthorization,
+                    JsonWebKeySet = declared.JsonWebKeySet,
                 },
                 declared.ClientSecret,
                 cancellationToken);
@@ -47,18 +54,18 @@ public sealed class ClientProvisioner(
 
         if (!HasSettings(existing, declared))
         {
+            var request = new UpdateClientRequest
+            {
+                DisplayName = declared.DisplayName,
+                FirstParty = declared.FirstParty,
+                RedirectUris = declared.RedirectUris,
+                PostLogoutRedirectUris = declared.PostLogoutRedirectUris,
+                Scopes = declared.Scopes,
+                RequireOrganization = declared.RequireOrganization,
+                RequirePushedAuthorization = declared.RequirePushedAuthorization,
+            };
             var updated = await update.HandleAsync(
-                existing.Id,
-                new UpdateClientRequest
-                {
-                    DisplayName = declared.DisplayName,
-                    FirstParty = declared.FirstParty,
-                    RedirectUris = declared.RedirectUris,
-                    PostLogoutRedirectUris = declared.PostLogoutRedirectUris,
-                    Scopes = declared.Scopes,
-                    RequireOrganization = declared.RequireOrganization,
-                },
-                cancellationToken);
+                existing.Id, declared.JsonWebKeySet is { } keys ? request with { JsonWebKeySet = keys } : request, cancellationToken);
             if (updated.IsFailure)
             {
                 return updated.Error;
@@ -92,11 +99,16 @@ public sealed class ClientProvisioner(
         return change;
     }
 
-    /// <summary>Whether the client already has the declared settings; <c>openid</c> is implied for apps that sign users in.</summary>
+    /// <summary>
+    /// Whether the client already has the declared settings, and keys if any are declared; <c>openid</c> is implied for apps
+    /// that sign users in.
+    /// </summary>
     private static bool HasSettings(ClientResponse existing, ProvisionedClient declared) =>
         existing.DisplayName == declared.DisplayName.Trim()
         && existing.FirstParty == declared.FirstParty
         && existing.RequireOrganization == declared.RequireOrganization
+        && existing.RequirePushedAuthorization == declared.RequirePushedAuthorization
+        && (declared.JsonWebKeySet is null || ClientKeys.AreSame(existing.JsonWebKeySet, declared.JsonWebKeySet))
         && Declared.SameUris(existing.RedirectUris, declared.RedirectUris)
         && Declared.SameUris(existing.PostLogoutRedirectUris, declared.PostLogoutRedirectUris)
         && Declared.SameSet(existing.Scopes.Where(scope => scope != Scopes.OpenId), declared.Scopes.Where(scope => scope != Scopes.OpenId));

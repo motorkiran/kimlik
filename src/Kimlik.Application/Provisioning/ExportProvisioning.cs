@@ -85,6 +85,8 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
                 Scopes = client.Scopes,
                 Roles = client.Type == ClientType.Service ? client.Roles : null,
                 RequireOrganization = client.RequireOrganization,
+                RequirePushedAuthorization = client.RequirePushedAuthorization,
+                JsonWebKeySet = client.JsonWebKeySet,
             });
         }
 

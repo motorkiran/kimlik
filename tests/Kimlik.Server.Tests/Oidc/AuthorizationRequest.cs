@@ -23,7 +23,10 @@ internal sealed class AuthorizationRequest(string clientId)
 
     public string RedirectUri { get; init; } = TestWebClient.RedirectUri;
 
-    public string Url
+    public string Url => QueryHelpers.AddQueryString("/connect/authorize", Parameters);
+
+    /// <summary>The request's parameters, as sent in the URL or pushed to the server (RFC 9126).</summary>
+    public Dictionary<string, string?> Parameters
     {
         get
         {
@@ -49,7 +52,7 @@ internal sealed class AuthorizationRequest(string clientId)
                 parameters["prompt"] = Prompt;
             }
 
-            return QueryHelpers.AddQueryString("/connect/authorize", parameters);
+            return parameters;
         }
     }
 

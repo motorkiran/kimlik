@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Management;
@@ -141,6 +142,9 @@ public sealed record ProvisionedClient
     /// <summary>Whether every sign-in happens in an organization.</summary>
     public bool RequireOrganization { get; init; }
 
+    /// <summary>Whether the client must push its authorization requests (RFC 9126).</summary>
+    public bool RequirePushedAuthorization { get; init; }
+
     /// <summary>Keys of a service client's global roles; when omitted, an existing client keeps its roles.</summary>
     [MaxLength(50)]
     public IReadOnlyList<string>? Roles { get; init; }
@@ -153,6 +157,12 @@ public sealed record ProvisionedClient
     /// </summary>
     [StringLength(256)]
     public string? ClientSecret { get; init; }
+
+    /// <summary>
+    /// The public keys of a web or service client that authenticates with keys instead of a secret
+    /// (<c>private_key_jwt</c>): a JWK Set, as in the Management API. When omitted, an existing client keeps its keys.
+    /// </summary>
+    public JsonObject? JsonWebKeySet { get; init; }
 }
 
 /// <summary>What applying a provisioning document changed.</summary>

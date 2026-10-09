@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
@@ -99,6 +100,33 @@ public sealed class ProvisioningApiTests(KimlikServerFixture server)
             ApiResources = [.. document.ApiResources!.Where(resource => resource.Scope == model.Scope)],
             Clients = [.. document.Clients!.Where(client => client.ClientId == model.Worker || client.ClientId == model.Web)],
         });
+        (await reapplied.ReadAsync<ProvisioningResult>()).ShouldBe(new ProvisioningResult(Created: 0, Updated: 0, Unchanged: 6));
+    }
+
+    [Fact]
+    public async Task ClientKeysAndPushedAuthorization_AreProvisioned_AndExportedBackUnchanged()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var key = RSA.Create(2048);
+        var model = new TestModel();
+        var declared = model.Document();
+        declared = declared with
+        {
+            Clients =
+            [
+                declared.Clients![0] with { ClientSecret = null, JsonWebKeySet = TestKeys.KeySet(key, "worker-1") },
+                declared.Clients[1] with { RequirePushedAuthorization = true },
+            ],
+        };
+
+        using var applied = await api.Http.PostJsonAsync(Provisioning, declared);
+        applied.StatusCode.ShouldBe(HttpStatusCode.OK, await applied.Content.ReadAsStringAsync(CancellationToken));
+        using var exported = await api.Http.GetAsync(Provisioning, CancellationToken);
+        var clients = (await exported.ReadAsync<ProvisioningDocument>()).Clients!;
+
+        clients.Single(client => client.ClientId == model.Worker).JsonWebKeySet!["keys"]![0]!["kid"]!.GetValue<string>().ShouldBe("worker-1");
+        clients.Single(client => client.ClientId == model.Web).RequirePushedAuthorization.ShouldBeTrue();
+        using var reapplied = await api.Http.PostJsonAsync(Provisioning, declared);
         (await reapplied.ReadAsync<ProvisioningResult>()).ShouldBe(new ProvisioningResult(Created: 0, Updated: 0, Unchanged: 6));
     }
 

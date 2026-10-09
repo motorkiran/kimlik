@@ -10,7 +10,10 @@ using OpenIddict.Abstractions;
 
 namespace Kimlik.Application.Clients;
 
-/// <summary>Registers a client from a preset. Web and service clients get a secret, returned only here.</summary>
+/// <summary>
+/// Registers a client from a preset. Web and service clients get a secret, returned only here, unless they authenticate
+/// with keys.
+/// </summary>
 public sealed class CreateClientHandler(
     IKimlikDbContext context,
     IOpenIddictApplicationManager applications,
@@ -21,7 +24,10 @@ public sealed class CreateClientHandler(
     public Task<Result<CreatedClientResponse>> HandleAsync(CreateClientRequest request, CancellationToken cancellationToken) =>
         CreateAsync(request, secret: null, cancellationToken);
 
-    /// <summary>Creates the client with <paramref name="secret"/>, or a generated secret when it is <see langword="null"/>.</summary>
+    /// <summary>
+    /// Creates the client with <paramref name="secret"/>, or with a generated secret when it is <see langword="null"/> and the
+    /// client has no keys.
+    /// </summary>
     internal async Task<Result<CreatedClientResponse>> CreateAsync(CreateClientRequest request, string? secret, CancellationToken cancellationToken)
     {
         var clientId = request.ClientId.Trim();
@@ -31,7 +37,7 @@ public sealed class CreateClientHandler(
         }
 
         var settings = new ClientSettings(
-            request.DisplayName, request.FirstParty, request.RedirectUris, request.PostLogoutRedirectUris, request.Scopes, request.RequireOrganization);
+            request.DisplayName, request.FirstParty, request.RedirectUris, request.PostLogoutRedirectUris, request.Scopes, request.RequireOrganization, request.RequirePushedAuthorization);
         var validation = await ClientPresets.ValidateAsync(context, request.Type, settings, cancellationToken);
         if (validation.IsFailure)
         {
@@ -54,20 +60,26 @@ public sealed class CreateClientHandler(
             return ClientErrors.AlreadyExists;
         }
 
+        var keys = ClientPresets.CheckKeys(request.Type, request.JsonWebKeySet);
+        if (keys.IsFailure)
+        {
+            return keys.Error;
+        }
+
         if (secret is not null)
         {
-            var secretCheck = ClientPresets.CheckSecret(request.Type, secret);
+            var secretCheck = keys.Value is null ? ClientPresets.CheckSecret(request.Type, secret) : ClientErrors.SecretOrKeys;
             if (secretCheck.IsFailure)
             {
                 return secretCheck.Error;
             }
         }
-        else if (ClientPresets.IsConfidential(request.Type))
+        else if (ClientPresets.IsConfidential(request.Type) && keys.Value is null)
         {
             secret = ClientPresets.GenerateSecret();
         }
 
-        var descriptor = new OpenIddictApplicationDescriptor { ClientId = clientId, ClientSecret = secret };
+        var descriptor = new OpenIddictApplicationDescriptor { ClientId = clientId, ClientSecret = secret, JsonWebKeySet = keys.Value };
         ClientPresets.Apply(descriptor, request.Type, settings);
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
@@ -121,7 +133,9 @@ public sealed class CreateClientHandler(
     }
 }
 
-/// <summary>Changes the settings of a client; its client ID and type are fixed.</summary>
+/// <summary>
+/// Changes the settings of a client; its client ID and type are fixed. New keys replace the secret, or the previous keys.
+/// </summary>
 public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
 {
     public async Task<Result<ClientResponse>> HandleAsync(Guid id, UpdateClientRequest request, CancellationToken cancellationToken)
@@ -144,12 +158,21 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
             request.HasRedirectUris ? request.RedirectUris ?? [] : current.RedirectUris,
             request.HasPostLogoutRedirectUris ? request.PostLogoutRedirectUris ?? [] : current.PostLogoutRedirectUris,
             request.HasScopes ? request.Scopes ?? [] : current.Scopes,
-            request.RequireOrganization ?? current.RequireOrganization);
+            request.RequireOrganization ?? current.RequireOrganization,
+            request.RequirePushedAuthorization ?? current.RequirePushedAuthorization);
 
         var validation = await ClientPresets.ValidateAsync(context, current.Type, settings, cancellationToken);
         if (validation.IsFailure)
         {
             return validation.Error;
+        }
+
+        var keys = request.HasJsonWebKeySet && request.JsonWebKeySet is null
+            ? ClientErrors.KeysRequired
+            : ClientPresets.CheckKeys(current.Type, request.JsonWebKeySet);
+        if (keys.IsFailure)
+        {
+            return keys.Error;
         }
 
         if ((ClientPresets.ActsForUsersInKimlik(current.Type, current.Scopes) || ClientPresets.ActsForUsersInKimlik(current.Type, settings.Scopes))
@@ -161,6 +184,11 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
         var descriptor = new OpenIddictApplicationDescriptor();
         await applications.PopulateAsync(descriptor, application, cancellationToken);
         ClientPresets.Apply(descriptor, current.Type, settings);
+        if (keys.Value is not null)
+        {
+            descriptor.JsonWebKeySet = keys.Value;
+            descriptor.ClientSecret = null;
+        }
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         await applications.UpdateAsync(application, descriptor, cancellationToken);
@@ -173,8 +201,8 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
 }
 
 /// <summary>
-/// Replaces the secret of a web or service client; the previous secret stops working at once. Tokens already
-/// issued stay valid until they expire.
+/// Replaces the secret of a web or service client; the previous secret, or the keys the client authenticated with, stop
+/// working at once. Tokens already issued stay valid until they expire.
 /// </summary>
 public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
 {
@@ -201,7 +229,11 @@ public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpe
         }
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
-        await applications.UpdateAsync(application, secret, cancellationToken);
+        var descriptor = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(descriptor, application, cancellationToken);
+        descriptor.ClientSecret = secret;
+        descriptor.JsonWebKeySet = null;
+        await applications.UpdateAsync(application, descriptor, cancellationToken);
         auditLog.Record(AuditActions.ClientSecretRegenerated, AuditSubject.Client(id));
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

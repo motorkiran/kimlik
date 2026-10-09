@@ -39,4 +39,20 @@ public static class ClientErrors
     public static readonly Error NotConfidential = Error.Validation("client.not_confidential", "Only web and service clients have a secret.");
 
     public static readonly Error WeakSecret = Error.Validation("client.weak_secret", "A client secret is at least 16 characters.");
+
+    public static readonly Error KeysNotSupported = Error.Validation(
+        "client.keys_not_supported", "Only web and service clients authenticate with keys; SPAs and native apps are public.");
+
+    public static readonly Error InvalidKeys = Error.Validation(
+        "client.invalid_keys",
+        $"Keys are a JWK Set of 1 to {ClientKeys.MaximumCount} public signing keys: RSA of 2048 bits or more, or EC on P-256, P-384 or P-521, "
+        + "without private parameters.");
+
+    public static readonly Error SecretOrKeys = Error.Validation("client.secret_or_keys", "A client authenticates with a secret or with keys, not both.");
+
+    public static readonly Error KeysRequired = Error.Validation(
+        "client.keys_required", "Keys cannot be removed; generate a new secret to authenticate with a secret again.");
+
+    public static readonly Error PushedAuthorizationNotSupported = Error.Validation(
+        "client.pushed_authorization_not_supported", "Service clients do not sign users in, so they make no authorization requests.");
 }

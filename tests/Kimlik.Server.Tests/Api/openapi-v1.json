@@ -7909,7 +7909,9 @@
           "postLogoutRedirectUris",
           "scopes",
           "roles",
-          "requireOrganization"
+          "requireOrganization",
+          "requirePushedAuthorization",
+          "jsonWebKeySet"
         ],
         "type": "object",
         "properties": {
@@ -7958,9 +7960,22 @@
           },
           "requireOrganization": {
             "type": "boolean"
+          },
+          "requirePushedAuthorization": {
+            "type": "boolean"
+          },
+          "jsonWebKeySet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         },
-        "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client."
+        "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client.\nA web or service client with `jsonWebKeySet` authenticates with those keys (`private_key_jwt`) instead of a secret."
       },
       "ClientSecretResponse": {
         "required": [
@@ -7972,7 +7987,7 @@
             "type": "string"
           }
         },
-        "description": "A new client secret, shown only this once. The previous secret stops working at once."
+        "description": "A new client secret, shown only this once. The previous secret, or the keys the client authenticated with, stop working\nat once."
       },
       "ClientType": {
         "enum": [
@@ -8114,6 +8129,21 @@
           "requireOrganization": {
             "type": "boolean",
             "description": "Whether every sign-in happens in an organization. When the authorization request names none, the user\nchooses one of theirs."
+          },
+          "requirePushedAuthorization": {
+            "type": "boolean",
+            "description": "Whether the client must push its authorization requests to `/connect/par` (RFC 9126) and send the browser\nwith only the `request_uri` it gets back, so no authorization parameter travels through the browser."
+          },
+          "jsonWebKeySet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "For a web or service client that authenticates with keys rather than a secret (`private_key_jwt`, RFC 7523):\na JWK Set of up to 10 public signing keys, RSA of 2048 bits or more or EC on P-256, P-384 or P-521. Such a client\ngets no secret: it signs each request's assertion with one of the keys, typed `client-authentication+jwt` and\nwith Kimlik's issuer as its audience.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         }
       },
@@ -8150,7 +8180,7 @@
             ]
           }
         },
-        "description": "A new client and, for web and service clients, its secret. The secret is shown only this once."
+        "description": "A new client and, for web and service clients without keys, its secret. The secret is shown only this once."
       },
       "CreatedWebhookEndpointResponse": {
         "required": [
@@ -9690,6 +9720,10 @@
             "type": "boolean",
             "description": "Whether every sign-in happens in an organization."
           },
+          "requirePushedAuthorization": {
+            "type": "boolean",
+            "description": "Whether the client must push its authorization requests (RFC 9126)."
+          },
           "roles": {
             "maxItems": 50,
             "type": [
@@ -9709,6 +9743,17 @@
               "string"
             ],
             "description": "The secret of a web or service client, at least 16 characters. When omitted, a new client gets a random secret\n(regenerate it through the API to learn one) and an existing client keeps its secret. Never exported. In a file\napplied at startup, `${Some:Setting}` reads the secret from configuration, such as the environment variable\n`Some__Setting`."
+          },
+          "jsonWebKeySet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The public keys of a web or service client that authenticates with keys instead of a secret\n(`private_key_jwt`): a JWK Set, as in the Management API. When omitted, an existing client keeps its keys.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         }
       },
@@ -10241,6 +10286,12 @@
               "boolean"
             ]
           },
+          "requirePushedAuthorization": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
           "redirectUris": {
             "maxItems": 20,
             "type": [
@@ -10270,6 +10321,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "jsonWebKeySet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "New keys for a web or service client (see JsonObject? CreateClientRequest.JsonWebKeySet), which replace its secret\nor its previous keys. They cannot be cleared: generating a new secret replaces them.",
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
           }
         },
         "description": "Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and `null` empties\na list. Lists are replaced as a whole."

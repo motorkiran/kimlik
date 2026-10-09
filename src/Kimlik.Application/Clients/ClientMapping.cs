@@ -24,7 +24,9 @@ internal static class ClientMapping
             [.. (await applications.GetPostLogoutRedirectUrisAsync(application, cancellationToken)).Order(StringComparer.Ordinal)],
             ClientPresets.ScopesOf(type, permissions),
             [.. roles.Order(StringComparer.Ordinal)],
-            ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)));
+            ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)),
+            (await applications.GetRequirementsAsync(application, cancellationToken)).Contains(Requirements.Features.PushedAuthorizationRequests),
+            await applications.GetJsonWebKeySetAsync(application, cancellationToken) is { } keys ? ClientKeys.ToJson(keys) : null);
     }
 
     public static async Task<ClientResponse> ToResponseAsync(

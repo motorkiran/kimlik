@@ -12,6 +12,8 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Breached-password checks: new passwords that appear in known data breaches are refused, through Have I Been Pwned's k-anonymity range API (`Kimlik:Accounts:BreachedPasswordCheck`, on by default).
 - The device authorization grant (RFC 8628): native clients, such as command-line tools, sign people in through a code they enter on `/connect/verify`; native clients may now have no redirect URI.
 - Admin impersonation: administrators with `kimlik.users:impersonate` sign in as a user for support from the admin panel, for up to 30 minutes, under a banner that lets them stop. The account changes nothing meanwhile, tokens carry `act` (RFC 8693) and no refresh token, `KimlikUser.ActorId` names the administrator, and the audit log records the start, the end and everything in between as theirs.
+- Keys instead of client secrets: web and service clients can authenticate with `private_key_jwt` (RFC 7523), from a JWK Set of public keys registered through the Management API, the provisioning file or the admin panel; a new secret replaces the keys. Assertions are typed `client-authentication+jwt`.
+- Pushed authorization requests (PAR, RFC 9126) at `/connect/par`, which a client can be set to require (`requirePushedAuthorization`).
 
 ### Fixed
 
