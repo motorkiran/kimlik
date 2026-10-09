@@ -49,7 +49,7 @@ public sealed class SignInTwoFactorModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent, var provider))
+        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent, var provider, var firstFactor))
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
@@ -78,7 +78,8 @@ public sealed class SignInTwoFactorModel(
                 auditLog.Record(AuditActions.UserRecoveryCodeUsed, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
             }
 
-            await signInFlow.RecordAsync(user, SignInFlow.MultiFactorMethod, provider, cancellationToken);
+            // Issued again, so that the session keeps how the user signed in first.
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, firstFactor);
             var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
             return LocalRedirect(provider is null ? await signInFlow.OfferPasskeyAsync(user, returnUrl) : returnUrl);
         }

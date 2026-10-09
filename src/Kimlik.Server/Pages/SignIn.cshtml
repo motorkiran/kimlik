@@ -40,6 +40,10 @@
     <button type="submit" class="button">@L["Sign in"]</button>
     <button type="submit" class="button button-secondary" id="passkey-sign-in" formaction="@Url.Page("/SignIn", "Passkey")"
             data-passkey-sign-in data-autofill data-options="@Url.Page("/SignIn", "PasskeyOptions")" hidden>@L["Sign in with a passkey"]</button>
+    @if (Model.CanUseEmailCode)
+    {
+        <button type="submit" class="button button-secondary" id="email-code" formaction="@Url.Page("/SignIn", "EmailCode")" formnovalidate>@L["Email me a sign-in code"]</button>
+    }
     <p class="field-error" data-passkey-error hidden>@L["The passkey could not be used. Try again."]</p>
 </form>
 

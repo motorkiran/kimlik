@@ -105,6 +105,7 @@ public static class DependencyInjection
             .AddDefaultTokenProviders()
             .AddTokenProvider<PasswordResetTokenProvider<User>>(PasswordResetTokenProviderOptions.ProviderName)
             .AddTokenProvider<TotpTokenProvider>(TokenOptions.DefaultAuthenticatorProvider)
+            .AddTokenProvider<EmailSignInCodeProvider>(EmailSignIn.TokenProvider)
             .AddPasswordValidator<MaximumLengthPasswordValidator<User>>();
 
         services.AddSingleton<ConfigureIdentity>();

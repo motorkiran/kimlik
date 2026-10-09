@@ -28,9 +28,9 @@ public enum SignInStep
 
 /// <summary>
 /// A sign-in waiting for its second factor. <c>Provider</c> names the provider of the account the user signed in
-/// with, and is <see langword="null"/> after a password.
+/// with, and is <see langword="null"/> otherwise; <c>FirstFactor</c> is how they signed in first, such as <c>pwd</c>.
 /// </summary>
-public sealed record PendingSignIn(User User, bool Persistent, string? Provider);
+public sealed record PendingSignIn(User User, bool Persistent, string? Provider, string FirstFactor);
 
 /// <summary>
 /// Signs users in once their first factor is right (a password, or an account at another provider), with the second
@@ -46,13 +46,15 @@ public sealed class SignInFlow(
     TimeProvider timeProvider)
 {
     /// <summary>
-    /// The authentication method claim Identity puts on sessions: <c>pwd</c> or <c>fed</c> for the first factor alone,
-    /// or <c>mfa</c> after a second factor. A passkey, which verifies the user on the device, counts as both factors:
-    /// its sessions carry <c>pop</c> (proof of possession of a key) and <c>mfa</c>.
+    /// The authentication method claim Identity puts on sessions: <c>pwd</c>, <c>fed</c> or <c>email</c> (a code sent by
+    /// email) for the first factor alone, or <c>mfa</c> after a second factor, with <c>email</c> kept beside it. A
+    /// passkey, which verifies the user on the device, counts as both factors: its sessions carry <c>pop</c> (proof of
+    /// possession of a key) and <c>mfa</c>.
     /// </summary>
     public const string MethodClaim = "amr";
     public const string PasswordMethod = "pwd";
     public const string FederatedMethod = "fed";
+    public const string EmailMethod = "email";
     public const string MultiFactorMethod = "mfa";
     public const string PasskeyMethod = "pop";
 
@@ -70,6 +72,7 @@ public sealed class SignInFlow(
 
     private const string PersistentClaim = "kimlik:persistent";
     private const string StepClaim = "kimlik:step";
+    private const string FirstFactorClaim = "kimlik:first_factor";
 
     public async Task<SignInStep> NextStepAsync(User user, CancellationToken cancellationToken)
     {
@@ -84,24 +87,27 @@ public sealed class SignInFlow(
     }
 
     /// <summary>
-    /// Goes on after a correct first factor, a password or an account at <paramref name="provider"/>: starts the
-    /// session, or holds it for the second factor. Returns where the browser goes next.
+    /// Goes on after a correct first factor, a password, a code sent by email (<paramref name="firstFactor"/>
+    /// <see cref="EmailMethod"/>) or an account at <paramref name="provider"/>: starts the session, or holds it for the
+    /// second factor. Returns where the browser goes next.
     /// </summary>
-    public async Task<string> ContinueAsync(User user, bool persistent, string? provider, string returnUrl, CancellationToken cancellationToken)
+    public async Task<string> ContinueAsync(
+        User user, bool persistent, string? provider, string returnUrl, CancellationToken cancellationToken, string? firstFactor = null)
     {
+        var first = firstFactor ?? (provider is null ? PasswordMethod : FederatedMethod);
         var step = await NextStepAsync(user, cancellationToken);
         switch (step)
         {
             case SignInStep.FirstFactor:
-                await CompleteAsync(user, persistent, provider is null ? PasswordMethod : FederatedMethod, provider, cancellationToken);
+                await CompleteAsync(user, persistent, first, provider, cancellationToken);
                 return provider is null ? await OfferPasskeyAsync(user, returnUrl) : returnUrl;
 
             case SignInStep.TrustedBrowser:
-                await CompleteAsync(user, persistent, MultiFactorMethod, provider, cancellationToken);
+                await CompleteAsync(user, persistent, MultiFactorMethod, provider, cancellationToken, first);
                 return provider is null ? await OfferPasskeyAsync(user, returnUrl) : returnUrl;
 
             default:
-                await DeferAsync(user, persistent, step, provider);
+                await DeferAsync(user, persistent, step, provider, first);
                 var page = step == SignInStep.Verify ? "/SignInTwoFactor" : "/SignInSetUpTwoFactor";
                 return links.GetPathByPage(signInManager.Context, page, values: new { returnUrl })!;
         }
@@ -116,12 +122,20 @@ public sealed class SignInFlow(
             ? links.GetPathByPage(signInManager.Context, "/SignInPasskeyOffer", values: new { returnUrl })!
             : returnUrl;
 
-    /// <summary>Starts the session and records the sign-in.</summary>
-    public async Task CompleteAsync(User user, bool persistent, string method, string? provider, CancellationToken cancellationToken)
+    /// <summary>
+    /// Starts the session and records the sign-in. After a second factor (<paramref name="method"/>
+    /// <see cref="MultiFactorMethod"/>), <paramref name="firstFactor"/> says how the user signed in first.
+    /// </summary>
+    public async Task CompleteAsync(
+        User user, bool persistent, string method, string? provider, CancellationToken cancellationToken, string? firstFactor = null)
     {
-        List<Claim> claims = method == PasskeyMethod
-            ? [new(MethodClaim, PasskeyMethod), new(MethodClaim, MultiFactorMethod)]
-            : [new(MethodClaim, method)];
+        List<Claim> claims = (method, firstFactor) switch
+        {
+            (PasskeyMethod, _) => [new(MethodClaim, PasskeyMethod), new(MethodClaim, MultiFactorMethod)],
+            (MultiFactorMethod, EmailMethod) => [new(MethodClaim, EmailMethod), new(MethodClaim, MultiFactorMethod)],
+            _ => [new(MethodClaim, method)],
+        };
+
         if (provider is not null)
         {
             claims.Add(new Claim(ProviderClaim, provider));
@@ -129,8 +143,18 @@ public sealed class SignInFlow(
 
         await signInManager.SignInWithClaimsAsync(user, persistent, claims);
         await signInManager.Context.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
-        await RecordAsync(user, method, provider, cancellationToken);
+        await RecordAsync(user, method, provider, firstFactor, cancellationToken);
     }
+
+    /// <summary>
+    /// How the session's user signed in first: with a passkey (<c>pop</c>), a code sent by email, an account at another
+    /// provider or a password.
+    /// </summary>
+    public static string FirstFactorOf(ClaimsPrincipal session) =>
+        session.HasClaim(MethodClaim, PasskeyMethod) ? PasskeyMethod
+        : session.HasClaim(MethodClaim, EmailMethod) ? EmailMethod
+        : session.HasClaim(claim => claim.Type == ProviderClaim) ? FederatedMethod
+        : PasswordMethod;
 
     /// <summary>
     /// Issues the session again for the same sign-in, after a change that updated the security stamp, which ends the
@@ -157,30 +181,14 @@ public sealed class SignInFlow(
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : session.Properties?.IssuedUtc;
 
-    /// <summary>Records a sign-in that Identity's two-factor sign-in completed.</summary>
-    public async Task RecordAsync(User user, string method, string? provider, CancellationToken cancellationToken)
-    {
-        await context.Users
-            .Where(candidate => candidate.Id == user.Id)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.LastSignInAt, timeProvider.GetUtcNow()), cancellationToken);
-
-        var data = new Dictionary<string, object?> { ["method"] = method };
-        if (provider is not null)
-        {
-            data["provider"] = provider;
-        }
-
-        auditLog.Record(AuditActions.UserSignedIn, AuditSubject.User(user.Id), data, AuditActor.User(user.Id));
-        await context.SaveChangesAsync(cancellationToken);
-    }
-
     /// <summary>Holds the sign-in until the second factor is verified or set up.</summary>
-    public Task DeferAsync(User user, bool persistent, SignInStep step, string? provider)
+    public Task DeferAsync(User user, bool persistent, SignInStep step, string? provider, string firstFactor)
     {
         var identity = new ClaimsIdentity(IdentityConstants.TwoFactorUserIdScheme);
         identity.AddClaim(new Claim(ClaimTypes.Name, user.Id.ToString()));
         identity.AddClaim(new Claim(PersistentClaim, persistent ? "true" : "false"));
         identity.AddClaim(new Claim(StepClaim, step.ToString()));
+        identity.AddClaim(new Claim(FirstFactorClaim, firstFactor));
         if (provider is not null)
         {
             identity.AddClaim(new Claim(ProviderClaim, provider));
@@ -200,6 +208,30 @@ public sealed class SignInFlow(
             return null;
         }
 
-        return new PendingSignIn(user, pending.Principal.FindFirstValue(PersistentClaim) == "true", pending.Principal.FindFirstValue(ProviderClaim));
+        var provider = pending.Principal.FindFirstValue(ProviderClaim);
+        var firstFactor = pending.Principal.FindFirstValue(FirstFactorClaim) ?? (provider is null ? PasswordMethod : FederatedMethod);
+        return new PendingSignIn(user, pending.Principal.FindFirstValue(PersistentClaim) == "true", provider, firstFactor);
+    }
+
+    /// <summary>Records a sign-in, with the first factor when a second one followed it.</summary>
+    private async Task RecordAsync(User user, string method, string? provider, string? firstFactor, CancellationToken cancellationToken)
+    {
+        await context.Users
+            .Where(candidate => candidate.Id == user.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.LastSignInAt, timeProvider.GetUtcNow()), cancellationToken);
+
+        var data = new Dictionary<string, object?> { ["method"] = method };
+        if (firstFactor is not null && firstFactor != method)
+        {
+            data["first_factor"] = firstFactor;
+        }
+
+        if (provider is not null)
+        {
+            data["provider"] = provider;
+        }
+
+        auditLog.Record(AuditActions.UserSignedIn, AuditSubject.User(user.Id), data, AuditActor.User(user.Id));
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

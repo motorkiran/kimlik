@@ -11,6 +11,9 @@ public enum AccountEmail
 
     /// <summary>Someone tried to sign up with an address that already has an account.</summary>
     AlreadyRegistered,
+
+    /// <summary>A one-time code to sign in with.</summary>
+    SignInCode,
 }
 
 /// <summary>
@@ -43,6 +46,7 @@ public sealed class SendAccountEmailHandler(
             AccountEmail.PasswordReset => ("password-reset",
                 links.PasswordReset(user.Id, await userManager.GeneratePasswordResetTokenAsync(user))),
             AccountEmail.AlreadyRegistered => ("already-registered", links.SignIn()),
+            AccountEmail.SignInCode => ("sign-in-code", links.SignIn()),
             _ => throw new ArgumentOutOfRangeException(nameof(message), message.Kind, "Unknown account email."),
         };
 
@@ -57,6 +61,12 @@ public sealed class SendAccountEmailHandler(
             ["email"] = user.Email,
             ["link"] = link!.AbsoluteUri,
         };
+
+        if (message.Kind == AccountEmail.SignInCode)
+        {
+            // Created now, as the email goes out, and replacing any earlier code.
+            model["code"] = await userManager.GenerateUserTokenAsync(user, EmailSignIn.TokenProvider, EmailSignIn.Purpose);
+        }
 
         var email = await renderer.RenderAsync(template, user.Locale, model, cancellationToken);
         await sender.SendAsync(new EmailMessage(user.Email, email.Subject, email.HtmlBody, email.TextBody), cancellationToken);

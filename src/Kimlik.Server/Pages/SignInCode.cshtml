@@ -1,0 +1,30 @@
+@page "/signin/code"
+@model SignInCodeModel
+@{
+    ViewData["Title"] = L["Check your email"];
+}
+
+<h1 id="page-title">@L["Check your email"]</h1>
+<p class="lead">@L["If an account has the address {0}, we sent it a code. Enter it to sign in.", Model.Email ?? string.Empty]</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Message</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post" novalidate>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="field">
+        <label asp-for="Input.Code"></label>
+        <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" autofocus />
+        <span asp-validation-for="Input.Code" class="field-error"></span>
+    </div>
+    <button type="submit" class="button">@L["Sign in"]</button>
+    <button type="submit" class="button button-secondary" id="resend-code" formaction="@Url.Page("/SignInCode", "Resend")" formnovalidate>@L["Send a new code"]</button>
+</form>
+
+<p class="switch"><a asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in another way"]</a></p>

@@ -12,10 +12,11 @@ namespace Kimlik.Application.Accounts;
 
 /// <summary>
 /// A sign-up. <c>ReturnUrl</c> is where to continue after the email address is verified, typically a pending
-/// authorization request. <c>InvitationToken</c> comes from the link of an invitation to the address.
+/// authorization request. <c>InvitationToken</c> comes from the link of an invitation to the address. Without a
+/// <c>Password</c>, the person signs in with codes sent to the address.
 /// </summary>
 public sealed record RegisterUserCommand(
-    string Email, string Password, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null, string? InvitationToken = null);
+    string Email, string? Password, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null, string? InvitationToken = null);
 
 /// <summary>
 /// Creates an account through self-service sign-up: for anyone when registration is open, and for people invited to
@@ -27,12 +28,18 @@ public sealed class RegisterUserHandler(
     IAuditLog auditLog,
     IOutbox outbox,
     DefaultUserRoles defaultRoles,
+    EmailSignIn emailSignIn,
     IAccountEmailThrottle throttle,
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<User>> HandleAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
+        if (command.Password is null && !emailSignIn.Enabled)
+        {
+            return AccountErrors.PasswordMissing;
+        }
+
         var now = timeProvider.GetUtcNow();
         var invited = command.InvitationToken is { Length: > 0 } token
             && await FindInvitationHandler.FindOpenAsync(context, token, now, cancellationToken) is { } invitation
@@ -56,9 +63,12 @@ public sealed class RegisterUserHandler(
             return user;
         }
 
-        if (error == AccountErrors.EmailAlreadyRegistered)
+        if (error == AccountErrors.EmailAlreadyRegistered && options.Value.RequireVerifiedEmail)
         {
-            await NotifyExistingAccountAsync(command.Email, cancellationToken);
+            // Someone without a password just wants in: the owner of the address gets a code, as when signing in.
+            await (command.Password is null
+                ? emailSignIn.RequestAsync(command.Email, cancellationToken)
+                : NotifyExistingAccountAsync(command.Email, cancellationToken));
         }
 
         return error;
@@ -71,7 +81,7 @@ public sealed class RegisterUserHandler(
 
         try
         {
-            var result = await userManager.CreateAsync(user, command.Password);
+            var result = command.Password is null ? await userManager.CreateAsync(user) : await userManager.CreateAsync(user, command.Password);
             if (!result.Succeeded)
             {
                 return AccountErrors.FromIdentity(result.Errors);
@@ -87,7 +97,9 @@ public sealed class RegisterUserHandler(
         await defaultRoles.AssignAsync(user.Id, cancellationToken);
         if (!user.EmailConfirmed && options.Value.RequireVerifiedEmail)
         {
-            outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));
+            // Without a password, the code that signs the person in also verifies the address.
+            var email = command.Password is null ? AccountEmail.SignInCode : AccountEmail.EmailVerification;
+            outbox.Enqueue(new SendAccountEmail(user.Id, email, command.ReturnUrl));
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -101,8 +113,7 @@ public sealed class RegisterUserHandler(
     /// </summary>
     private async Task NotifyExistingAccountAsync(string email, CancellationToken cancellationToken)
     {
-        if (options.Value.RequireVerifiedEmail
-            && await userManager.FindByEmailAsync(email) is { } existing
+        if (await userManager.FindByEmailAsync(email) is { } existing
             && throttle.TryAcquire(existing.Id, AccountEmail.AlreadyRegistered))
         {
             outbox.Enqueue(new SendAccountEmail(existing.Id, AccountEmail.AlreadyRegistered));

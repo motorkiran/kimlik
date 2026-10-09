@@ -39,6 +39,7 @@ internal static class IdentityServiceCollectionExtensions
         services.AddScoped<SignInFlow>();
         services.AddSingleton<IConfigureOptions<IdentityPasskeyOptions>, ConfigurePasskeys>();
         services.AddScoped<PasskeyCeremonies>();
+        services.AddSingleton<PendingEmailCode>();
         services.AddScoped<AccountErrorMessages>();
         services.AddSingleton<IAccountLinks, AccountLinks>();
 

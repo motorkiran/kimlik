@@ -30,11 +30,11 @@ public sealed class AdminStepUpModel(UserManager<User> userManager, SignInFlow s
 
         if (step == SignInStep.TrustedBrowser)
         {
-            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken);
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, SignInFlow.FirstFactorOf(User));
             return LocalRedirect(returnUrl);
         }
 
-        await signInFlow.DeferAsync(user, persistent, step, provider);
+        await signInFlow.DeferAsync(user, persistent, step, provider, SignInFlow.FirstFactorOf(User));
         return RedirectToPage(step == SignInStep.Verify ? "/SignInTwoFactor" : "/SignInSetUpTwoFactor", new { returnUrl });
     }
 }

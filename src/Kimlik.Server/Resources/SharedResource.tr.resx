@@ -628,4 +628,43 @@
   <data name="Not now" xml:space="preserve">
     <value>Şimdi değil</value>
   </data>
+  <data name="Check your email" xml:space="preserve">
+    <value>E-postanızı kontrol edin</value>
+  </data>
+  <data name="Email me a sign-in code" xml:space="preserve">
+    <value>Bana giriş kodu gönder</value>
+  </data>
+  <data name="From now on, sign in with a code sent to your email. Your other sessions and applications have been signed out." xml:space="preserve">
+    <value>Bundan sonra e-postanıza gönderilen bir kodla giriş yapın. Diğer oturumlarınız ve uygulamalarınızın oturumu kapatıldı.</value>
+  </data>
+  <data name="If an account has the address {0}, we sent it a code. Enter it to sign in." xml:space="preserve">
+    <value>{0} adresine ait bir hesap varsa ona bir kod gönderdik. Giriş yapmak için kodu girin.</value>
+  </data>
+  <data name="If an account has this address, a new code is on its way. Codes can be sent once a minute." xml:space="preserve">
+    <value>Bu adrese ait bir hesap varsa yeni bir kod yolda. Kodlar dakikada bir gönderilebilir.</value>
+  </data>
+  <data name="Optional. Use at least {0} characters, or leave it empty to sign in with codes sent to your email." xml:space="preserve">
+    <value>İsteğe bağlı. En az {0} karakter kullanın ya da boş bırakıp e-postanıza gönderilen kodlarla giriş yapın.</value>
+  </data>
+  <data name="Remove password" xml:space="preserve">
+    <value>Şifreyi kaldır</value>
+  </data>
+  <data name="Remove your password" xml:space="preserve">
+    <value>Şifrenizi kaldırın</value>
+  </data>
+  <data name="Send a new code" xml:space="preserve">
+    <value>Yeni kod gönder</value>
+  </data>
+  <data name="Sign in another way" xml:space="preserve">
+    <value>Başka bir yolla giriş yap</value>
+  </data>
+  <data name="Sign in with codes sent to your email instead. Your other sessions and applications are signed out." xml:space="preserve">
+    <value>Bunun yerine e-postanıza gönderilen kodlarla giriş yapın. Diğer oturumlarınızın ve uygulamalarınızın oturumu kapatılır.</value>
+  </data>
+  <data name="That code is not right, or it has expired. Check it, or send a new one." xml:space="preserve">
+    <value>Bu kod doğru değil ya da süresi doldu. Kontrol edin ya da yeni bir kod gönderin.</value>
+  </data>
+  <data name="Your password has been removed." xml:space="preserve">
+    <value>Şifreniz kaldırıldı.</value>
+  </data>
 </root>

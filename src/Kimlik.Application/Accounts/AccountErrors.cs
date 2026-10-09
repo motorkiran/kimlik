@@ -34,6 +34,14 @@ public static class AccountErrors
 
     public static readonly Error LoginNotFound = Error.NotFound("account.login_not_found", "No account at this provider is linked.");
 
+    /// <summary>The code is wrong, has expired or was replaced by a newer one, or no account can sign in with it.</summary>
+    public static readonly Error WrongCode = Error.Validation("account.wrong_code", "The code is not right, or it has expired.");
+
+    public static readonly Error PasswordMissing = Error.Validation("account.password_missing", "Choose a password.");
+
+    public static readonly Error EmailSignInOff = Error.Validation(
+        "account.email_sign_in_off", "Signing in with codes sent by email is turned off, so the password stays.");
+
     public static readonly Error PasskeyNotFound = Error.NotFound("account.passkey_not_found", "The user has no such passkey.");
 
     public static readonly Error TooManyPasskeys = Error.Conflict("account.too_many_passkeys", "A user can have up to 25 passkeys; remove one first.");

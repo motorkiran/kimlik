@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<MyAccount>();
         services.AddScoped<ApplicationSessions>();
         services.AddScoped<UserPasskeys>();
+        services.AddScoped<EmailSignIn>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();
         services.AddScoped<ApiKeyStore>();

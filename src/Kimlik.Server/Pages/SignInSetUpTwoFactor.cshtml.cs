@@ -49,7 +49,7 @@ public sealed class SignInSetUpTwoFactorModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (await signInFlow.PendingAsync(SignInStep.SetUp) is not ({ } user, var persistent, var provider))
+        if (await signInFlow.PendingAsync(SignInStep.SetUp) is not ({ } user, var persistent, var provider, var firstFactor))
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
@@ -68,7 +68,7 @@ public sealed class SignInSetUpTwoFactorModel(
             return Page();
         }
 
-        await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken);
+        await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, firstFactor);
         RecoveryCodes = confirmed.Value.Codes;
         return Page();
     }

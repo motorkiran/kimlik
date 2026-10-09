@@ -13,12 +13,14 @@ using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
 
-/// <summary>Signing in with an address and a password, or with a passkey.</summary>
+/// <summary>Signing in with an address and a password, a code sent to the address, or a passkey.</summary>
 [RunsScripts]
 public sealed class SignInModel(
     SignInManager<User> signInManager,
     SignInFlow signInFlow,
     PasskeyCeremonies passkeys,
+    EmailSignIn emailSignIn,
+    PendingEmailCode pendingEmailCode,
     PasswordHashTiming passwordHashTiming,
     RequestThrottle throttle,
     IKimlikDbContext context,
@@ -36,6 +38,8 @@ public sealed class SignInModel(
 
     public bool ShowResendVerification { get; private set; }
 
+    public bool CanUseEmailCode => emailSignIn.Enabled;
+
     /// <summary>The authenticator's answer to a passkey sign-in, as the browser serializes it.</summary>
     [BindProperty]
     public string? Credential { get; set; }
@@ -48,6 +52,34 @@ public sealed class SignInModel(
 
     public void OnGet()
     {
+    }
+
+    /// <summary>Sends a sign-in code to the address, if an account can sign in with it, and asks for the code either way.</summary>
+    public async Task<IActionResult> OnPostEmailCodeAsync(CancellationToken cancellationToken)
+    {
+        // Only the address matters here, not the password field.
+        ModelState.Clear();
+        if (!emailSignIn.Enabled)
+        {
+            return Page();
+        }
+
+        if (Input.Email is not { Length: > 0 } email || !new EmailAddressAttribute().IsValid(email))
+        {
+            ModelState.AddModelError("Input.Email", localizer["Enter a valid email address."]);
+            return Page();
+        }
+
+        if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
+            return Page();
+        }
+
+        await emailSignIn.RequestAsync(email.Trim(), cancellationToken);
+        pendingEmailCode.Start(HttpContext, email.Trim(), Input.RememberMe);
+        return RedirectToPage("/SignInCode", new { ReturnUrl });
     }
 
     /// <summary>The options for signing in with a passkey, with the state to post back.</summary>

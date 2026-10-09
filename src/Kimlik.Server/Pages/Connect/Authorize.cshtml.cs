@@ -229,11 +229,11 @@ public sealed class AuthorizeModel(
 
         if (step == SignInStep.TrustedBrowser)
         {
-            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken);
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, SignInFlow.FirstFactorOf(session.Principal));
             return LocalRedirect(retry);
         }
 
-        await signInFlow.DeferAsync(user, persistent, step, provider);
+        await signInFlow.DeferAsync(user, persistent, step, provider, SignInFlow.FirstFactorOf(session.Principal));
         var page = step == SignInStep.Verify ? "two-factor" : "set-up-two-factor";
         return LocalRedirect($"{Request.PathBase}/signin/{page}?returnUrl={Uri.EscapeDataString(retry)}");
     }

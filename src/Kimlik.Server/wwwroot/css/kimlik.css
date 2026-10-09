@@ -392,6 +392,12 @@ form > .button + .button {
     flex-basis: 100%;
 }
 
+.section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
 .visually-hidden {
     position: absolute;
     width: 1px;

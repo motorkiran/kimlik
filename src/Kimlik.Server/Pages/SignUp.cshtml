@@ -42,7 +42,11 @@ else
         <div class="field">
             <label asp-for="Input.Password"></label>
             <input asp-for="Input.Password" autocomplete="new-password" aria-describedby="password-hint" />
-            <span id="password-hint" class="hint">@L["Use at least {0} characters.", Model.PasswordMinimumLength]</span>
+            <span id="password-hint" class="hint">
+                @(Model.PasswordOptional
+                    ? L["Optional. Use at least {0} characters, or leave it empty to sign in with codes sent to your email.", Model.PasswordMinimumLength]
+                    : L["Use at least {0} characters.", Model.PasswordMinimumLength])
+            </span>
             <span asp-validation-for="Input.Password" class="field-error"></span>
         </div>
         <button type="submit" class="button">@L["Create account"]</button>

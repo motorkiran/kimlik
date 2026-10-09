@@ -12,6 +12,12 @@ public sealed class AccountOptions
     /// <summary>People must confirm their email address before they can sign in.</summary>
     public bool RequireVerifiedEmail { get; set; } = true;
 
+    /// <summary>
+    /// People can sign in with a one-time code sent by email instead of a password, sign up without a password, and
+    /// remove theirs.
+    /// </summary>
+    public bool EmailSignIn { get; set; } = true;
+
     /// <summary>Length is what makes passwords strong, so there are no composition rules (NIST SP 800-63B).</summary>
     [Range(8, PasswordMaximumLength)]
     public int PasswordMinimumLength { get; set; } = 12;

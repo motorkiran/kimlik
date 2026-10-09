@@ -15,6 +15,8 @@ namespace Kimlik.Server.Pages;
 public sealed class SignUpModel(
     RegisterUserHandler registerUser,
     FindInvitationHandler findInvitation,
+    EmailSignIn emailSignIn,
+    PendingEmailCode pendingEmailCode,
     SignInFlow signInFlow,
     AccountErrorMessages errorMessages,
     RequestThrottle throttle,
@@ -43,6 +45,9 @@ public sealed class SignUpModel(
 
     public int PasswordMinimumLength => accounts.Value.PasswordMinimumLength;
 
+    /// <summary>Without a password, people sign in with codes sent to their address.</summary>
+    public bool PasswordOptional => emailSignIn.Enabled;
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadInvitationAsync(cancellationToken);
@@ -53,6 +58,11 @@ public sealed class SignUpModel(
     {
         await LoadInvitationAsync(cancellationToken);
         Input.Email = InvitedEmail ?? Input.Email;
+        if (string.IsNullOrEmpty(Input.Password) && !PasswordOptional)
+        {
+            ModelState.AddModelError("Input.Password", localizer["Choose a password."]);
+        }
+
         if (!CanSignUp || !ModelState.IsValid)
         {
             return Page();
@@ -67,7 +77,7 @@ public sealed class SignUpModel(
 
         var command = new RegisterUserCommand(
             Input.Email,
-            Input.Password,
+            string.IsNullOrEmpty(Input.Password) ? null : Input.Password,
             Input.GivenName,
             Input.FamilyName,
             CultureInfo.CurrentUICulture.Name,
@@ -75,26 +85,35 @@ public sealed class SignUpModel(
             Invitation);
         var result = await registerUser.HandleAsync(command, cancellationToken);
 
+        var passwordless = command.Password is null;
         if (result.IsSuccess)
         {
             if (!result.Value.EmailConfirmed && accounts.Value.RequireVerifiedEmail)
             {
-                return RedirectToPage("/SignUpComplete");
+                return passwordless ? AskForCode() : RedirectToPage("/SignUpComplete");
             }
 
             var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
-            return LocalRedirect(await signInFlow.ContinueAsync(result.Value, persistent: false, provider: null, returnUrl, cancellationToken));
+            var firstFactor = passwordless ? SignInFlow.EmailMethod : SignInFlow.PasswordMethod;
+            return LocalRedirect(await signInFlow.ContinueAsync(result.Value, persistent: false, provider: null, returnUrl, cancellationToken, firstFactor));
         }
 
         // When addresses must be verified, a taken address gets the same answer as a new one,
         // so sign-up cannot be used to find out who has an account.
         if (result.Error == AccountErrors.EmailAlreadyRegistered && accounts.Value.RequireVerifiedEmail)
         {
-            return RedirectToPage("/SignUpComplete");
+            return passwordless ? AskForCode() : RedirectToPage("/SignUpComplete");
         }
 
         ModelState.AddModelError(errorMessages.FieldFor(result.Error), errorMessages.For(result.Error));
         return Page();
+    }
+
+    /// <summary>The code sent to the address signs the person in, and verifies the address of a new account.</summary>
+    private RedirectToPageResult AskForCode()
+    {
+        pendingEmailCode.Start(HttpContext, Input.Email.Trim(), persistent: false);
+        return RedirectToPage("/SignInCode", new { ReturnUrl });
     }
 
     private async Task LoadInvitationAsync(CancellationToken cancellationToken)
@@ -122,9 +141,8 @@ public sealed class SignUpInput
     [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Choose a password.")]
     [StringLength(AccountOptions.PasswordMaximumLength, ErrorMessage = "Use at most {1} characters.")]
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
-    public string Password { get; set; } = string.Empty;
+    public string? Password { get; set; }
 }

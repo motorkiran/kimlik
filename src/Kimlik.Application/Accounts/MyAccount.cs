@@ -6,6 +6,7 @@ using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace Kimlik.Application.Accounts;
 
@@ -15,6 +16,7 @@ public sealed class MyAccount(
     IUserSessions sessions,
     IKimlikDbContext context,
     IAuditLog auditLog,
+    IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken cancellationToken) =>
@@ -72,6 +74,40 @@ public sealed class MyAccount(
 
         await sessions.RevokeAllAsync(userId, cancellationToken);
         auditLog.Record(AuditActions.UserPasswordChanged, AuditSubject.User(userId));
+        await context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Removes the password, confirmed with it; the person signs in with codes sent by email from then on. As after a
+    /// change, every session and token ends, the caller's own included.
+    /// </summary>
+    public async Task<Result> RemovePasswordAsync(Guid userId, string currentPassword, CancellationToken cancellationToken)
+    {
+        if (!options.Value.EmailSignIn)
+        {
+            return AccountErrors.EmailSignInOff;
+        }
+
+        if (await userManager.FindByIdAsync(userId.ToString()) is not { } user)
+        {
+            return UserErrors.NotFound;
+        }
+
+        var confirmed = await ConfirmPasswordAsync(user, currentPassword);
+        if (confirmed.IsFailure)
+        {
+            return confirmed;
+        }
+
+        var removed = await userManager.RemovePasswordAsync(user);
+        if (!removed.Succeeded)
+        {
+            return AccountErrors.FromIdentity(removed.Errors);
+        }
+
+        await sessions.RevokeAllAsync(userId, cancellationToken);
+        auditLog.Record(AuditActions.UserPasswordRemoved, AuditSubject.User(userId));
         await context.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
