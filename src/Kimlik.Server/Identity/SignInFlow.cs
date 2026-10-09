@@ -175,6 +175,15 @@ public sealed class SignInFlow(
         await signInManager.SignInWithClaimsAsync(user, session.Properties, kept);
     }
 
+    /// <summary>
+    /// How recent a sign-in must be for what a stolen session must not do, such as adding a passkey or exporting the
+    /// account's data.
+    /// </summary>
+    public static readonly TimeSpan RecentSignIn = TimeSpan.FromMinutes(10);
+
+    public static bool SignedInRecently(AuthenticateResult session, DateTimeOffset now) =>
+        SignedInAt(session) is { } signedInAt && now - signedInAt <= RecentSignIn;
+
     /// <summary>When the session's user signed in; sessions from before the claim fall back to the cookie's issue time.</summary>
     public static DateTimeOffset? SignedInAt(AuthenticateResult session) =>
         long.TryParse(session.Principal?.FindFirstValue(SignedInAtClaim), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)

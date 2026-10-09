@@ -34,10 +34,13 @@ public static class AdminServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Serves the admin panel under <c>/admin</c>.</summary>
-    public static RazorComponentsEndpointConventionBuilder MapKimlikAdmin(this IEndpointRouteBuilder endpoints) =>
-        endpoints.MapRazorComponents<App>()
+    /// <summary>Serves the admin panel under <c>/admin</c>, with its downloads.</summary>
+    public static RazorComponentsEndpointConventionBuilder MapKimlikAdmin(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapAdminDownloads();
+        return endpoints.MapRazorComponents<App>()
             // The host's content security policy forbids framing already.
             .AddInteractiveServerRenderMode(options => options.ContentSecurityFrameAncestorsPolicy = null)
             .RequireAuthorization(AdminAccess.Policy);
+    }
 }

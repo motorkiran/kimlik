@@ -9,6 +9,7 @@ using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Plans;
 using Kimlik.Application.Provisioning;
+using Kimlik.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Application;
@@ -65,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<ApplicationSessions>();
         services.AddScoped<UserPasskeys>();
         services.AddScoped<EmailSignIn>();
+        services.AddScoped<PersonalDataExporter>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();
         services.AddScoped<ApiKeyStore>();

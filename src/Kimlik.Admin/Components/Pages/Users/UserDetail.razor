@@ -26,6 +26,8 @@ else if (_user is { } user)
             </MudText>
         </div>
         <MudSpacer />
+        <MudButton Href="@($"/admin/users/{Id}/export")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" Class="mr-3"
+                   id="export-data">Export personal data</MudButton>
         <UserStatusChip User="user" />
     </MudStack>
 

@@ -625,6 +625,60 @@
         ]
       }
     },
+    "/api/v1/users/{id}/export": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Export what Kimlik holds about a user",
+        "description": "For requests under KVKK article 11 or GDPR article 15: the profile with both metadata, organizations, linked logins, passkeys, sessions, API keys, subscriptions and the audit events about or by the user. Audited.\n\nRequires the `kimlik.users:read` permission.",
+        "operationId": "ExportUserData",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalDataExport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.users:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/users/{id}/passkeys": {
       "get": {
         "tags": [
@@ -9291,6 +9345,83 @@
           }
         },
         "description": "A permission. System permissions (`kimlik.*`) guard Kimlik itself and cannot be changed."
+      },
+      "PersonalDataExport": {
+        "required": [
+          "exportedAt",
+          "profile",
+          "privateMetadata",
+          "organizations",
+          "logins",
+          "passkeys",
+          "sessions",
+          "apiKeys",
+          "subscriptions",
+          "activity"
+        ],
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileResponse"
+          },
+          "privateMetadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            ]
+          },
+          "organizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyOrganizationResponse"
+            }
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserLoginResponse"
+            }
+          },
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeyResponse"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionResponse"
+            }
+          },
+          "apiKeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyResponse"
+            }
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionResponse"
+            }
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEventResponse"
+            }
+          }
+        },
+        "description": "What Kimlik holds about a user, for their right of access (KVKK article 11, GDPR article 15). `Activity` is the\naudit events about the user or by them, newest first; the private metadata is only in exports that administrators\nmake."
       },
       "PlanResponse": {
         "required": [

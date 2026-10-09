@@ -144,7 +144,8 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
         // Every feature of the installation is listed; other tests add theirs.
         await page.InvokeAsync(() => page.FindComponents<MudSwitch<bool>>().Single(control => IsFor(control.Instance, flag.Key)).Instance.ValueChanged.InvokeAsync(true));
         await page.InvokeAsync(() => page.FindComponents<MudCheckBox<bool>>().Single(control => IsFor(control.Instance, limit.Key)).Instance.ValueChanged.InvokeAsync(true));
-        page.Find("#save-plan").Click();
+        // Found and clicked in one go, so that no render in between leaves the click on a stale handler.
+        await page.InvokeAsync(() => page.Find("#save-plan").Click());
 
         admin.WaitForNotification("The plan was saved.");
         var values = await server.QueryDatabaseAsync(context => context.Plans.Where(plan => plan.Id == planId).SelectMany(plan => plan.Features).ToListAsync());

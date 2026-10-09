@@ -89,6 +89,13 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapGet("{id:guid}/export", ExportAsync)
+            .WithName("ExportUserData")
+            .WithSummary("Export what Kimlik holds about a user")
+            .WithDescription("For requests under KVKK article 11 or GDPR article 15: the profile with both metadata, organizations, linked logins, passkeys, sessions, API keys, subscriptions and the audit events about or by the user. Audited.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersRead);
+
         users.MapGet("{id:guid}/passkeys", ListPasskeysAsync)
             .WithName("ListUserPasskeys")
             .WithSummary("List a user's passkeys")
@@ -199,6 +206,10 @@ internal static class UserEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> UnlinkLoginAsync(
         Guid id, string provider, UnlinkUserLoginHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, provider, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<Ok<PersonalDataExport>, ProblemHttpResult>> ExportAsync(
+        Guid id, ExportUserDataHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, cancellationToken)).ToOk();
 
     private static async Task<Results<Ok<IReadOnlyList<PasskeyResponse>>, ProblemHttpResult>> ListPasskeysAsync(
         Guid id, ListUserPasskeysHandler handler) =>

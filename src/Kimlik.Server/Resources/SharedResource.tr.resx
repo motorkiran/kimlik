@@ -667,4 +667,16 @@
   <data name="Your password has been removed." xml:space="preserve">
     <value>Şifreniz kaldırıldı.</value>
   </data>
+  <data name="Your data" xml:space="preserve">
+    <value>Verileriniz</value>
+  </data>
+  <data name="Download what we hold about you as a file: your profile, organizations, connected accounts, passkeys, signed-in applications, API keys, subscriptions and account activity." xml:space="preserve">
+    <value>Hakkınızda tuttuklarımızı bir dosya olarak indirin: profiliniz, organizasyonlarınız, bağlı hesaplarınız, geçiş anahtarlarınız, giriş yaptığınız uygulamalar, API anahtarlarınız, abonelikleriniz ve hesap etkinliğiniz.</value>
+  </data>
+  <data name="Download your data" xml:space="preserve">
+    <value>Verilerinizi indirin</value>
+  </data>
+  <data name="For your security, sign in again before you download your data." xml:space="preserve">
+    <value>Güvenliğiniz için verilerinizi indirmeden önce yeniden giriş yapın.</value>
+  </data>
 </root>

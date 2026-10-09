@@ -92,7 +92,7 @@ public sealed class ListAuditEventsHandler(IKimlikDbContext context)
         return new Page<AuditEventResponse>([.. page.Select(ToResponse)], nextCursor);
     }
 
-    private static AuditEventResponse ToResponse(AuditEvent auditEvent) => new(
+    internal static AuditEventResponse ToResponse(AuditEvent auditEvent) => new(
         auditEvent.Id,
         auditEvent.OccurredAt,
         auditEvent.Action,

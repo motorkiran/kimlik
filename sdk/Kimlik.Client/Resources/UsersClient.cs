@@ -57,6 +57,10 @@ public sealed class UsersClient
     public Task UnlinkLoginAsync(Guid id, string provider, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Delete, $"users/{id}/logins/{Uri.EscapeDataString(provider)}", body: null, cancellationToken);
 
+    /// <summary>What Kimlik holds about the user, for a request under KVKK or GDPR; the export is audited.</summary>
+    public Task<PersonalDataExport> ExportAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.GetAsync<PersonalDataExport>($"users/{id}/export", cancellationToken);
+
     /// <summary>The passkeys the user signs in with.</summary>
     public Task<IReadOnlyList<PasskeyResponse>> ListPasskeysAsync(Guid id, CancellationToken cancellationToken = default) =>
         _http.GetAsync<IReadOnlyList<PasskeyResponse>>($"users/{id}/passkeys", cancellationToken);

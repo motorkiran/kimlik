@@ -1,0 +1,24 @@
+@page "/account/data"
+@model DataModel
+@{
+    ViewData["Title"] = L["Your data"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Your data"]</h1>
+<p class="lead">@L["Download what we hold about you as a file: your profile, organizations, connected accounts, passkeys, signed-in applications, API keys, subscriptions and account activity."]</p>
+
+@if (Model.SignedInRecently)
+{
+    <form method="post" id="download-data">
+        <button type="submit" class="button">@L["Download your data"]</button>
+    </form>
+}
+else
+{
+    <p id="sign-in-again">@L["For your security, sign in again before you download your data."]</p>
+    <div class="actions">
+        <a class="button" asp-page="/SignIn" asp-route-returnUrl="/account/data">@L["Sign in again"]</a>
+    </div>
+}

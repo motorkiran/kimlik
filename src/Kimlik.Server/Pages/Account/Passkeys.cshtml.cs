@@ -22,9 +22,6 @@ public sealed class PasskeysModel(
     TimeProvider timeProvider,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
-    /// <summary>How recent the sign-in must be to add a passkey.</summary>
-    public static readonly TimeSpan RecentSignIn = TimeSpan.FromMinutes(10);
-
     public IReadOnlyList<PasskeyResponse> Passkeys { get; private set; } = [];
 
     public bool SignedInRecently { get; private set; }
@@ -118,6 +115,5 @@ public sealed class PasskeysModel(
     }
 
     private async Task<bool> IsSignedInRecentlyAsync() =>
-        SignInFlow.SignedInAt(await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme)) is { } signedInAt
-        && timeProvider.GetUtcNow() - signedInAt <= RecentSignIn;
+        SignInFlow.SignedInRecently(await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme), timeProvider.GetUtcNow());
 }

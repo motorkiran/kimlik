@@ -237,11 +237,10 @@ The backlog, roughly in priority order:
 8. Hosted or embeddable components for organization management.
 9. Per-subscriber entitlement overrides and add-ons, and usage metering.
 10. Breached-password checks, CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`, `max_age`).
-11. Personal data export (KVKK/GDPR).
-12. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
-13. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-14. A JavaScript/TypeScript SDK and a Helm chart.
-15. OpenID Foundation certification.
+11. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
+12. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+13. A JavaScript/TypeScript SDK and a Helm chart.
+14. OpenID Foundation certification.
 
 ### 4.3 Out of scope
 
@@ -777,7 +776,7 @@ People can sign in with a one-time code sent to their address instead of a passw
 
 - **Data minimization:** Kimlik stores only what identity and access require, plus metadata the developer defines.
 - **Account deletion** is available both as self-service and to admins, and it removes personal data. Audit events reference only the user ID and are kept for a configurable retention period (365 days by default).
-- **Personal data export** is planned for a later phase.
+- **Personal data export.** People download what Kimlik holds about them as one JSON file from the account pages, after a sign-in within the last ten minutes: their profile with its public metadata, roles, organizations, linked logins, passkeys, signed-in applications, API keys (without secrets), subscriptions, and the audit events about them or by them. Administrators export the same, with the private metadata, through the Management API (`GET /api/v1/users/{id}/export`, `kimlik.users:read`), `Kimlik.Client` and the admin panel, to answer requests under KVKK article 11 and GDPR article 15. Every export is audited.
 
 ### 10.8 Supply chain
 
@@ -995,6 +994,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M8: Hardening and v0.1.0** | Security review, load tests, documentation, samples, container image. NuGet publishing waits until the `Kimlik.*` prefix is reserved ([§17.1](#171-open-questions)) | v0.1.0 released ✅ (container image and GitHub release, 2026-10-08) |
 | **M9: Passkeys** | Passkey sign-in with conditional UI; adding passkeys on the account pages and after sign-in; passkeys in the Account and Management APIs, the SDK and the admin panel ([§10.4](#104-passkeys)) | A passkey created in the browser signs in and meets MFA requirements, in end-to-end tests with a software authenticator ✅ |
 | **M10: Email sign-in codes** | Sign-in with one-time email codes, sign-up without a password, and removing a password ([§10.5](#105-email-sign-in-codes)) | People sign up and sign in without a password, and a required second factor still follows, in end-to-end tests ✅ |
+| **M11: Personal data export** | Exports of a user's data for the user and for administrators ([§10.7](#107-privacy-kvkkgdpr)) | Exports cover every kind of personal data Kimlik stores, in end-to-end tests ✅ |
 
 ---
 

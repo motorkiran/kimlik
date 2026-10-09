@@ -43,7 +43,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
             .SingleAsync());
         actor.ShouldBe(administrator.Id.ToString());
 
-        page.Find("#reactivate").Click();
+        await page.InvokeAsync(() => page.Find("#reactivate").Click());
         page.WaitForElement("#suspend");
     }
 
@@ -95,7 +95,7 @@ public sealed class UserPagesTests(KimlikServerFixture server)
 
         var select = page.FindComponent<MudBlazor.MudSelect<string>>().Instance;
         await page.InvokeAsync(() => select.SelectedValuesChanged.InvokeAsync([role]));
-        page.Find("#save-roles").Click();
+        await page.InvokeAsync(() => page.Find("#save-roles").Click());
 
         admin.WaitForNotification("The roles were saved.");
         var roles = await server.QueryDatabaseAsync(context => context.UserRoles.Where(assignment => assignment.UserId == user.Id)
