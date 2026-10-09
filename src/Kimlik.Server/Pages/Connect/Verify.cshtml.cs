@@ -20,9 +20,11 @@ namespace Kimlik.Server.Pages.Connect;
 /// <summary>
 /// Where people approve a device that asked to sign in (RFC 8628): signed in here, they enter the code the device
 /// shows, unless its link carried it, and allow or deny it. It always asks, first-party apps included, since the request
-/// comes from another device; and an account that needs a second factor adds it to the session first.
+/// comes from another device; and an account that needs a second factor adds it to the session first. An administrator
+/// acting as the user cannot approve devices, whose tokens would outlast the impersonation.
 /// </summary>
 [Authorize]
+[NotWhileImpersonating]
 public sealed class VerifyModel(
     IOpenIddictApplicationManager applications,
     IOpenIddictAuthorizationManager authorizations,

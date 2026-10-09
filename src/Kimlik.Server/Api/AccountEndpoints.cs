@@ -6,6 +6,7 @@ using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
+using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Kimlik.Server.Api;
@@ -16,6 +17,12 @@ internal static class AccountEndpoints
     public static IEndpointRouteBuilder MapAccountEndpoints(this IEndpointRouteBuilder api)
     {
         var me = api.MapGroup("me").WithTags("Account").RequireSignedInUser();
+
+        // Tokens of an administrator acting as the user read the account, but change nothing.
+        me.AddEndpointFilter(async (context, next) =>
+            HttpMethods.IsGet(context.HttpContext.Request.Method) || OidcPrincipalFactory.GetActor(context.HttpContext.User) is null
+                ? await next(context)
+                : ApiResults.Problem(AccountErrors.Impersonating));
 
         me.MapGet(string.Empty, GetAccountAsync).WithName("GetMyAccount").WithSummary("Get the signed-in user");
 

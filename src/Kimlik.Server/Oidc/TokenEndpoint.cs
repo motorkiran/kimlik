@@ -90,6 +90,12 @@ internal static class TokenEndpoint
             return OidcResults.Forbid(Errors.InvalidGrant, "The token is no longer valid.");
         }
 
+        // An impersonation never gets refresh tokens; one that somehow carries an actor is refused all the same.
+        if (request.IsRefreshTokenGrantType() && OidcPrincipalFactory.GetActor(principal) is not null)
+        {
+            return OidcResults.Forbid(Errors.InvalidGrant, "The token is no longer valid.");
+        }
+
         var authenticatedAt = OidcPrincipalFactory.GetAuthenticationTime(principal);
         var absoluteLifetime = services.GetRequiredService<IOptions<TokenOptions>>().Value.RefreshTokenAbsoluteLifetime;
         if (request.IsRefreshTokenGrantType()
@@ -123,6 +129,12 @@ internal static class TokenEndpoint
                 organization.Value?.Id,
                 cancellationToken);
         identity.SetAuthorizationId(principal.GetAuthorizationId());
+
+        // Tokens for an administrator acting as the user keep naming them, and expire with the impersonation.
+        if (OidcPrincipalFactory.GetActor(principal) is { } actor)
+        {
+            OidcPrincipalFactory.AddActor(identity, actor, principal.GetAccessTokenLifetime() ?? SignInFlow.ImpersonationLifetime);
+        }
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }

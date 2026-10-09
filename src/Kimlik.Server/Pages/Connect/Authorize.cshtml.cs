@@ -156,18 +156,32 @@ public sealed class AuthorizeModel(
         Guid? organizationId,
         CancellationToken cancellationToken)
     {
+        // An administrator acting as the user gets no refresh token, and tokens that end with the impersonation.
+        var actor = SignInFlow.ActorOf(session.Principal!);
         var identity = await principalFactory.CreateAsync(
             user,
-            request.GetScopes(),
+            actor is null ? request.GetScopes() : request.GetScopes().Remove(Scopes.OfflineAccess),
             resources: null,
             SignInFlow.SignedInAt(session),
             OidcPrincipalFactory.AuthenticationMethodsOf(session.Principal!),
             organizationId,
             cancellationToken);
 
-        // A permanent authorization records the consent and ties together every token issued under it.
-        var authorization = existingAuthorizations.LastOrDefault()
-            ?? await authorizations.CreateAsync(identity, user.Id.ToString(), applicationId, AuthorizationTypes.Permanent, identity.GetScopes(), cancellationToken);
+        // A permanent authorization records the consent and ties together every token issued under it. An administrator
+        // acting as the user does not consent for them: their tokens get an authorization of their own.
+        object authorization;
+        if (actor is not null)
+        {
+            OidcPrincipalFactory.AddActor(identity, actor, session.Properties!.ExpiresUtc!.Value - timeProvider.GetUtcNow());
+            authorization = await authorizations.CreateAsync(
+                identity, user.Id.ToString(), applicationId, AuthorizationTypes.AdHoc, identity.GetScopes(), cancellationToken);
+        }
+        else
+        {
+            authorization = existingAuthorizations.LastOrDefault()
+                ?? await authorizations.CreateAsync(identity, user.Id.ToString(), applicationId, AuthorizationTypes.Permanent, identity.GetScopes(), cancellationToken);
+        }
+
         identity.SetAuthorizationId(await authorizations.GetIdAsync(authorization, cancellationToken));
 
         return SignIn(new System.Security.Claims.ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

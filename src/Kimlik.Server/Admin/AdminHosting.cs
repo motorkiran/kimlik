@@ -37,8 +37,8 @@ internal static class AdminHosting
     });
 
     /// <summary>
-    /// Sends an administrator whose session lacks the second factor the panel requires to add it, and anyone else the
-    /// panel turns away to a page that says so.
+    /// Sends an administrator whose session lacks the second factor the panel requires to add it, one acting as another
+    /// user to the page that lets them stop, and anyone else the panel turns away to a page that says so.
     /// </summary>
     private sealed class AdminAuthorizationResultHandler : IAuthorizationMiddlewareResultHandler
     {
@@ -48,9 +48,12 @@ internal static class AdminHosting
         {
             if (authorizeResult.Forbidden && policy.Requirements.OfType<AdminAccessRequirement>().Any())
             {
-                var needsSecondFactor = authorizeResult.AuthorizationFailure?.FailureReasons.Any(reason => reason.Message == AdminAccess.SecondFactorNeeded) == true;
+                var reasons = authorizeResult.AuthorizationFailure?.FailureReasons.Select(reason => reason.Message).ToList() ?? [];
                 var returnUrl = Uri.EscapeDataString($"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}");
-                context.Response.Redirect(needsSecondFactor ? $"{context.Request.PathBase}/signin/step-up?returnUrl={returnUrl}" : $"{context.Request.PathBase}/admin/denied");
+                context.Response.Redirect(
+                    reasons.Contains(AdminAccess.SecondFactorNeeded) ? $"{context.Request.PathBase}/signin/step-up?returnUrl={returnUrl}"
+                    : reasons.Contains(AdminAccess.Impersonating) ? $"{context.Request.PathBase}/impersonation?blocked=true"
+                    : $"{context.Request.PathBase}/admin/denied");
                 return Task.CompletedTask;
             }
 

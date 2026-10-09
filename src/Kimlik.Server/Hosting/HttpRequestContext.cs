@@ -4,6 +4,8 @@ using System.Security.Claims;
 using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Auditing;
 using Kimlik.Server.Api;
+using Kimlik.Server.Identity;
+using Kimlik.Server.Oidc;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Kimlik.Server.Hosting;
@@ -32,6 +34,12 @@ internal sealed class HttpRequestContext(IHttpContextAccessor accessor) : IReque
     {
         // Access tokens name their subject in "sub"; the sign-in session uses Identity's claim type.
         var subject = principal.FindFirstValue(Claims.Subject) ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // An administrator acting as a user, in a session or with tokens that impersonate them, is the one who acts.
+        if (Guid.TryParse(SignInFlow.ActorOf(principal) ?? OidcPrincipalFactory.GetActor(principal), out var administratorId))
+        {
+            return AuditActor.User(administratorId);
+        }
 
         // A service client acting on its own behalf is the subject of its tokens (see TokenEndpoint).
         if (subject is not null && subject == principal.FindFirstValue(Claims.ClientId))

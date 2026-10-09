@@ -1,5 +1,7 @@
+@using System.Security.Claims
 @using Kimlik.Application.Branding
 @using Kimlik.Server.Hosting
+@using Kimlik.Server.Identity
 @using Kimlik.Server.Ui
 @using Microsoft.Extensions.Options
 @inject IOptions<BrandingOptions> Branding
@@ -25,6 +27,15 @@
 </head>
 <body>
     <main class="shell">
+        @if (SignInFlow.ActorOf(User) is not null && ViewContext.RouteData.Values["page"] as string != "/Impersonation")
+        {
+            <div class="impersonation" role="status" id="impersonation">
+                <span>@L["You are signed in as {0} for support.", User.FindFirstValue(ClaimTypes.Email) ?? string.Empty]</span>
+                <form method="post" asp-page="/Impersonation" asp-page-handler="Stop">
+                    <button type="submit" class="button button-small button-secondary">@L["Stop"]</button>
+                </form>
+            </div>
+        }
         <section class="card" aria-labelledby="page-title">
             <header class="brand">
                 @if (branding.LogoUrl is not null)

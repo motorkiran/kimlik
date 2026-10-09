@@ -712,4 +712,58 @@
   <data name="{0} on another device would like to:" xml:space="preserve">
     <value>Başka bir cihazdaki {0} şunları yapmak istiyor:</value>
   </data>
+  <data name="Sign in as a user" xml:space="preserve">
+    <value>Kullanıcı olarak giriş yap</value>
+  </data>
+  <data name="Sign in as {0}?" xml:space="preserve">
+    <value>{0} olarak giriş yapılsın mı?</value>
+  </data>
+  <data name="Sign in as {0}" xml:space="preserve">
+    <value>{0} olarak giriş yap</value>
+  </data>
+  <data name="For up to {0} minutes, this browser is signed in as them: you see Kimlik and their applications as they do, but cannot change their account. The audit log records it." xml:space="preserve">
+    <value>En fazla {0} dakika boyunca bu tarayıcı onun hesabıyla açık kalır: Kimlik'i ve uygulamalarını onun gördüğü gibi görürsünüz, ancak hesabını değiştiremezsiniz. Denetim kaydına işlenir.</value>
+  </data>
+  <data name="Afterwards, you sign in as yourself again." xml:space="preserve">
+    <value>Ardından kendi hesabınızla yeniden giriş yaparsınız.</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Geri</value>
+  </data>
+  <data name="Your roles do not allow this." xml:space="preserve">
+    <value>Rolleriniz buna izin vermiyor.</value>
+  </data>
+  <data name="This is your own account." xml:space="preserve">
+    <value>Bu sizin kendi hesabınız.</value>
+  </data>
+  <data name="Only active users can be signed in as." xml:space="preserve">
+    <value>Yalnızca etkin kullanıcıların hesabıyla giriş yapılabilir.</value>
+  </data>
+  <data name="This user has access to Kimlik that you do not have." xml:space="preserve">
+    <value>Bu kullanıcının Kimlik'te sizde olmayan yetkileri var.</value>
+  </data>
+  <data name="Signed in as a user" xml:space="preserve">
+    <value>Kullanıcı olarak giriş yapıldı</value>
+  </data>
+  <data name="You are signed in as {0}" xml:space="preserve">
+    <value>{0} olarak giriş yaptınız</value>
+  </data>
+  <data name="Only they can do that. Stop to go back to your own account." xml:space="preserve">
+    <value>Bunu yalnızca kullanıcının kendisi yapabilir. Kendi hesabınıza dönmek için durdurun.</value>
+  </data>
+  <data name="{0} signed in as them for support. This ends in {1} minutes, or when you stop." xml:space="preserve">
+    <value>{0}, destek için bu kullanıcı olarak giriş yaptı. {1} dakika içinde ya da siz durdurduğunuzda sona erer.</value>
+  </data>
+  <data name="Stop and sign in as yourself" xml:space="preserve">
+    <value>Durdur ve kendi hesabınla giriş yap</value>
+  </data>
+  <data name="Go to their account" xml:space="preserve">
+    <value>Kullanıcının hesabına git</value>
+  </data>
+  <data name="You are signed in as {0} for support." xml:space="preserve">
+    <value>Destek için {0} olarak giriş yaptınız.</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Durdur</value>
+  </data>
 </root>

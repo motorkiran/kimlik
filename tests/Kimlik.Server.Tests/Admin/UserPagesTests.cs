@@ -32,7 +32,8 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         await using var admin = new AdminComponents(server, administrator.Id);
 
         var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
-        page.WaitForElement("#suspend").Click();
+        page.WaitForElement("#impersonate").GetAttribute("href").ShouldBe($"/impersonate/{user.Id}");
+        page.Find("#suspend").Click();
         admin.Confirm("Suspend");
 
         admin.WaitForNotification("The user was suspended.");
@@ -112,6 +113,6 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
 
         page.WaitForAssertion(() => page.Find("h1").TextContent.ShouldBe(user.Email));
-        page.FindAll("#suspend, #delete, #save-profile, #save-roles").ShouldBeEmpty();
+        page.FindAll("#suspend, #delete, #save-profile, #save-roles, #impersonate").ShouldBeEmpty();
     }
 }

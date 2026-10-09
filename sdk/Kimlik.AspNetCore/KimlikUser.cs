@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Kimlik.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -14,6 +15,9 @@ public sealed class KimlikUser
     /// <summary>The client the token was issued to (RFC 9068, section 2.2).</summary>
     private const string ClientIdClaim = "client_id";
 
+    /// <summary>Who acts for the subject (RFC 8693, section 4.1).</summary>
+    private const string ActorClaim = "act";
+
     private KimlikUser(ClaimsPrincipal principal, string subject)
     {
         Subject = subject;
@@ -26,6 +30,7 @@ public sealed class KimlikUser
         OrganizationRoles = Values(principal, KimlikClaimTypes.OrganizationRoles);
         Plan = principal.FindFirstValue(KimlikClaimTypes.Plan);
         ApiKeyId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.ApiKeyId), out var apiKeyId) ? apiKeyId : null;
+        ActorId = ActorOf(principal);
     }
 
     /// <summary>The user ID, the client ID of a service client, or the ID of an organization's API key.</summary>
@@ -64,6 +69,12 @@ public sealed class KimlikUser
     /// <summary>The key of the plan in effect: the organization's in an organization context, otherwise the user's.</summary>
     public string? Plan { get; }
 
+    /// <summary>
+    /// The administrator acting as the user, for support, when the token was issued while they signed in as them. Apps
+    /// can show it, record it, or refuse what only the user may do.
+    /// </summary>
+    public Guid? ActorId { get; }
+
     public bool HasPermission(string permission) => Permissions.Contains(permission);
 
     /// <summary>The caller of an authenticated request, or <see langword="null"/> when it has no Kimlik token.</summary>
@@ -72,6 +83,28 @@ public sealed class KimlikUser
 
     /// <summary>Binds the caller as a minimal API parameter.</summary>
     public static ValueTask<KimlikUser?> BindAsync(HttpContext context) => ValueTask.FromResult(FromPrincipal(context.User));
+
+    private static Guid? ActorOf(ClaimsPrincipal principal)
+    {
+        if (principal.FindFirstValue(ActorClaim) is not { Length: > 0 } actor)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var json = JsonDocument.Parse(actor);
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty(JwtRegisteredClaimNames.Sub, out var subject) && subject.ValueKind == JsonValueKind.String
+                && Guid.TryParse(subject.GetString(), out var actorId)
+                ? actorId
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static HashSet<string> Values(ClaimsPrincipal principal, string type) =>
         principal.FindAll(type).Select(claim => claim.Value).ToHashSet(StringComparer.Ordinal);

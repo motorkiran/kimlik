@@ -55,7 +55,7 @@ internal static class IdentityServiceCollectionExtensions
         if (context.NewPrincipal?.Identity is ClaimsIdentity identity && context.CurrentPrincipal is { } current)
         {
             identity.AddClaims(current.Claims
-                .Where(claim => claim.Type is SignInFlow.MethodClaim or SignInFlow.ProviderClaim or SignInFlow.SignedInAtClaim)
+                .Where(claim => claim.Type is SignInFlow.MethodClaim or SignInFlow.ProviderClaim or SignInFlow.SignedInAtClaim or SignInFlow.ActorClaim)
                 .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType)));
         }
 

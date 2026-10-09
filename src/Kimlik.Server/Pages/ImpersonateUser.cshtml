@@ -1,0 +1,27 @@
+@page "/impersonate/{id:guid}"
+@model ImpersonateUserModel
+@{
+    ViewData["Title"] = L["Sign in as a user"];
+    var back = $"{HttpContext.Request.PathBase}/admin/users/{Model.Id}";
+}
+
+<h1 id="page-title">@L["Sign in as {0}?", Model.Email ?? string.Empty]</h1>
+
+@if (Model.Refusal is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.Refusal</div>
+    <div class="actions">
+        <a class="button button-secondary" href="@back">@L["Back"]</a>
+    </div>
+}
+else
+{
+    <p class="lead">@L["For up to {0} minutes, this browser is signed in as them: you see Kimlik and their applications as they do, but cannot change their account. The audit log records it.", ImpersonateUserModel.LifetimeInMinutes]</p>
+    <p class="hint">@L["Afterwards, you sign in as yourself again."]</p>
+    <form method="post">
+        <div class="actions">
+            <button type="submit" class="button" id="impersonate">@L["Sign in as {0}", Model.Email ?? string.Empty]</button>
+            <a class="button button-secondary" href="@back">@L["Cancel"]</a>
+        </div>
+    </form>
+}

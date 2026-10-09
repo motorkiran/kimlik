@@ -20,9 +20,15 @@ public static class AdminAccess
     /// <summary>The reason a session is refused because it still needs a second factor.</summary>
     public const string SecondFactorNeeded = "kimlik.admin.second_factor_needed";
 
+    /// <summary>The reason a session is refused because an administrator acts as its user in it.</summary>
+    public const string Impersonating = "kimlik.admin.impersonating";
+
     /// <summary>The claim and value the sign-in session carries after a second factor (see the server's sign-in flow).</summary>
     internal const string MethodClaim = "amr";
     internal const string MultiFactorMethod = "mfa";
+
+    /// <summary>The claim naming the administrator who acts as the session's user (see the server's sign-in flow).</summary>
+    internal const string ActorClaim = "kimlik:actor";
 
     /// <summary>The permissions of the user for the whole installation, or none for a session without a user.</summary>
     internal static async Task<IReadOnlySet<string>> PermissionsOfAsync(IServiceScopeFactory scopeFactory, ClaimsPrincipal user)
@@ -52,6 +58,13 @@ internal sealed class AdminAccessHandler(IServiceScopeFactory scopeFactory) : Au
     {
         if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
+            return;
+        }
+
+        // The panel stays closed while an administrator acts as someone else, whatever that user's own access.
+        if (context.User.HasClaim(claim => claim.Type == AdminAccess.ActorClaim))
+        {
+            context.Fail(new AuthorizationFailureReason(this, AdminAccess.Impersonating));
             return;
         }
 

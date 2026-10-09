@@ -15,6 +15,7 @@ namespace Kimlik.Server.Pages;
 /// verified.
 /// </summary>
 [Authorize]
+[NotWhileImpersonating]
 public sealed class SignInStepUpModel(UserManager<User> userManager, SignInFlow signInFlow) : PageModel
 {
     public async Task<IActionResult> OnGetAsync(string? returnUrl, CancellationToken cancellationToken)

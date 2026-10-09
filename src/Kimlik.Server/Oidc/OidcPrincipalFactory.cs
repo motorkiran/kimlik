@@ -21,6 +21,9 @@ namespace Kimlik.Server.Oidc;
 /// </summary>
 public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessResolver access, Entitlements entitlements)
 {
+    /// <summary>The claim naming who acts for the subject (RFC 8693): an administrator impersonating the user.</summary>
+    public const string ActorClaim = "act";
+
     /// <summary>
     /// Creates the identity for tokens issued to <paramref name="user"/>, acting in <paramref name="organizationId"/>
     /// if given; the caller has checked the membership. The audiences are <paramref name="resources"/> when given (a
@@ -89,6 +92,40 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         }
     }
 
+    /// <summary>
+    /// Marks the tokens as issued to the administrator <paramref name="actorId"/> acting as the user: the actor claim
+    /// names them, and the tokens expire within <paramref name="lifetime"/>, with the impersonation.
+    /// </summary>
+    public static void AddActor(ClaimsIdentity identity, string actorId, TimeSpan lifetime)
+    {
+        identity.RemoveClaims(ActorClaim);
+        identity.AddClaim(ActorClaim, new Dictionary<string, string?> { [Claims.Subject] = actorId });
+        identity.SetAccessTokenLifetime(lifetime).SetIdentityTokenLifetime(lifetime);
+        identity.SetDestinations(GetDestinations);
+    }
+
+    /// <summary>The administrator acting as the user, in a token issued while they impersonate them.</summary>
+    public static string? GetActor(ClaimsPrincipal principal)
+    {
+        if (principal.FindFirst(ActorClaim)?.Value is not { Length: > 0 } actor)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var json = JsonDocument.Parse(actor);
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty(Claims.Subject, out var subject) && subject.ValueKind == JsonValueKind.String
+                ? subject.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>The organization a previously issued token acts in, if any.</summary>
     public static Guid? GetOrganizationId(ClaimsPrincipal principal) =>
         Guid.TryParse(principal.GetClaim(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
@@ -141,7 +178,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
 
         return claim.Type switch
         {
-            Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference => [Destinations.AccessToken, Destinations.IdentityToken],
+            Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference or ActorClaim => [Destinations.AccessToken, Destinations.IdentityToken],
 
             Claims.Name or Claims.GivenName or Claims.FamilyName or Claims.Locale or Claims.Picture or Claims.Zoneinfo or Claims.UpdatedAt
                 when identity.HasScope(Scopes.Profile)

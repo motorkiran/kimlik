@@ -56,6 +56,10 @@ public static class AccountErrors
     public static readonly Error LastSignInMethod = Error.Validation(
         "account.last_sign_in_method", "Set a password or link another account first, so there is still a way to sign in.");
 
+    /// <summary>An administrator acting as the user, for support, sees the account but changes nothing.</summary>
+    public static readonly Error Impersonating = Error.Forbidden(
+        "account.impersonating", "An administrator acting as the user cannot change their account.");
+
     public static readonly Error SessionNotFound = Error.NotFound("account.session_not_found", "The session does not exist.");
 
     /// <summary>A verification or reset link that is invalid, expired or already used.</summary>

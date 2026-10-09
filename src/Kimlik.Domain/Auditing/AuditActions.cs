@@ -20,6 +20,8 @@ public static class AuditActions
     public const string UserPasswordRemoved = "user.password_removed";
     public const string UserDataExported = "user.data_exported";
     public const string UserDeviceApproved = "user.device_approved";
+    public const string UserImpersonationStarted = "user.impersonation_started";
+    public const string UserImpersonationEnded = "user.impersonation_ended";
     public const string UserSessionRevoked = "user.session_revoked";
     public const string UserLoginLinked = "user.login_linked";
     public const string UserLoginUnlinked = "user.login_unlinked";

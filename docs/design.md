@@ -231,16 +231,15 @@ The backlog, roughly in priority order:
 2. Magic links in sign-in emails, next to the code. Email sign-in codes and accounts without a password are milestone M10 ([§10.5](#105-email-sign-in-codes)).
 3. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio.
 4. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
-5. Admin impersonation, with an `act` claim (RFC 8693).
-6. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)).
-7. Developer-hosted sign-in UI through an interaction API.
-8. Hosted or embeddable components for organization management.
-9. Per-subscriber entitlement overrides and add-ons, and usage metering.
-10. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-11. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
-12. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-13. A JavaScript/TypeScript SDK and a Helm chart.
-14. OpenID Foundation certification.
+5. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
+6. Developer-hosted sign-in UI through an interaction API.
+7. Hosted or embeddable components for organization management.
+8. Per-subscriber entitlement overrides and add-ons, and usage metering.
+9. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
+10. `private_key_jwt` client authentication, multiple client secrets, PAR, DPoP and back-channel logout.
+11. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+12. A JavaScript/TypeScript SDK and a Helm chart.
+13. OpenID Foundation certification.
 
 ### 4.3 Out of scope
 
@@ -675,7 +674,7 @@ Native clients can sign people in from another device (RFC 8628), as command-lin
 
 Every operation requires a system permission, for example:
 
-- `kimlik.users:read` and `kimlik.users:write`
+- `kimlik.users:read`, `kimlik.users:write` and `kimlik.users:impersonate`
 - `kimlik.roles:write`, `kimlik.clients:write` and `kimlik.plans:write`
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
 - `kimlik.webhooks:read`, `kimlik.webhooks:write` and `kimlik.audit:read`
@@ -784,6 +783,11 @@ People can sign in with a one-time code sent to their address instead of a passw
 - The admin panel and the Management API require system permissions. The `kimlik-admin` role can only be granted through bootstrap or by another administrator.
 - Every administrative change is audited with the actor, the target and the changed fields.
 - Administrators must use MFA by default. Accounts holding system permissions enroll at their next sign-in, and the admin panel accepts only sessions authenticated with MFA.
+- **Impersonation.** For support, administrators with `kimlik.users:impersonate` sign in as a user from the user's page in the admin panel, after a confirmation page. The browser's session becomes the user's for at most 30 minutes; it is not persistent and is never extended, and it keeps how and when the administrator signed in. A banner on every hosted page names the user and offers to stop, which signs the browser out so the administrator signs in as themselves again.
+  - Administrators cannot act as themselves, as suspended users or as users holding a system permission that they do not hold.
+  - While impersonating, the account pages show but change nothing, the Account API refuses every change, and the admin panel, step-up and device approval are closed.
+  - Tokens issued meanwhile carry `act` (`{"sub": "<administrator ID>"}`, RFC 8693, section 4.1) in the access and ID tokens, and `KimlikUser.ActorId` in the SDK. They expire with the impersonation and come without a refresh token. Consent given while impersonating applies to that sign-in only, and records no consent for the user.
+  - The audit log records the start, and the end when the administrator stops, and names the administrator as the actor of everything done meanwhile.
 
 ### 10.7 Privacy (KVKK/GDPR)
 
@@ -1009,6 +1013,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M10: Email sign-in codes** | Sign-in with one-time email codes, sign-up without a password, and removing a password ([§10.5](#105-email-sign-in-codes)) | People sign up and sign in without a password, and a required second factor still follows, in end-to-end tests ✅ |
 | **M11: Personal data export** | Exports of a user's data for the user and for administrators ([§10.7](#107-privacy-kvkkgdpr)) | Exports cover every kind of personal data Kimlik stores, in end-to-end tests ✅ |
 | **M12: Device authorization and breached passwords** | The device authorization grant ([§8.8](#88-device-authorization)) and breached-password checks ([§10.2](#102-credentials)) | A command-line tool signs a person in through the browser, and breached passwords are refused, in end-to-end tests ✅ |
+| **M13: Admin impersonation** | Administrators sign in as a user for support, with `act` in tokens ([§10.6](#106-administrative-security)) | An administrator acts as a user in the hosted pages and apps, changes nothing on the account, and stops, in end-to-end tests ✅ |
 
 ---
 

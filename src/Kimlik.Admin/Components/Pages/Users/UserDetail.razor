@@ -26,6 +26,12 @@ else if (_user is { } user)
             </MudText>
         </div>
         <MudSpacer />
+        @if (Session.Has(SystemPermissions.UsersImpersonate) && user.Status == UserStatus.Active && user.Id != Session.UserId)
+        {
+            @* A hosted page asks first, then signs this browser in as the user. *@
+            <MudButton Href="@($"/impersonate/{Id}")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.SupervisorAccount" Class="mr-3"
+                       id="impersonate">Sign in as user</MudButton>
+        }
         <MudButton Href="@($"/admin/users/{Id}/export")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" Class="mr-3"
                    id="export-data">Export personal data</MudButton>
         <UserStatusChip User="user" />

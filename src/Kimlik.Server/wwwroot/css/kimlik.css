@@ -11,6 +11,8 @@
     --danger-surface: #fef3f2;
     --success: #067647;
     --success-surface: #ecfdf3;
+    --warning: #93370d;
+    --warning-surface: #fffaeb;
     --radius: 12px;
     --control-radius: 8px;
     color-scheme: light dark;
@@ -29,6 +31,8 @@
         --danger-surface: #2b1214;
         --success: #75e0a7;
         --success-surface: #0d2a1f;
+        --warning: #fec84b;
+        --warning-surface: #2b200a;
     }
 }
 
@@ -230,6 +234,25 @@ form > .button + .button {
 .alert-success {
     color: var(--success);
     background: var(--success-surface);
+}
+
+/* An administrator acting as a user, above every page. */
+.impersonation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    max-width: 26rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--warning);
+    background: var(--warning-surface);
+    border-radius: var(--control-radius);
+}
+
+.impersonation form {
+    margin: 0;
 }
 
 .field-error,

@@ -69,7 +69,7 @@ public sealed class PermissionApiTests(KimlikServerFixture server)
 
         using var listed = await api.Http.GetAsync($"{Permissions}?q=kimlik.users", CancellationToken);
         var page = await listed.ReadAsync<Page<PermissionResponse>>();
-        page.Items.Select(permission => permission.Key).ShouldBe([SystemPermissions.UsersRead, SystemPermissions.UsersWrite], ignoreOrder: true);
+        page.Items.Select(permission => permission.Key).ShouldBe([SystemPermissions.UsersRead, SystemPermissions.UsersWrite, SystemPermissions.UsersImpersonate], ignoreOrder: true);
         page.Items.ShouldAllBe(permission => permission.IsSystem);
 
         var id = page.Items[0].Id;

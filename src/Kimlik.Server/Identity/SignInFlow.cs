@@ -70,6 +70,12 @@ public sealed class SignInFlow(
     /// </summary>
     public const string SignedInAtClaim = "kimlik:signed_in_at";
 
+    /// <summary>The administrator who signed in as the session's user, in a session that impersonates them.</summary>
+    public const string ActorClaim = "kimlik:actor";
+
+    /// <summary>How long an administrator can act as a user before signing in again.</summary>
+    public static readonly TimeSpan ImpersonationLifetime = TimeSpan.FromMinutes(30);
+
     private const string PersistentClaim = "kimlik:persistent";
     private const string StepClaim = "kimlik:step";
     private const string FirstFactorClaim = "kimlik:first_factor";
@@ -147,6 +153,54 @@ public sealed class SignInFlow(
     }
 
     /// <summary>
+    /// Signs the browser in as <paramref name="user"/> on behalf of the administrator signed in now, for support: the
+    /// session keeps how and when the administrator signed in, names them as its actor, lasts at most
+    /// <see cref="ImpersonationLifetime"/> and is neither persistent nor renewed.
+    /// </summary>
+    public async Task ImpersonateAsync(User user, ClaimsPrincipal administrator, CancellationToken cancellationToken)
+    {
+        var administratorId = signInManager.UserManager.GetUserId(administrator)!;
+        var claims = administrator.Claims
+            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim)
+            .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType))
+            .Append(new Claim(ActorClaim, administratorId));
+        var properties = new AuthenticationProperties
+        {
+            IsPersistent = false,
+            AllowRefresh = false,
+            ExpiresUtc = timeProvider.GetUtcNow() + ImpersonationLifetime,
+        };
+
+        await signInManager.SignInWithClaimsAsync(user, properties, claims);
+        auditLog.Record(
+            AuditActions.UserImpersonationStarted,
+            AuditSubject.User(user.Id),
+            new Dictionary<string, object?> { ["administrator"] = administratorId },
+            AuditActor.User(Guid.Parse(administratorId)));
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Ends a session that impersonates its user, so the administrator signs in as themselves again.</summary>
+    public async Task EndImpersonationAsync(CancellationToken cancellationToken)
+    {
+        var session = signInManager.Context.User;
+        if (ActorOf(session) is { } administratorId && signInManager.UserManager.GetUserId(session) is { } userId)
+        {
+            auditLog.Record(
+                AuditActions.UserImpersonationEnded,
+                AuditSubject.User(Guid.Parse(userId)),
+                new Dictionary<string, object?> { ["administrator"] = administratorId },
+                AuditActor.User(Guid.Parse(administratorId)));
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        await signInManager.SignOutAsync();
+    }
+
+    /// <summary>The administrator acting as the session's user, when the session impersonates them.</summary>
+    public static string? ActorOf(ClaimsPrincipal session) => session.FindFirstValue(ActorClaim);
+
+    /// <summary>
     /// How the session's user signed in first: with a passkey (<c>pop</c>), a code sent by email, an account at another
     /// provider or a password.
     /// </summary>
@@ -170,7 +224,7 @@ public sealed class SignInFlow(
         }
 
         var kept = session.Principal.Claims
-            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim)
+            .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or ActorClaim)
             .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
         await signInManager.SignInWithClaimsAsync(user, session.Properties, kept);
     }

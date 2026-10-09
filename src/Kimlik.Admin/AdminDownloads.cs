@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Text.Json;
 using Kimlik.Admin.Security;
 using Kimlik.Application.Users;
@@ -30,13 +29,7 @@ internal static class AdminDownloads
         IOptions<JsonOptions> json,
         CancellationToken cancellationToken)
     {
-        // A plain request, without the circuit that loads the session for the panel's pages.
-        session.Load(
-            Guid.Parse(context.User.FindFirstValue(ClaimTypes.NameIdentifier)!),
-            context.User.FindFirstValue(ClaimTypes.Email),
-            await AdminAccess.PermissionsOfAsync(scopeFactory, context.User),
-            context.Connection.RemoteIpAddress,
-            context.Request.Headers.UserAgent.ToString() is { Length: > 0 } userAgent ? userAgent : null);
+        await session.LoadAsync(context, scopeFactory);
         if (!session.Has(SystemPermissions.UsersRead))
         {
             return Results.Forbid();

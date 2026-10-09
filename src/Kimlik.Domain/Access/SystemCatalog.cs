@@ -5,6 +5,7 @@ public static class SystemPermissions
 {
     public const string UsersRead = "kimlik.users:read";
     public const string UsersWrite = "kimlik.users:write";
+    public const string UsersImpersonate = "kimlik.users:impersonate";
     public const string RolesRead = "kimlik.roles:read";
     public const string RolesWrite = "kimlik.roles:write";
     public const string ClientsRead = "kimlik.clients:read";
@@ -33,6 +34,7 @@ public static class SystemPermissions
     {
         [UsersRead] = "View users, their roles and sessions.",
         [UsersWrite] = "Create, change, suspend and delete users and assign their roles.",
+        [UsersImpersonate] = "Sign in as a user, to see what they see, for support.",
         [RolesRead] = "View permissions and roles.",
         [RolesWrite] = "Define permissions and roles.",
         [ClientsRead] = "View clients and API resources.",

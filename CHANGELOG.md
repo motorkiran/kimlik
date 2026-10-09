@@ -11,6 +11,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Personal data export (KVKK article 11, GDPR article 15): people download what Kimlik holds about them from the account pages after a recent sign-in, and administrators export it, with the private metadata, through the Management API, `Kimlik.Client` and the admin panel.
 - Breached-password checks: new passwords that appear in known data breaches are refused, through Have I Been Pwned's k-anonymity range API (`Kimlik:Accounts:BreachedPasswordCheck`, on by default).
 - The device authorization grant (RFC 8628): native clients, such as command-line tools, sign people in through a code they enter on `/connect/verify`; native clients may now have no redirect URI.
+- Admin impersonation: administrators with `kimlik.users:impersonate` sign in as a user for support from the admin panel, for up to 30 minutes, under a banner that lets them stop. The account changes nothing meanwhile, tokens carry `act` (RFC 8693) and no refresh token, `KimlikUser.ActorId` names the administrator, and the audit log records the start, the end and everything in between as theirs.
 
 ### Fixed
 

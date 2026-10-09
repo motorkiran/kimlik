@@ -1,0 +1,21 @@
+@page "/impersonation"
+@model ImpersonationModel
+@{
+    ViewData["Title"] = L["Signed in as a user"];
+}
+
+<h1 id="page-title">@L["You are signed in as {0}", Model.Email ?? string.Empty]</h1>
+
+@if (Model.Blocked)
+{
+    <div class="alert alert-error" role="alert">@L["Only they can do that. Stop to go back to your own account."]</div>
+}
+
+<p class="lead">@L["{0} signed in as them for support. This ends in {1} minutes, or when you stop.", Model.AdministratorEmail ?? string.Empty, Model.MinutesLeft]</p>
+
+<form method="post" asp-page-handler="Stop">
+    <div class="actions">
+        <button type="submit" class="button" id="stop-impersonating">@L["Stop and sign in as yourself"]</button>
+        <a class="button button-secondary" asp-page="/Account/Index">@L["Go to their account"]</a>
+    </div>
+</form>

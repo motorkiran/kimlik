@@ -4,7 +4,7 @@ Protects ASP.NET Core APIs with [Kimlik](https://github.com/motorkiran/kimlik), 
 
 - Validates Kimlik access tokens for your API's audience, and optionally Kimlik API keys.
 - Authorizes by permission (`RequirePermission`) and by the caller's plan (`RequireFeature`, `IKimlikEntitlements` for limits).
-- Gives endpoints the caller as `KimlikUser`: user or service client, permissions, organization and plan.
+- Gives endpoints the caller as `KimlikUser`: user or service client, permissions, organization and plan, and the administrator acting as the user, if one is.
 - Checks the signatures of Kimlik's webhooks (`KimlikWebhook`).
 
 ```csharp
