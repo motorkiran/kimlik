@@ -23,7 +23,8 @@ internal sealed record ClientSettings(
     IReadOnlyList<string> PostLogoutRedirectUris,
     IReadOnlyList<string> Scopes,
     bool RequireOrganization,
-    bool RequirePushedAuthorization);
+    bool RequirePushedAuthorization,
+    bool AllowTokenExchange);
 
 /// <summary>
 /// Turns a client type into OpenIddict settings, and back. The type is not stored: it is read from the settings
@@ -124,6 +125,11 @@ public static partial class ClientPresets
             return ClientErrors.PushedAuthorizationNotSupported;
         }
 
+        if (!IsConfidential(type) && settings.AllowTokenExchange)
+        {
+            return ClientErrors.TokenExchangeNotSupported;
+        }
+
         var apiScopes = settings.Scopes.Where(scope => !UserScopes.Contains(scope)).Distinct(StringComparer.Ordinal).ToList();
         var registered = await context.Scopes.CountAsync(scope => apiScopes.Contains(scope.Name!), cancellationToken);
 
@@ -184,6 +190,12 @@ public static partial class ClientPresets
         }
 
         descriptor.Permissions.UnionWith(settings.Scopes.Where(scope => scope != Scopes.OpenId).Select(scope => OidcPermissions.Prefixes.Scope + scope));
+
+        // A backend that calls other APIs on users' behalf (RFC 8693).
+        if (settings.AllowTokenExchange)
+        {
+            descriptor.Permissions.Add(OidcPermissions.GrantTypes.TokenExchange);
+        }
 
         descriptor.Properties.Remove(RequireOrganizationProperty);
         if (settings.RequireOrganization)

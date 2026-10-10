@@ -7994,7 +7994,8 @@
           "roles",
           "requireOrganization",
           "requirePushedAuthorization",
-          "jsonWebKeySet"
+          "jsonWebKeySet",
+          "allowTokenExchange"
         ],
         "type": "object",
         "properties": {
@@ -8056,6 +8057,9 @@
                 "$ref": "#/components/schemas/JsonObject"
               }
             ]
+          },
+          "allowTokenExchange": {
+            "type": "boolean"
           }
         },
         "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client.\nA web or service client with `jsonWebKeySet` authenticates with those keys (`private_key_jwt`) instead of a secret."
@@ -8227,6 +8231,10 @@
                 "$ref": "#/components/schemas/JsonObject"
               }
             ]
+          },
+          "allowTokenExchange": {
+            "type": "boolean",
+            "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693), to call\nthem on the users' behalf."
           }
         }
       },
@@ -9814,6 +9822,10 @@
             "type": "boolean",
             "description": "Whether the client must push its authorization requests (RFC 9126)."
           },
+          "allowTokenExchange": {
+            "type": "boolean",
+            "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693)."
+          },
           "roles": {
             "maxItems": 50,
             "type": [
@@ -10377,6 +10389,12 @@
             ]
           },
           "requirePushedAuthorization": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "allowTokenExchange": {
             "type": [
               "null",
               "boolean"

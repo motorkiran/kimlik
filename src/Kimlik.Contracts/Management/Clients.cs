@@ -37,7 +37,8 @@ public sealed record ClientResponse(
     IReadOnlyList<string> Roles,
     bool RequireOrganization,
     bool RequirePushedAuthorization,
-    JsonObject? JsonWebKeySet);
+    JsonObject? JsonWebKeySet,
+    bool AllowTokenExchange);
 
 public sealed record CreateClientRequest
 {
@@ -94,6 +95,12 @@ public sealed record CreateClientRequest
     /// with Kimlik's issuer as its audience.
     /// </summary>
     public JsonObject? JsonWebKeySet { get; init; }
+
+    /// <summary>
+    /// Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693), to call
+    /// them on the users' behalf.
+    /// </summary>
+    public bool AllowTokenExchange { get; init; }
 }
 
 /// <summary>
@@ -130,6 +137,8 @@ public sealed record UpdateClientRequest
     public bool? RequireOrganization { get; init; }
 
     public bool? RequirePushedAuthorization { get; init; }
+
+    public bool? AllowTokenExchange { get; init; }
 
     [MaxLength(20)]
     public IReadOnlyList<string>? RedirectUris

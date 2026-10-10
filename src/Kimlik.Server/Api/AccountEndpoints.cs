@@ -18,9 +18,9 @@ internal static class AccountEndpoints
     {
         var me = api.MapGroup("me").WithTags("Account").RequireSignedInUser();
 
-        // Tokens of an administrator acting as the user read the account, but change nothing.
+        // Tokens in which someone else acts for the user, an administrator or a client, read the account but change nothing.
         me.AddEndpointFilter(async (context, next) =>
-            HttpMethods.IsGet(context.HttpContext.Request.Method) || OidcPrincipalFactory.GetActor(context.HttpContext.User) is null
+            HttpMethods.IsGet(context.HttpContext.Request.Method) || !OidcPrincipalFactory.HasActor(context.HttpContext.User)
                 ? await next(context)
                 : ApiResults.Problem(AccountErrors.Impersonating));
 

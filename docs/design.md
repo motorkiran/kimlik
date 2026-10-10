@@ -228,17 +228,16 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 The backlog, roughly in priority order:
 
 1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
-2. Token exchange (RFC 8693).
-3. Developer-hosted sign-in UI through an interaction API.
-4. Hosted or embeddable components for organization management.
-5. Per-subscriber entitlement overrides and add-ons, and usage metering.
-6. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-7. Multiple client secrets, DPoP and back-channel logout.
-8. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-9. A JavaScript/TypeScript SDK and a Helm chart.
-10. OpenID Foundation certification.
+2. Developer-hosted sign-in UI through an interaction API.
+3. Hosted or embeddable components for organization management.
+4. Per-subscriber entitlement overrides and add-ons, and usage metering.
+5. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
+6. Multiple client secrets, DPoP and back-channel logout.
+7. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+8. A JavaScript/TypeScript SDK and a Helm chart.
+9. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)).
 
 ### 4.3 Out of scope
 
@@ -560,6 +559,7 @@ erDiagram
 
 - **MVP grants:** `authorization_code` (PKCE with S256 is required for every client), `refresh_token` and `client_credentials`.
 - **Device authorization** (RFC 8628, `urn:ietf:params:oauth:grant-type:device_code`) for native clients, such as command-line tools and TV apps ([§8.8](#88-device-authorization)).
+- **Token exchange** (RFC 8693, `urn:ietf:params:oauth:grant-type:token-exchange`) for backends that call other APIs on a user's behalf ([§8.9](#89-token-exchange)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
 - **Client authentication:** web and service clients authenticate with a secret (`client_secret_basic` or `client_secret_post`) or with keys (`private_key_jwt`, RFC 7523), one or the other. Registering a JWK Set of public signing keys (RSA or EC, at most 10, without private parameters) replaces the secret, and generating a new secret removes the keys. The client signs a short-lived JWT for each request, typed `client-authentication+jwt` (draft-ietf-oauth-rfc7523bis) and with Kimlik's issuer as its audience, so no shared secret leaves the client and no other JWT passes as an assertion.
 - **Pushed authorization requests** (PAR, RFC 9126) at `/connect/par`, for every client that signs users in: the client posts the authorization parameters directly, authenticating if confidential, and sends the browser with only the `request_uri` it got back. A client can be set to require PAR (`requirePushedAuthorization`), so its authorization parameters never travel through the browser.
@@ -639,6 +639,15 @@ Native clients can sign people in from another device (RFC 8628), as command-lin
 - The page always asks, first-party apps included, since the request comes from another device, and it tells people to allow it only if they started signing in there and it shows the same code. A session without the second factor its account needs adds it first.
 - An approval is an ad hoc authorization, so it is listed among the user's sessions and can be signed out, and it is audited (`user.device_approved`).
 - A native client without a redirect URI uses only this flow. The device flow does not take an organization yet.
+
+### 8.9 Token exchange
+
+A backend that received a user's access token can exchange it for one to call another API on the user's behalf (RFC 8693), so services pass the user along without sharing tokens across audiences.
+
+- **Who.** Web and service clients that an administrator allows to (`allowTokenExchange`, the token exchange grant), authenticating with a secret or keys. A client exchanges only tokens meant for it: those issued to it, or whose audience it is. An API that passes its callers along registers as a service client whose client ID is its audience.
+- **The request.** `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`, a Kimlik access token of a user as `subject_token` (`subject_token_type` `urn:ietf:params:oauth:token-type:access_token`), and the scopes of the APIs to call, which the client must be allowed to request. Tokens of service clients acting for themselves, actor tokens and Kimlik's own API scope are refused.
+- **The token.** An access token for the user (`sub`) and the APIs of the scopes, with the user's roles and permissions for them, in the subject token's organization, and its `amr` and `auth_time`. `act` names the exchanging client (`{"sub": client ID, "client_id": client ID}`, RFC 8693, section 4.1), with the subject token's own `act`, such as an impersonating administrator, nested inside. It expires no later than the subject token, and comes without a refresh or ID token.
+- **Checks.** The user must still be able to sign in, as on every refresh.
 
 ---
 
@@ -1031,6 +1040,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M15: Passkeys as the second step** | Passkeys verify the second step after a password, an email code or another provider ([§10.4](#104-passkeys)) | A password sign-in that needs a second factor completes with a passkey, in end-to-end tests with a software authenticator ✅ |
 | **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ (M9 to M16 released as v0.2.0, 2026-10-10) |
 | **M17: Phone numbers and SMS codes** | Netgsm, İleti Merkezi and Twilio adapters; verified phone numbers on accounts; sign-in with SMS codes ([§10.9](#109-phone-numbers-and-sms-codes)) | A person adds a number and signs in with a code sent to it, in end-to-end tests with a fake provider, and each adapter sends the request its provider documents ✅ |
+| **M18: Token exchange** | Delegation to other APIs with RFC 8693 token exchange ([§8.9](#89-token-exchange)) | A service exchanges a user's access token for one to another API, with `act`, in end-to-end tests ✅ |
 
 ---
 

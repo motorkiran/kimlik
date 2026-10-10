@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Kimlik.Application.Access;
 using Kimlik.Application.Plans;
 using Kimlik.Contracts;
@@ -111,8 +112,48 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         identity.SetDestinations(GetDestinations);
     }
 
-    /// <summary>The administrator acting as the user, in a token issued while they impersonate them.</summary>
+    /// <summary>
+    /// Marks a token that a client got by exchange (RFC 8693) as the client acting for the user: <c>act</c> names the
+    /// client, with the subject token's own <c>act</c>, such as an impersonating administrator, nested inside.
+    /// </summary>
+    public static void AddDelegation(ClaimsIdentity identity, string clientId, ClaimsPrincipal subjectToken)
+    {
+        var actor = new JsonObject { [Claims.Subject] = clientId, [Claims.ClientId] = clientId };
+        if (ActorOf(subjectToken) is { } previous)
+        {
+            actor[ActorClaim] = JsonNode.Parse(previous.GetRawText());
+        }
+
+        identity.RemoveClaims(ActorClaim);
+        identity.AddClaim(ActorClaim, JsonSerializer.SerializeToElement(actor));
+        identity.SetDestinations(GetDestinations);
+    }
+
+    /// <summary>
+    /// The administrator acting as the user, in a token issued while they impersonate them, also once a client exchanged
+    /// it: the first actor in the chain that is not a client.
+    /// </summary>
     public static string? GetActor(ClaimsPrincipal principal)
+    {
+        for (var actor = ActorOf(principal); actor is { } current; actor = Nested(current))
+        {
+            if (!current.TryGetProperty(Claims.ClientId, out _) && current.TryGetProperty(Claims.Subject, out var subject) && subject.ValueKind == JsonValueKind.String)
+            {
+                return subject.GetString();
+            }
+        }
+
+        return null;
+
+        static JsonElement? Nested(JsonElement actor) =>
+            actor.TryGetProperty(ActorClaim, out var nested) && nested.ValueKind == JsonValueKind.Object ? nested : null;
+    }
+
+    /// <summary>Whether someone acts for the user in the token: an impersonating administrator, or a client that exchanged it.</summary>
+    public static bool HasActor(ClaimsPrincipal principal) => ActorOf(principal) is not null;
+
+    /// <summary>The token's <c>act</c> claim, a JSON object.</summary>
+    private static JsonElement? ActorOf(ClaimsPrincipal principal)
     {
         if (principal.FindFirst(ActorClaim)?.Value is not { Length: > 0 } actor)
         {
@@ -122,10 +163,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         try
         {
             using var json = JsonDocument.Parse(actor);
-            return json.RootElement.ValueKind == JsonValueKind.Object
-                && json.RootElement.TryGetProperty(Claims.Subject, out var subject) && subject.ValueKind == JsonValueKind.String
-                ? subject.GetString()
-                : null;
+            return json.RootElement.ValueKind == JsonValueKind.Object ? json.RootElement.Clone() : null;
         }
         catch (JsonException)
         {

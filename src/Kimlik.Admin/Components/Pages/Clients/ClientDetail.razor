@@ -33,6 +33,10 @@ else if (_client is { } client)
                     <MudCheckBox @bind-Value="_requireOrganization" Label="Users sign in to an organization" ReadOnly="!CanWrite" />
                     <MudCheckBox @bind-Value="_requirePushedAuthorization" Label="Require pushed authorization requests (PAR)" ReadOnly="!CanWrite" />
                 }
+                @if (client.Type is ClientType.Web or ClientType.Service)
+                {
+                    <MudCheckBox @bind-Value="_allowTokenExchange" Label="Exchange users' tokens for other APIs (token exchange)" ReadOnly="!CanWrite" />
+                }
                 <MudSelect T="string" Label="Scopes" MultiSelection @bind-SelectedValues="_scopes" ReadOnly="!CanWrite">
                     @foreach (var scope in _availableScopes)
                     {
@@ -109,6 +113,7 @@ else if (_client is { } client)
     private bool _requireOrganization;
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
     private bool _requirePushedAuthorization;
+    private bool _allowTokenExchange;
     private string? _keys;
     private IReadOnlyCollection<string> _scopes = [];
     private IReadOnlyCollection<string> _roles = [];
@@ -146,6 +151,7 @@ else if (_client is { } client)
         _firstParty = client.FirstParty;
         _requireOrganization = client.RequireOrganization;
         _requirePushedAuthorization = client.RequirePushedAuthorization;
+        _allowTokenExchange = client.AllowTokenExchange;
         _keys = client.JsonWebKeySet?.ToJsonString(Indented);
         _scopes = client.Scopes;
         _roles = client.Roles;
@@ -156,7 +162,7 @@ else if (_client is { } client)
     private async Task SaveAsync()
     {
         var request = _client!.Type == ClientType.Service
-            ? new UpdateClientRequest { DisplayName = _displayName, Scopes = [.. _scopes] }
+            ? new UpdateClientRequest { DisplayName = _displayName, Scopes = [.. _scopes], AllowTokenExchange = _allowTokenExchange }
             : new UpdateClientRequest
             {
                 DisplayName = _displayName,
@@ -165,6 +171,7 @@ else if (_client is { } client)
                 FirstParty = _firstParty,
                 RequireOrganization = _requireOrganization,
                 RequirePushedAuthorization = _requirePushedAuthorization,
+                AllowTokenExchange = _client.Type == ClientType.Web ? _allowTokenExchange : null,
                 Scopes = [.. _scopes],
             };
 

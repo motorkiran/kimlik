@@ -74,8 +74,8 @@ public sealed class KimlikUser
     public string? Plan { get; }
 
     /// <summary>
-    /// The administrator acting as the user, for support, when the token was issued while they signed in as them. Apps
-    /// can show it, record it, or refuse what only the user may do.
+    /// The administrator acting as the user, for support, when the token was issued while they signed in as them, also
+    /// when a client exchanged it since. Apps can show it, record it, or refuse what only the user may do.
     /// </summary>
     public Guid? ActorId { get; }
 
@@ -97,12 +97,20 @@ public sealed class KimlikUser
 
         try
         {
+            // Clients that exchanged the token (RFC 8693) come first in the chain, each with its client_id.
             using var json = JsonDocument.Parse(actor);
-            return json.RootElement.ValueKind == JsonValueKind.Object
-                && json.RootElement.TryGetProperty(JwtRegisteredClaimNames.Sub, out var subject) && subject.ValueKind == JsonValueKind.String
-                && Guid.TryParse(subject.GetString(), out var actorId)
-                ? actorId
-                : null;
+            for (var current = json.RootElement; current.ValueKind == JsonValueKind.Object; current = current.TryGetProperty(ActorClaim, out var nested) ? nested : default)
+            {
+                if (!current.TryGetProperty(ClientIdClaim, out _))
+                {
+                    return current.TryGetProperty(JwtRegisteredClaimNames.Sub, out var subject) && subject.ValueKind == JsonValueKind.String
+                        && Guid.TryParse(subject.GetString(), out var actorId)
+                        ? actorId
+                        : null;
+                }
+            }
+
+            return null;
         }
         catch (JsonException)
         {

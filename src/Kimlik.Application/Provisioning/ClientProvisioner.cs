@@ -38,6 +38,7 @@ public sealed class ClientProvisioner(
                     RequireOrganization = declared.RequireOrganization,
                     RequirePushedAuthorization = declared.RequirePushedAuthorization,
                     JsonWebKeySet = declared.JsonWebKeySet,
+                    AllowTokenExchange = declared.AllowTokenExchange,
                 },
                 declared.ClientSecret,
                 cancellationToken);
@@ -63,6 +64,7 @@ public sealed class ClientProvisioner(
                 Scopes = declared.Scopes,
                 RequireOrganization = declared.RequireOrganization,
                 RequirePushedAuthorization = declared.RequirePushedAuthorization,
+                AllowTokenExchange = declared.AllowTokenExchange,
             };
             var updated = await update.HandleAsync(
                 existing.Id, declared.JsonWebKeySet is { } keys ? request with { JsonWebKeySet = keys } : request, cancellationToken);
@@ -108,6 +110,7 @@ public sealed class ClientProvisioner(
         && existing.FirstParty == declared.FirstParty
         && existing.RequireOrganization == declared.RequireOrganization
         && existing.RequirePushedAuthorization == declared.RequirePushedAuthorization
+        && existing.AllowTokenExchange == declared.AllowTokenExchange
         && (declared.JsonWebKeySet is null || ClientKeys.AreSame(existing.JsonWebKeySet, declared.JsonWebKeySet))
         && Declared.SameUris(existing.RedirectUris, declared.RedirectUris)
         && Declared.SameUris(existing.PostLogoutRedirectUris, declared.PostLogoutRedirectUris)

@@ -145,6 +145,9 @@ public sealed record ProvisionedClient
     /// <summary>Whether the client must push its authorization requests (RFC 9126).</summary>
     public bool RequirePushedAuthorization { get; init; }
 
+    /// <summary>Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693).</summary>
+    public bool AllowTokenExchange { get; init; }
+
     /// <summary>Keys of a service client's global roles; when omitted, an existing client keeps its roles.</summary>
     [MaxLength(50)]
     public IReadOnlyList<string>? Roles { get; init; }

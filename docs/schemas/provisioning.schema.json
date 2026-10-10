@@ -233,6 +233,9 @@
           "requirePushedAuthorization": {
             "type": "boolean"
           },
+          "allowTokenExchange": {
+            "type": "boolean"
+          },
           "roles": {
             "type": [
               "array",

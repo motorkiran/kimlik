@@ -47,6 +47,7 @@ internal static class OidcServiceCollectionExtensions
                     .SetEndUserVerificationEndpointUris("connect/verify");
 
                 options.AllowAuthorizationCodeFlow()
+                    .AllowTokenExchangeFlow()
                     .AllowRefreshTokenFlow()
                     .AllowClientCredentialsFlow()
                     .AllowDeviceAuthorizationFlow();

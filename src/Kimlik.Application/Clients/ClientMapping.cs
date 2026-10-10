@@ -3,6 +3,7 @@ using Kimlik.Contracts.Management;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using OidcPermissions = OpenIddict.Abstractions.OpenIddictConstants.Permissions;
 
 namespace Kimlik.Application.Clients;
 
@@ -26,7 +27,8 @@ internal static class ClientMapping
             [.. roles.Order(StringComparer.Ordinal)],
             ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)),
             (await applications.GetRequirementsAsync(application, cancellationToken)).Contains(Requirements.Features.PushedAuthorizationRequests),
-            await applications.GetJsonWebKeySetAsync(application, cancellationToken) is { } keys ? ClientKeys.ToJson(keys) : null);
+            await applications.GetJsonWebKeySetAsync(application, cancellationToken) is { } keys ? ClientKeys.ToJson(keys) : null,
+            permissions.Contains(OidcPermissions.GrantTypes.TokenExchange, StringComparer.Ordinal));
     }
 
     public static async Task<ClientResponse> ToResponseAsync(

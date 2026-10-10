@@ -40,7 +40,7 @@ internal static class TokenEndpoint
             return await IssueClientTokenAsync(request, context.RequestServices, cancellationToken);
         }
 
-        if (request.IsAuthorizationCodeGrantType() || request.IsDeviceCodeGrantType() || request.IsRefreshTokenGrantType())
+        if (request.IsAuthorizationCodeGrantType() || request.IsDeviceCodeGrantType() || request.IsRefreshTokenGrantType() || request.IsTokenExchangeGrantType())
         {
             return await IssueUserTokenAsync(context, request, cancellationToken);
         }
@@ -72,8 +72,9 @@ internal static class TokenEndpoint
     }
 
     /// <summary>
-    /// Exchanges an authorization code, a device code or a refresh token. The account is checked again on every
-    /// exchange, so suspended, locked-out or deleted users lose access as soon as their access token expires.
+    /// Exchanges an authorization code, a device code, a refresh token or, for a client calling other APIs on the user's
+    /// behalf, a user's access token (RFC 8693). The account is checked again on every exchange, so suspended, locked-out
+    /// or deleted users lose access as soon as their access token expires.
     /// </summary>
     private static async Task<IResult> IssueUserTokenAsync(HttpContext context, OpenIddictRequest request, CancellationToken cancellationToken)
     {
@@ -82,6 +83,12 @@ internal static class TokenEndpoint
 
         var principal = (await context.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal
             ?? throw new InvalidOperationException("The authorization code or refresh token principal cannot be retrieved.");
+
+        var exchange = request.IsTokenExchangeGrantType();
+        if (exchange && RefuseExchange(request, principal) is { } refusal)
+        {
+            return refusal;
+        }
 
         var user = await userManager.FindByIdAsync(principal.GetClaim(Claims.Subject)!);
         if (user is null || !user.CanSignIn || await userManager.IsLockedOutAsync(user)
@@ -122,21 +129,68 @@ internal static class TokenEndpoint
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
             .CreateAsync(
                 user,
-                principal.GetScopes(),
-                principal.GetResources(),
+                exchange ? request.GetScopes() : principal.GetScopes(),
+                exchange ? null : principal.GetResources(),
                 authenticatedAt,
                 methods,
                 organization.Value?.Id,
                 cancellationToken);
-        identity.SetAuthorizationId(principal.GetAuthorizationId());
+
+        if (exchange)
+        {
+            Delegate(identity, request.ClientId!, principal, services);
+        }
+        else
+        {
+            identity.SetAuthorizationId(principal.GetAuthorizationId());
+        }
 
         // Tokens for an administrator acting as the user keep naming them, and expire with the impersonation.
-        if (OidcPrincipalFactory.GetActor(principal) is { } actor)
+        if (!exchange && OidcPrincipalFactory.GetActor(principal) is { } actor)
         {
             OidcPrincipalFactory.AddActor(identity, actor, principal.GetAccessTokenLifetime() ?? SignInFlow.ImpersonationLifetime);
         }
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Refuses exchanges Kimlik does not make: other subject tokens than a user's access token, actor tokens, and scopes
+    /// other than those of APIs, Kimlik's own included, which would carry all of the user's access to it.
+    /// </summary>
+    private static IResult? RefuseExchange(OpenIddictRequest request, ClaimsPrincipal subjectToken)
+    {
+        if (request.SubjectTokenType != TokenTypeIdentifiers.AccessToken || !string.IsNullOrEmpty(request.ActorToken))
+        {
+            return OidcResults.Forbid(Errors.InvalidRequest, "Only a user's access token can be exchanged, without an actor token.");
+        }
+
+        // A service client acting on its own behalf is the subject of its tokens (see IssueClientTokenAsync).
+        if (subjectToken.GetClaim(Claims.Subject) == subjectToken.GetClaim(Claims.ClientId))
+        {
+            return OidcResults.Forbid(Errors.InvalidGrant, "Only a user's access token can be exchanged.");
+        }
+
+        var scopes = request.GetScopes();
+        return scopes.IsEmpty || scopes.Any(scope => scope is Scopes.OpenId or Scopes.Profile or Scopes.Email or Scopes.Phone or Scopes.OfflineAccess or KimlikScopes.Api)
+            ? OidcResults.Forbid(Errors.InvalidScope, "Ask for the scopes of the APIs to call, other than Kimlik's own.")
+            : null;
+    }
+
+    /// <summary>
+    /// Makes the identity a token the client holds for the user: <c>act</c> names it, there is only an access token, and
+    /// it expires no later than the token it came from.
+    /// </summary>
+    private static void Delegate(ClaimsIdentity identity, string clientId, ClaimsPrincipal subjectToken, IServiceProvider services)
+    {
+        OidcPrincipalFactory.AddDelegation(identity, clientId, subjectToken);
+        identity.SetDestinations(claim => claim.GetDestinations().Contains(Destinations.AccessToken) ? [Destinations.AccessToken] : []);
+
+        var remaining = subjectToken.GetExpirationDate() - services.GetRequiredService<TimeProvider>().GetUtcNow();
+        if (remaining < services.GetRequiredService<IOptions<TokenOptions>>().Value.AccessTokenLifetime)
+        {
+            identity.SetAccessTokenLifetime(remaining > TimeSpan.Zero ? remaining : TimeSpan.FromSeconds(1));
+        }
     }
 
     /// <summary>
