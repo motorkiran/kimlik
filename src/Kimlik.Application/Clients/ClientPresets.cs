@@ -39,6 +39,12 @@ public static partial class ClientPresets
     /// <summary>The application property with the URI that receives logout tokens (OpenID Connect Back-Channel Logout).</summary>
     public const string BackChannelLogoutUriProperty = "kimlik_backchannel_logout_uri";
 
+    /// <summary>The application property with the hash of the previous secret, and until when it keeps working.</summary>
+    public const string PreviousSecretProperty = "kimlik_previous_secret";
+
+    /// <summary>The longest a previous secret keeps working.</summary>
+    public const int MaxPreviousSecretDays = 30;
+
     private const int UriMaxLength = 2000;
 
     /// <summary>Secrets that people choose, as in a provisioning file, must be at least this long.</summary>
@@ -230,6 +236,14 @@ public static partial class ClientPresets
     /// <summary>Whether sign-ins to the client must happen in an organization.</summary>
     public static bool RequiresOrganization(IReadOnlyDictionary<string, JsonElement> properties) =>
         properties.TryGetValue(RequireOrganizationProperty, out var value) && value.ValueKind == JsonValueKind.True;
+
+    /// <summary>The hash of the client's previous secret, which works until <c>ExpiresAt</c>, if it has one.</summary>
+    public static (string Hash, DateTimeOffset ExpiresAt)? PreviousSecretOf(IReadOnlyDictionary<string, JsonElement> properties) =>
+        properties.TryGetValue(PreviousSecretProperty, out var value) && value.ValueKind == JsonValueKind.Object
+            && value.TryGetProperty("hash", out var hash) && hash.GetString() is { Length: > 0 } stored
+            && value.TryGetProperty("expiresAt", out var expires) && expires.TryGetDateTimeOffset(out var expiresAt)
+            ? (stored, expiresAt)
+            : null;
 
     /// <summary>Where the client receives logout tokens, if it wants to hear when sessions end.</summary>
     public static Uri? BackChannelLogoutUriOf(IReadOnlyDictionary<string, JsonElement> properties) =>

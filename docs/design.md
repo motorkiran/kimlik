@@ -230,12 +230,12 @@ The backlog, roughly in priority order:
 1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
 2. Developer-hosted sign-in UI through an interaction API.
 3. Hosted or embeddable components for organization management.
-4. Multiple client secrets and DPoP.
+4. DPoP (RFC 9449), which OpenIddict does not support yet.
 5. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 6. A JavaScript/TypeScript SDK and a Helm chart.
 7. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)).
 
 ### 4.3 Out of scope
 
@@ -583,6 +583,7 @@ erDiagram
 - **Token exchange** (RFC 8693, `urn:ietf:params:oauth:grant-type:token-exchange`) for backends that call other APIs on a user's behalf ([§8.9](#89-token-exchange)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
 - **Client authentication:** web and service clients authenticate with a secret (`client_secret_basic` or `client_secret_post`) or with keys (`private_key_jwt`, RFC 7523), one or the other. Registering a JWK Set of public signing keys (RSA or EC, at most 10, without private parameters) replaces the secret, and generating a new secret removes the keys. The client signs a short-lived JWT for each request, typed `client-authentication+jwt` (draft-ietf-oauth-rfc7523bis) and with Kimlik's issuer as its audience, so no shared secret leaves the client and no other JWT passes as an assertion.
+- **Secret rotation.** A new secret can leave the previous one working for up to 30 days (`keepPreviousSecretForDays`), so a client switches to it without downtime; the client's description says until when. Keys replace both.
 - **Pushed authorization requests** (PAR, RFC 9126) at `/connect/par`, for every client that signs users in: the client posts the authorization parameters directly, authenticating if confidential, and sends the browser with only the `request_uri` it got back. A client can be set to require PAR (`requirePushedAuthorization`), so its authorization parameters never travel through the browser.
 - **Redirect URIs** are matched exactly.
 
@@ -1095,6 +1096,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M20: Add-ons and overrides** | Add-on plans with quantities and per-subscription feature overrides, in the API, SDK, provisioning and admin panel ([§5.7](#57-add-ons-and-custom-deals)) | A subscriber's entitlements combine its plan, add-ons and overrides, in the API and the SDK, in end-to-end tests ✅ |
 | **M21: CAPTCHA and authentication context** | Turnstile, hCaptcha and reCAPTCHA on the forms bots go for, and `acr_values` step-up to a second factor or a passkey ([§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)) | Forms refuse missing CAPTCHA answers, and requested policies lead to the second step, with `acr` in tokens, in end-to-end tests ✅ |
 | **M22: Usage metering** | Metered limits, recorded and enforced per subscriber and month, in the API, the SDK and the admin panel ([§5.8](#58-usage-metering)) | A backend consumes a subscriber's monthly allowance until it runs out, through the SDK, in end-to-end tests ✅ |
+| **M23: Secret rotation** | A new client secret can leave the previous one working for up to 30 days ([§8.2](#82-grants-and-client-authentication)) | Both secrets work until the previous one expires, in end-to-end tests ✅ |
 
 ---
 

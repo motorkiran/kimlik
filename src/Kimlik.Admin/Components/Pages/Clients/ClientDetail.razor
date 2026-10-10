@@ -82,6 +82,10 @@ else if (_client is { } client)
                             ? "Authenticates with a secret. Public keys replace it: the client then signs a JWT for each request (private_key_jwt)."
                             : "Authenticates with its keys (private_key_jwt). A new secret replaces them.")
                     </MudText>
+                    @if (client.PreviousSecretExpiresAt is { } previousExpiresAt && client.JsonWebKeySet is null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2" id="previous-secret">The previous secret also works until <Moment Value="previousExpiresAt" />.</MudText>
+                    }
                     <MudTextField @bind-Value="_keys" Label="Public keys (JWK Set)" Lines="6" ReadOnly="!CanWrite"
                                   HelperText="RSA of 2048 bits or more, or EC on P-256, P-384 or P-521; public parameters only." />
                     @if (CanWrite)
@@ -225,11 +229,15 @@ else if (_client is { } client)
 
     private async Task RegenerateSecretAsync()
     {
-        if (await ConfirmAsync("Issue a new secret?", "The current secret, or the client's keys, stop working at once; the client needs the new secret to get tokens.", "Issue")
-            && await ChangeAsync<RegenerateClientSecretHandler, ClientSecretResponse>(SystemPermissions.ClientsWrite, handler => handler.HandleAsync(Id, Aborted), "A new secret was issued.") is { } secret)
+        var dialog = await Dialogs.ShowAsync<RotateSecretDialog>("Issue a new secret?");
+        if (await dialog.Result is { Canceled: false, Data: int days }
+            && await ChangeAsync<RegenerateClientSecretHandler, ClientSecretResponse>(
+                SystemPermissions.ClientsWrite,
+                handler => handler.HandleAsync(Id, new RegenerateClientSecretRequest { KeepPreviousSecretForDays = days }, Aborted),
+                "A new secret was issued.") is { } secret)
         {
             await SecretDialog.ShowAsync(Dialogs, "Client secret", $"Secret of {_client!.ClientId}", secret.ClientSecret);
-            Show(_client! with { JsonWebKeySet = null });
+            Show(_client! with { JsonWebKeySet = null, PreviousSecretExpiresAt = secret.PreviousSecretExpiresAt });
         }
     }
 

@@ -39,7 +39,8 @@ public sealed record ClientResponse(
     bool RequirePushedAuthorization,
     JsonObject? JsonWebKeySet,
     bool AllowTokenExchange,
-    string? BackChannelLogoutUri);
+    string? BackChannelLogoutUri,
+    DateTimeOffset? PreviousSecretExpiresAt);
 
 public sealed record CreateClientRequest
 {
@@ -117,10 +118,21 @@ public sealed record CreateClientRequest
 public sealed record CreatedClientResponse(ClientResponse Client, string? ClientSecret);
 
 /// <summary>
-/// A new client secret, shown only this once. The previous secret, or the keys the client authenticated with, stop working
-/// at once.
+/// A new client secret, shown only this once. The previous secret stops working at <c>previousSecretExpiresAt</c>, or at
+/// once without it, and keys the client authenticated with stop working at once.
 /// </summary>
-public sealed record ClientSecretResponse(string ClientSecret);
+public sealed record ClientSecretResponse(string ClientSecret, DateTimeOffset? PreviousSecretExpiresAt = null);
+
+/// <summary>How to replace a client's secret.</summary>
+public sealed record RegenerateClientSecretRequest
+{
+    /// <summary>
+    /// For how many days, up to 30, the previous secret keeps working, so that the client can switch without downtime; 0
+    /// ends it at once.
+    /// </summary>
+    [Range(0, 30)]
+    public int KeepPreviousSecretForDays { get; init; }
+}
 
 /// <summary>
 /// Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and <c>null</c> empties

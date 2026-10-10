@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
 using Kimlik.Application.Common;
@@ -190,6 +191,7 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
         {
             descriptor.JsonWebKeySet = keys.Value;
             descriptor.ClientSecret = null;
+            descriptor.Properties.Remove(ClientPresets.PreviousSecretProperty);
         }
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
@@ -203,15 +205,22 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
 }
 
 /// <summary>
-/// Replaces the secret of a web or service client; the previous secret, or the keys the client authenticated with, stop
-/// working at once. Tokens already issued stay valid until they expire.
+/// Replaces the secret of a web or service client. The previous secret stops working at once, or keeps working for up to
+/// 30 days so that the client can switch without downtime; keys the client authenticated with stop working at once.
+/// Tokens already issued stay valid until they expire.
 /// </summary>
-public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog)
+public sealed class RegenerateClientSecretHandler(
+    IKimlikDbContext context, IOpenIddictApplicationManager applications, AccessGuard guard, IAuditLog auditLog, TimeProvider timeProvider)
 {
     public Task<Result<ClientSecretResponse>> HandleAsync(Guid id, CancellationToken cancellationToken) =>
-        ReplaceAsync(id, ClientPresets.GenerateSecret(), cancellationToken);
+        ReplaceAsync(id, ClientPresets.GenerateSecret(), TimeSpan.Zero, cancellationToken);
 
-    internal async Task<Result<ClientSecretResponse>> ReplaceAsync(Guid id, string secret, CancellationToken cancellationToken)
+    public Task<Result<ClientSecretResponse>> HandleAsync(Guid id, RegenerateClientSecretRequest request, CancellationToken cancellationToken) =>
+        request.KeepPreviousSecretForDays is < 0 or > ClientPresets.MaxPreviousSecretDays
+            ? Task.FromResult<Result<ClientSecretResponse>>(ClientErrors.InvalidSecretOverlap)
+            : ReplaceAsync(id, ClientPresets.GenerateSecret(), TimeSpan.FromDays(request.KeepPreviousSecretForDays), cancellationToken);
+
+    internal async Task<Result<ClientSecretResponse>> ReplaceAsync(Guid id, string secret, TimeSpan keepPrevious, CancellationToken cancellationToken)
     {
         if (await applications.FindByIdAsync(id.ToString(), cancellationToken) is not { } application)
         {
@@ -233,14 +242,24 @@ public sealed class RegenerateClientSecretHandler(IKimlikDbContext context, IOpe
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         var descriptor = new OpenIddictApplicationDescriptor();
         await applications.PopulateAsync(descriptor, application, cancellationToken);
+
+        // The descriptor holds the hash of the current secret, which can go on working for a while.
+        DateTimeOffset? previousExpiresAt = keepPrevious > TimeSpan.Zero && descriptor.ClientSecret is { Length: > 0 } ? timeProvider.GetUtcNow() + keepPrevious : null;
+        descriptor.Properties.Remove(ClientPresets.PreviousSecretProperty);
+        if (previousExpiresAt is { } expiresAt)
+        {
+            descriptor.Properties[ClientPresets.PreviousSecretProperty] = JsonSerializer.SerializeToElement(new { hash = descriptor.ClientSecret, expiresAt });
+        }
+
         descriptor.ClientSecret = secret;
         descriptor.JsonWebKeySet = null;
         await applications.UpdateAsync(application, descriptor, cancellationToken);
-        auditLog.Record(AuditActions.ClientSecretRegenerated, AuditSubject.Client(id));
+        auditLog.Record(
+            AuditActions.ClientSecretRegenerated, AuditSubject.Client(id), new Dictionary<string, object?> { ["previousSecretExpiresAt"] = previousExpiresAt });
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new ClientSecretResponse(secret);
+        return new ClientSecretResponse(secret, previousExpiresAt);
     }
 }
 

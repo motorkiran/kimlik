@@ -1,4 +1,5 @@
 using Kimlik.Application.Accounts;
+using Kimlik.Infrastructure.Clients;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Kimlik.Server.Diagnostics;
@@ -32,10 +33,15 @@ internal static class OidcServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddOpenIddict()
-            .AddCore(options => options
-                .UseEntityFrameworkCore()
-                .UseDbContext<KimlikDbContext>()
-                .ReplaceDefaultEntities<Guid>())
+            .AddCore(options =>
+            {
+                options.UseEntityFrameworkCore()
+                    .UseDbContext<KimlikDbContext>()
+                    .ReplaceDefaultEntities<Guid>();
+
+                // Previous client secrets keep working for a while after a rotation.
+                options.UseKimlikApplicationManager();
+            })
             .AddServer(options =>
             {
                 options.SetAuthorizationEndpointUris("connect/authorize")

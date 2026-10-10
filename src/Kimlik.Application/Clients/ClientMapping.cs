@@ -29,7 +29,8 @@ internal static class ClientMapping
             (await applications.GetRequirementsAsync(application, cancellationToken)).Contains(Requirements.Features.PushedAuthorizationRequests),
             await applications.GetJsonWebKeySetAsync(application, cancellationToken) is { } keys ? ClientKeys.ToJson(keys) : null,
             permissions.Contains(OidcPermissions.GrantTypes.TokenExchange, StringComparer.Ordinal),
-            ClientPresets.BackChannelLogoutUriOf(await applications.GetPropertiesAsync(application, cancellationToken))?.AbsoluteUri);
+            ClientPresets.BackChannelLogoutUriOf(await applications.GetPropertiesAsync(application, cancellationToken))?.AbsoluteUri,
+            ClientPresets.PreviousSecretOf(await applications.GetPropertiesAsync(application, cancellationToken))?.ExpiresAt);
     }
 
     public static async Task<ClientResponse> ToResponseAsync(

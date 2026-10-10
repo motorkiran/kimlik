@@ -3,6 +3,8 @@ using Kimlik.Application.Clients;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Kimlik.Server.Api;
 
@@ -44,7 +46,9 @@ internal static class ClientEndpoints
         clients.MapPost("{id:guid}/secret", RegenerateSecretAsync)
             .WithName("RegenerateClientSecret")
             .WithSummary("Regenerate a client's secret")
-            .WithDescription("The previous secret stops working at once. Tokens already issued stay valid until they expire.")
+            .WithDescription("The previous secret stops working at once, or after `keepPreviousSecretForDays` (up to 30), so that the client "
+                + "switches without downtime; the body is optional. Tokens already issued stay valid until they expire.")
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.ClientsWrite);
@@ -88,8 +92,11 @@ internal static class ClientEndpoints
         (await handler.HandleAsync(id, request, cancellationToken)).ToOk();
 
     private static async Task<Results<Ok<ClientSecretResponse>, ProblemHttpResult>> RegenerateSecretAsync(
-        Guid id, RegenerateClientSecretHandler handler, CancellationToken cancellationToken) =>
-        (await handler.HandleAsync(id, cancellationToken)).ToOk();
+        Guid id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RegenerateClientSecretRequest? request,
+        RegenerateClientSecretHandler handler,
+        CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, request ?? new RegenerateClientSecretRequest(), cancellationToken)).ToOk();
 
     private static async Task<Results<Ok<ClientResponse>, ProblemHttpResult>> SetRolesAsync(
         Guid id, SetRolesRequest request, SetClientRolesHandler handler, CancellationToken cancellationToken) =>

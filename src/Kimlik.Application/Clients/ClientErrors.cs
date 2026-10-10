@@ -40,6 +40,9 @@ public static class ClientErrors
 
     public static readonly Error WeakSecret = Error.Validation("client.weak_secret", "A client secret is at least 16 characters.");
 
+    public static readonly Error InvalidSecretOverlap = Error.Validation(
+        "client.invalid_secret_overlap", "The previous secret can keep working for 0 to 30 days.");
+
     public static readonly Error KeysNotSupported = Error.Validation(
         "client.keys_not_supported", "Only web and service clients authenticate with keys; SPAs and native apps are public.");
 

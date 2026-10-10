@@ -91,7 +91,7 @@ public sealed class ClientProvisioner(
 
         if (declared.ClientSecret is { } secret && !await IsCurrentSecretAsync(application, existing.Type, secret, cancellationToken))
         {
-            var replaced = await replaceSecret.ReplaceAsync(existing.Id, secret, cancellationToken);
+            var replaced = await replaceSecret.ReplaceAsync(existing.Id, secret, TimeSpan.Zero, cancellationToken);
             if (replaced.IsFailure)
             {
                 return replaced.Error;

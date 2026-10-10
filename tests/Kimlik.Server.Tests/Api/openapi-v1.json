@@ -2429,7 +2429,7 @@
           "Clients"
         ],
         "summary": "Regenerate a client's secret",
-        "description": "The previous secret stops working at once. Tokens already issued stay valid until they expire.\n\nRequires the `kimlik.clients:write` permission.",
+        "description": "The previous secret stops working at once, or after `keepPreviousSecretForDays` (up to 30), so that the client switches without downtime; the body is optional. Tokens already issued stay valid until they expire.\n\nRequires the `kimlik.clients:write` permission.",
         "operationId": "RegenerateClientSecret",
         "parameters": [
           {
@@ -2442,6 +2442,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegenerateClientSecretRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -8148,7 +8164,8 @@
           "requirePushedAuthorization",
           "jsonWebKeySet",
           "allowTokenExchange",
-          "backChannelLogoutUri"
+          "backChannelLogoutUri",
+          "previousSecretExpiresAt"
         ],
         "type": "object",
         "properties": {
@@ -8219,6 +8236,13 @@
               "null",
               "string"
             ]
+          },
+          "previousSecretExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client.\nA web or service client with `jsonWebKeySet` authenticates with those keys (`private_key_jwt`) instead of a secret."
@@ -8231,9 +8255,16 @@
         "properties": {
           "clientSecret": {
             "type": "string"
+          },
+          "previousSecretExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
-        "description": "A new client secret, shown only this once. The previous secret, or the keys the client authenticated with, stop working\nat once."
+        "description": "A new client secret, shown only this once. The previous secret stops working at `previousSecretExpiresAt`, or at\nonce without it, and keys the client authenticated with stop working at once."
       },
       "ClientType": {
         "enum": [
@@ -10378,6 +10409,23 @@
           }
         },
         "description": "Single-use codes for signing in without the authenticator app. They are shown only this once."
+      },
+      "RegenerateClientSecretRequest": {
+        "type": "object",
+        "properties": {
+          "keepPreviousSecretForDays": {
+            "maximum": 30,
+            "minimum": 0,
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "For how many days, up to 30, the previous secret keeps working, so that the client can switch without downtime; 0\nends it at once.",
+            "format": "int32"
+          }
+        },
+        "description": "How to replace a client's secret."
       },
       "RenamePasskeyRequest": {
         "required": [

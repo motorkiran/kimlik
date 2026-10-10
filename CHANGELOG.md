@@ -13,10 +13,11 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Bot protection: Cloudflare Turnstile, hCaptcha or reCAPTCHA v2 on sign-up, password reset and sign-in code requests, and optionally on sign-in (`Kimlik:Captcha`), with the provider's origins allowed only on the pages that show the widget.
 - Authentication context: apps ask for a multi-factor or phishing-resistant sign-in with `acr_values` (the OpenID PAPE policies), Kimlik asks for a second factor or a passkey when the session falls short, and ID and access tokens carry `acr`.
 - Usage metering: limit features can be metered, counting use a calendar month; backends record use through `POST /api/v1/usage`, optionally enforcing the limit atomically and with idempotency keys, read it back, and use `IKimlikUsage` in `Kimlik.AspNetCore`; the admin panel shows the month's use (`kimlik.usage:read`, `kimlik.usage:write`).
+- Secret rotation without downtime: a new client secret can leave the previous one working for up to 30 days (`keepPreviousSecretForDays`), through the Management API, `Kimlik.Client` and the admin panel.
 
 ### Changed
 
-- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange` and `BackChannelLogoutUri`, `PlanResponse` gained `Kind`, `FeatureResponse` gained `Metered`, and `SubscriptionResponse` gained `AddOns` and `FeatureOverrides`; code that constructs them positionally must pass them.
+- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange`, `BackChannelLogoutUri` and `PreviousSecretExpiresAt`, `PlanResponse` gained `Kind`, `FeatureResponse` gained `Metered`, and `SubscriptionResponse` gained `AddOns` and `FeatureOverrides`; code that constructs them positionally must pass them.
 - The Account API refuses changes from any token in which someone else acts for the user, a client that exchanged it as well as an impersonating administrator.
 - Sign-in codes are kept per purpose, so codes asked for before the upgrade stop working.
 

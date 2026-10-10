@@ -26,6 +26,10 @@ public sealed class ClientsClient
     public Task<ClientSecretResponse> RegenerateSecretAsync(Guid id, CancellationToken cancellationToken = default) =>
         _http.SendAsync<ClientSecretResponse>(HttpMethod.Post, $"clients/{id}/secret", body: null, cancellationToken);
 
+    /// <summary>Replaces the client's secret; the previous one keeps working for as many days as the request says, up to 30.</summary>
+    public Task<ClientSecretResponse> RegenerateSecretAsync(Guid id, RegenerateClientSecretRequest request, CancellationToken cancellationToken = default) =>
+        _http.SendAsync<ClientSecretResponse>(HttpMethod.Post, $"clients/{id}/secret", request, cancellationToken);
+
     /// <summary>Replaces the global roles of a service client.</summary>
     public Task<ClientResponse> SetRolesAsync(Guid id, IReadOnlyList<string> roles, CancellationToken cancellationToken = default) =>
         _http.SendAsync<ClientResponse>(HttpMethod.Put, $"clients/{id}/roles", new SetRolesRequest { Roles = roles }, cancellationToken);
