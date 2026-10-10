@@ -46,6 +46,16 @@ else if (_user is { } user)
                 <MudTextField @bind-Value="_locale" Label="Language" HelperText="A language tag, such as en or tr." MaxLength="16" ReadOnly="!CanWrite" />
                 <MudTextField @bind-Value="_pictureUrl" Label="Picture URL" HelperText="An image of the user, such as their avatar." MaxLength="2048" ReadOnly="!CanWrite" />
                 <MudTextField @bind-Value="_timeZone" Label="Time zone" HelperText="An IANA name, such as Europe/Istanbul." MaxLength="64" ReadOnly="!CanWrite" />
+                @if (user.PhoneNumber is { } phoneNumber)
+                {
+                    <MudStack Row AlignItems="AlignItems.Center" Class="mt-2" id="phone-number">
+                        <MudTextField Value="phoneNumber" Label="Phone number" HelperText="Verified; the user can sign in with codes texted to it." ReadOnly="true" />
+                        @if (CanWrite)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="RemovePhoneNumberAsync" id="remove-phone-number">Remove</MudButton>
+                        }
+                    </MudStack>
+                }
                 @if (CanWrite)
                 {
                     <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProfileAsync" id="save-profile">Save</MudButton>
@@ -369,6 +379,15 @@ else if (_user is { } user)
     {
         if (await ConfirmAsync($"Remove {passkey.Name}?", "The user can no longer sign in with this passkey.", "Remove")
             && await ChangeAsync<RemoveUserPasskeyHandler>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, passkey.Id, Aborted), "The passkey was removed."))
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemovePhoneNumberAsync()
+    {
+        if (await ConfirmAsync("Remove the phone number?", "The user can no longer sign in with codes texted to it.", "Remove")
+            && await ChangeAsync<RemoveUserPhoneNumberHandler>(SystemPermissions.UsersWrite, handler => handler.HandleAsync(Id, Aborted), "The phone number was removed."))
         {
             await LoadAsync();
         }

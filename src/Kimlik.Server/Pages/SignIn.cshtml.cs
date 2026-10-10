@@ -20,7 +20,8 @@ public sealed class SignInModel(
     SignInFlow signInFlow,
     PasskeyCeremonies passkeys,
     EmailSignIn emailSignIn,
-    PendingEmailCode pendingEmailCode,
+    PhoneSignIn phoneSignIn,
+    PendingSignInCode pendingSignInCode,
     PasswordHashTiming passwordHashTiming,
     RequestThrottle throttle,
     IKimlikDbContext context,
@@ -39,6 +40,8 @@ public sealed class SignInModel(
     public bool ShowResendVerification { get; private set; }
 
     public bool CanUseEmailCode => emailSignIn.Enabled;
+
+    public bool CanUsePhone => phoneSignIn.Enabled;
 
     /// <summary>The authenticator's answer to a passkey sign-in, as the browser serializes it.</summary>
     [BindProperty]
@@ -78,7 +81,7 @@ public sealed class SignInModel(
         }
 
         await emailSignIn.RequestAsync(email.Trim(), cancellationToken);
-        pendingEmailCode.Start(HttpContext, email.Trim(), Input.RememberMe, ReturnUrl);
+        pendingSignInCode.Start(HttpContext, SignInCodeChannel.Email, email.Trim(), Input.RememberMe, ReturnUrl);
         return RedirectToPage("/SignInCode", new { ReturnUrl });
     }
 

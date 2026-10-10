@@ -31,6 +31,12 @@ internal static class TestConfiguration
         ["Kimlik:Mfa:RequireForAdministrators"] = "false",
         // Tests never reach the internet; the breached password tests fake the service.
         ["Kimlik:Accounts:BreachedPasswordCheck"] = "false",
+        // Texts go to a fake provider (see KimlikServerFixture.Texts); the adapters have tests of their own.
+        ["Kimlik:Sms:Provider"] = "Twilio",
+        ["Kimlik:Sms:Twilio:AccountSid"] = "AC00000000000000000000000000000000",
+        ["Kimlik:Sms:Twilio:AuthToken"] = "not-a-token",
+        ["Kimlik:Sms:Twilio:From"] = "+15005550006",
+        ["Kimlik:Sms:DefaultCountryCode"] = "90",
         // Every test request comes from the same address; rate limiting has its own tests.
         ["Kimlik:RateLimits:SignInsPerMinute"] = "100000",
         ["Kimlik:RateLimits:SignUpsPerMinute"] = "100000",

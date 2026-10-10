@@ -50,6 +50,13 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             .SetClaim(Claims.Zoneinfo, user.TimeZone);
 
         identity.AddClaim(new Claim(Claims.EmailVerified, user.EmailConfirmed ? "true" : "false", ClaimValueTypes.Boolean));
+
+        // Kimlik keeps verified numbers only.
+        if (user.PhoneNumber is not null)
+        {
+            identity.SetClaim(Claims.PhoneNumber, user.PhoneNumber);
+            identity.AddClaim(new Claim(Claims.PhoneNumberVerified, user.PhoneNumberConfirmed ? "true" : "false", ClaimValueTypes.Boolean));
+        }
         identity.AddClaim(UnixTimeClaim(Claims.UpdatedAt, user.UpdatedAt));
 
         if (authenticatedAt is not null)
@@ -171,7 +178,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
 
-    /// <summary>Profile and email claims only leave Kimlik when the client was granted the matching scope.</summary>
+    /// <summary>Profile, email and phone claims only leave Kimlik when the client was granted the matching scope.</summary>
     private static IEnumerable<string> GetDestinations(Claim claim)
     {
         var identity = claim.Subject!;
@@ -185,6 +192,9 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
             Claims.Email or Claims.EmailVerified when identity.HasScope(Scopes.Email)
+                => [Destinations.AccessToken, Destinations.IdentityToken],
+
+            Claims.PhoneNumber or Claims.PhoneNumberVerified when identity.HasScope(Scopes.Phone)
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
             KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles or KimlikClaimTypes.Plan

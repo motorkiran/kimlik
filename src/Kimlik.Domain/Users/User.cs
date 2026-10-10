@@ -12,6 +12,9 @@ public sealed class User : IdentityUser<Guid>
     public const int LocaleMaxLength = 16;
     public const int PictureUrlMaxLength = 2048;
     public const int TimeZoneMaxLength = 64;
+
+    /// <summary>E.164: a <c>+</c> and up to 15 digits.</summary>
+    public const int PhoneNumberMaxLength = 16;
     public const string EmptyMetadata = "{}";
 
     // Used by EF Core.
@@ -115,6 +118,14 @@ public sealed class User : IdentityUser<Guid>
     public void MarkEmailVerified(DateTimeOffset now)
     {
         EmailConfirmed = true;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Sets the phone number the user verified, in E.164, or removes it. Kimlik keeps verified numbers only.</summary>
+    public void SetVerifiedPhoneNumber(string? phoneNumber, DateTimeOffset now)
+    {
+        PhoneNumber = phoneNumber;
+        PhoneNumberConfirmed = phoneNumber is not null;
         UpdatedAt = now;
     }
 

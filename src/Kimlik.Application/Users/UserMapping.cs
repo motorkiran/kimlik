@@ -26,7 +26,8 @@ internal static class UserMapping
         user.UpdatedAt,
         user.LastSignInAt,
         Metadata.Parse(user.PublicMetadata),
-        Metadata.Parse(user.PrivateMetadata));
+        Metadata.Parse(user.PrivateMetadata),
+        user.PhoneNumber);
 
     public static ProfileResponse ToProfile(this DomainUser user, IEnumerable<string> roles) => new(
         user.Id,
@@ -42,7 +43,8 @@ internal static class UserMapping
         user.CreatedAt,
         user.UpdatedAt,
         user.LastSignInAt,
-        Metadata.Parse(user.PublicMetadata));
+        Metadata.Parse(user.PublicMetadata),
+        user.PhoneNumber);
 
     /// <summary>The global role keys of each of the given users.</summary>
     public static async Task<ILookup<Guid, string>> RolesOfAsync(this IKimlikDbContext context, IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken)

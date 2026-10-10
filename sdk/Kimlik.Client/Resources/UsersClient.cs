@@ -69,6 +69,10 @@ public sealed class UsersClient
     public Task RemovePasskeyAsync(Guid id, string passkeyId, CancellationToken cancellationToken = default) =>
         _http.SendAsync(HttpMethod.Delete, $"users/{id}/passkeys/{Uri.EscapeDataString(passkeyId)}", body: null, cancellationToken);
 
+    /// <summary>Removes the user's phone number, such as one they lost; signing in with texted codes stops.</summary>
+    public Task RemovePhoneNumberAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _http.SendAsync(HttpMethod.Delete, $"users/{id}/phone-number", body: null, cancellationToken);
+
     /// <summary>The applications the user is signed in to, newest first.</summary>
     public Task<IReadOnlyList<SessionResponse>> ListSessionsAsync(Guid id, CancellationToken cancellationToken = default) =>
         _http.GetAsync<IReadOnlyList<SessionResponse>>($"users/{id}/sessions", cancellationToken);

@@ -66,6 +66,30 @@ public sealed class UserPagesTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task Administrator_RemovesAUsersPhoneNumber()
+    {
+        var user = await server.CreateUserAsync();
+        var number = $"+905{Random.Shared.NextInt64(100_000_000, 999_999_999)}"[..13];
+        await server.QueryDatabaseAsync(async context =>
+        {
+            var stored = await context.Users.SingleAsync(candidate => candidate.Id == user.Id);
+            stored.SetVerifiedPhoneNumber(number, DateTimeOffset.UtcNow);
+            await context.SaveChangesAsync();
+            return true;
+        });
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+
+        var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
+        page.WaitForElement("#remove-phone-number").Click();
+        admin.Confirm("Remove");
+
+        admin.WaitForNotification("The phone number was removed.");
+        page.WaitForAssertion(() => page.FindAll("#phone-number").ShouldBeEmpty());
+        (await server.QueryDatabaseAsync(context => context.Users.Where(candidate => candidate.Id == user.Id).Select(candidate => candidate.PhoneNumber).SingleAsync()))
+            .ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Administrator_EditsAUsersMetadata_AsJsonObjects()
     {
         var user = await server.CreateUserAsync();

@@ -40,7 +40,7 @@ public static partial class ClientPresets
     private const int SecretMinimumLength = 16;
 
     /// <summary>The scopes of apps that sign users in. <c>openid</c> needs no permission in OpenIddict.</summary>
-    private static readonly HashSet<string> UserScopes = new(StringComparer.Ordinal) { Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess };
+    private static readonly HashSet<string> UserScopes = new(StringComparer.Ordinal) { Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.Phone, Scopes.OfflineAccess };
 
     internal static bool IsConfidential(ClientType type) => type is ClientType.Web or ClientType.Service;
 

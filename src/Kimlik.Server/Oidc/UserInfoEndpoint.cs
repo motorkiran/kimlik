@@ -48,6 +48,13 @@ internal static class UserInfoEndpoint
             claims[Claims.EmailVerified] = user.EmailConfirmed;
         }
 
+        // Kimlik keeps verified numbers only.
+        if (principal.HasScope(Scopes.Phone) && user.PhoneNumber is not null)
+        {
+            claims[Claims.PhoneNumber] = user.PhoneNumber;
+            claims[Claims.PhoneNumberVerified] = user.PhoneNumberConfirmed;
+        }
+
         // Unknown values are omitted rather than returned as null (OpenID Connect Core 1.0, section 5.3.2).
         return Results.Ok(claims.Where(claim => claim.Value is not null).ToDictionary(StringComparer.Ordinal));
     }

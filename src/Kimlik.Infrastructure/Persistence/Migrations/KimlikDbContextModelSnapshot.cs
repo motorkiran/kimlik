@@ -821,8 +821,8 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                         .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
                         .HasColumnName("phone_number");
 
                     b.Property<bool>("PhoneNumberConfirmed")
@@ -886,6 +886,11 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("ix_users_normalized_user_name");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_phone_number")
+                        .HasFilter("phone_number_confirmed");
 
                     b.ToTable("users", "kimlik");
                 });

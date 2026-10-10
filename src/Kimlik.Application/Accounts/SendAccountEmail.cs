@@ -64,7 +64,7 @@ public sealed class SendAccountEmailHandler(
         if (message.Kind == AccountEmail.SignInCode)
         {
             // Created now, as the email goes out, and replacing any earlier code.
-            var code = await userManager.GenerateUserTokenAsync(user, EmailSignIn.TokenProvider, EmailSignIn.Purpose);
+            var code = await userManager.GenerateUserTokenAsync(user, OneTimeCodes.TokenProvider, OneTimeCodes.EmailSignIn);
             model["code"] = code;
             link = links.SignInWithCode(code);
         }

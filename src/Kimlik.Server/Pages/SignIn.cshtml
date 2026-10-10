@@ -47,6 +47,11 @@
     <p class="field-error" data-passkey-error hidden>@L["The passkey could not be used. Try again."]</p>
 </form>
 
+@if (Model.CanUsePhone)
+{
+    <p class="switch"><a asp-page="/SignInPhone" asp-route-returnUrl="@Model.ReturnUrl" id="phone-sign-in">@L["Sign in with a phone number"]</a></p>
+}
+
 <partial name="_ExternalSignIn" model="Model.ReturnUrl" />
 
 @section Scripts {

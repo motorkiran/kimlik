@@ -787,4 +787,64 @@
   <data name="Your code is filled in. Select Sign in to continue." xml:space="preserve">
     <value>Kodunuz dolduruldu. Devam etmek için Giriş yap'ı seçin.</value>
   </data>
+  <data name="A code was sent moments ago. Wait a minute before asking for another." xml:space="preserve">
+    <value>Az önce bir kod gönderildi. Yenisini istemeden önce bir dakika bekleyin.</value>
+  </data>
+  <data name="Check your phone" xml:space="preserve">
+    <value>Telefonunuzu kontrol edin</value>
+  </data>
+  <data name="Enter a phone number with its country code, such as +90 532 123 45 67." xml:space="preserve">
+    <value>Telefon numarasını ülke koduyla girin, örneğin +90 532 123 45 67.</value>
+  </data>
+  <data name="Enter your phone number." xml:space="preserve">
+    <value>Telefon numaranızı girin.</value>
+  </data>
+  <data name="For your security, sign in again before you add a phone number." xml:space="preserve">
+    <value>Güvenliğiniz için telefon numarası eklemeden önce yeniden giriş yapın.</value>
+  </data>
+  <data name="If an account has the number {0}, we texted it a code. Enter it to sign in." xml:space="preserve">
+    <value>{0} numarası bir hesaba aitse ona kısa mesajla bir kod gönderdik. Giriş yapmak için kodu girin.</value>
+  </data>
+  <data name="If an account has this number, a new code is on its way. Codes can be sent once a minute." xml:space="preserve">
+    <value>Bu numara bir hesaba aitse yeni bir kod yolda. Kodlar dakikada bir gönderilebilir.</value>
+  </data>
+  <data name="New phone number" xml:space="preserve">
+    <value>Yeni telefon numarası</value>
+  </data>
+  <data name="Phone number" xml:space="preserve">
+    <value>Telefon numarası</value>
+  </data>
+  <data name="See your phone number" xml:space="preserve">
+    <value>Telefon numaranızı görmek</value>
+  </data>
+  <data name="Sign in with a code texted to your phone, instead of your password." xml:space="preserve">
+    <value>Parolanız yerine telefonunuza kısa mesajla gelen kodla giriş yapın.</value>
+  </data>
+  <data name="Sign in with a phone number" xml:space="preserve">
+    <value>Telefon numarasıyla giriş yap</value>
+  </data>
+  <data name="Text me a code" xml:space="preserve">
+    <value>Kodu kısa mesajla gönder</value>
+  </data>
+  <data name="Text messages cannot be sent to numbers in that country." xml:space="preserve">
+    <value>O ülkedeki numaralara kısa mesaj gönderilemiyor.</value>
+  </data>
+  <data name="That number is already on your account." xml:space="preserve">
+    <value>Bu numara zaten hesabınızda.</value>
+  </data>
+  <data name="That number is on another account." xml:space="preserve">
+    <value>Bu numara başka bir hesapta kayıtlı.</value>
+  </data>
+  <data name="We texted a code to {0}. Enter it below." xml:space="preserve">
+    <value>{0} numarasına kısa mesajla bir kod gönderdik. Aşağıya girin.</value>
+  </data>
+  <data name="We'll text a code to the phone number on your account." xml:space="preserve">
+    <value>Hesabınızdaki telefon numarasına kısa mesajla bir kod göndereceğiz.</value>
+  </data>
+  <data name="Your phone number has been removed." xml:space="preserve">
+    <value>Telefon numaranız kaldırıldı.</value>
+  </data>
+  <data name="Your phone number has been saved." xml:space="preserve">
+    <value>Telefon numaranız kaydedildi.</value>
+  </data>
 </root>

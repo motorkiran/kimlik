@@ -109,6 +109,13 @@ internal static class UserEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.UsersWrite);
 
+        users.MapDelete("{id:guid}/phone-number", RemovePhoneNumberAsync)
+            .WithName("RemoveUserPhoneNumber")
+            .WithSummary("Remove a user's phone number")
+            .WithDescription("The user can no longer sign in with codes texted to it, as after losing the phone.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsersWrite);
+
         users.MapGet("{id:guid}/sessions", ListSessionsAsync)
             .WithName("ListUserSessions")
             .WithSummary("List the applications a user is signed in to")
@@ -218,6 +225,10 @@ internal static class UserEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> RemovePasskeyAsync(
         Guid id, string passkeyId, RemoveUserPasskeyHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, passkeyId, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemovePhoneNumberAsync(
+        Guid id, RemoveUserPhoneNumberHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(id, cancellationToken)).ToNoContent();
 
     private static async Task<Results<Ok<IReadOnlyList<SessionResponse>>, ProblemHttpResult>> ListSessionsAsync(
         Guid id, ListUserSessionsHandler handler, CancellationToken cancellationToken) =>

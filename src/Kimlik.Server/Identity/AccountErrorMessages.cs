@@ -20,6 +20,12 @@ public sealed class AccountErrorMessages(IStringLocalizer<SharedResource> locali
         _ when error == AccountErrors.RegistrationClosed => localizer["Registration is closed. Ask an administrator for an invitation."],
         _ when error == AccountErrors.WrongPassword => localizer["That password is not right."],
         _ when error == AccountErrors.LockedOut => localizer["Too many failed attempts. Try again later."],
+        _ when error == AccountErrors.InvalidPhoneNumber => localizer["Enter a phone number with its country code, such as +90 532 123 45 67."],
+        _ when error == AccountErrors.PhoneNumberNotAllowed => localizer["Text messages cannot be sent to numbers in that country."],
+        _ when error == AccountErrors.PhoneNumberUnchanged => localizer["That number is already on your account."],
+        _ when error == AccountErrors.PhoneNumberInUse => localizer["That number is on another account."],
+        _ when error == AccountErrors.TooManyTexts => localizer["A code was sent moments ago. Wait a minute before asking for another."],
+        _ when error == AccountErrors.WrongCode => localizer["That code is not right, or it has expired. Check it, or send a new one."],
         _ => localizer["Something went wrong. Try again."],
     };
 

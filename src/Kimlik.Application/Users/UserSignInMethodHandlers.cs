@@ -19,3 +19,13 @@ public sealed class RemoveUserPasskeyHandler(UserPasskeys passkeys, AccessGuard 
         return guardResult.IsFailure ? guardResult : await passkeys.RemoveAsync(userId, passkeyId, cancellationToken);
     }
 }
+
+/// <summary>Removes a user's phone number, such as one they lost; signing in with texts stops for the account.</summary>
+public sealed class RemoveUserPhoneNumberHandler(UserPhoneNumbers phoneNumbers, AccessGuard guard)
+{
+    public async Task<Result> HandleAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var guardResult = await guard.EnsureCanManageUserAsync(userId, cancellationToken);
+        return guardResult.IsFailure ? guardResult : await phoneNumbers.RemoveAsync(userId, cancellationToken);
+    }
+}

@@ -47,6 +47,13 @@
         <span class="badge" id="two-factor-status">@(Model.TwoFactorEnabled ? L["On"] : L["Off"])</span>
     </a>
     <a asp-page="/Account/Passkeys">@L["Passkeys"]</a>
+    @if (Model.CanUsePhone)
+    {
+        <a asp-page="/Account/Phone">
+            <span>@L["Phone number"]</span>
+            <span class="badge" id="phone-status">@(Model.PhoneNumber ?? L["Not set"].Value)</span>
+        </a>
+    }
     @if (Model.HasProviders)
     {
         <a asp-page="/Account/Logins">@L["Connected accounts"]</a>

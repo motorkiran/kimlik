@@ -227,17 +227,18 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Phone number sign-in and SMS one-time codes, through adapters for Netgsm, İleti Merkezi and Twilio. Email sign-in codes and accounts without a password are milestone M10, with links next to the codes in M16 ([§10.5](#105-email-sign-in-codes)), and passkeys, as a sign-in of their own and as the second step, are milestones M9 and M15 ([§10.4](#104-passkeys)).
-2. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
-3. Token exchange (RFC 8693). The device authorization grant is milestone M12 ([§8.8](#88-device-authorization)), and admin impersonation, with an `act` claim, is milestone M13 ([§10.6](#106-administrative-security)).
-4. Developer-hosted sign-in UI through an interaction API.
-5. Hosted or embeddable components for organization management.
-6. Per-subscriber entitlement overrides and add-ons, and usage metering.
-7. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-8. Multiple client secrets, DPoP and back-channel logout. `private_key_jwt` and PAR are milestone M14 ([§8.2](#82-grants-and-client-authentication)).
-9. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-10. A JavaScript/TypeScript SDK and a Helm chart.
-11. OpenID Foundation certification.
+1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
+2. Token exchange (RFC 8693).
+3. Developer-hosted sign-in UI through an interaction API.
+4. Hosted or embeddable components for organization management.
+5. Per-subscriber entitlement overrides and add-ons, and usage metering.
+6. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
+7. Multiple client secrets, DPoP and back-channel logout.
+8. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+9. A JavaScript/TypeScript SDK and a Helm chart.
+10. OpenID Foundation certification.
+
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)).
 
 ### 4.3 Out of scope
 
@@ -804,6 +805,16 @@ People can sign in with a one-time code sent to their address instead of a passw
 - A `SECURITY.md` file with private vulnerability reporting.
 - An SBOM and signed container images.
 
+### 10.9 Phone numbers and SMS codes
+
+People can add a phone number to their account and sign in with a code sent to it by text message.
+
+- **Delivery.** Kimlik sends texts through Netgsm, İleti Merkezi or Twilio, chosen with `Kimlik:Sms:Provider` and the provider's credentials from configuration. Without a provider, nothing offers phone numbers or texts. Texts leave from the outbox, with its retries, and the handler that sends one creates its code, keeping only a keyed hash, as for email codes. They are short, in the account's language (English or Turkish), name the product and say not to share the code; Netgsm and İleti Merkezi send them as informational messages, outside İYS.
+- **Phone numbers.** On the account pages, after a sign-in within the last ten minutes, people add or change their number by entering the code sent to it; a number is verified on one account at most. Numbers are kept in E.164; numbers written the national way are read with `Kimlik:Sms:DefaultCountryCode`, and `Kimlik:Sms:AllowedCountryCodes` limits where Kimlik sends texts, against SMS pumping fraud. People remove their number on the account pages or through the Account API, and administrators see it and remove it, for example after a lost phone, through the Management API, `Kimlik.Client` and the admin panel. The `phone` scope adds `phone_number` and `phone_number_verified` to tokens, and data exports include the number.
+- **Sign-in codes.** When texts are configured, the sign-in page offers to sign in with a phone number. Codes go only to verified numbers and follow the rules of email codes: six digits, ten minutes, once, the latest only, counted toward the lockout, one a minute per account, and the same answer whether an account has the number or not. A code is a first factor (`amr` `["sms"]`), followed by a second factor when the account has or needs one.
+- **Not a second factor.** Texts are not offered as the second step: SIM swaps and interception make them weaker than authenticator apps and passkeys, and NIST SP 800-63B restricts them.
+- **Audit.** Adding, verifying and removing numbers is audited, and sign-ins record `sms` as their method.
+
 ---
 
 ## 11. Non-functional requirements
@@ -1019,6 +1030,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M14: Keys and pushed authorization requests** | `private_key_jwt` client authentication and PAR, in the Management API, the provisioning file and the admin panel ([§8.2](#82-grants-and-client-authentication)) | A client signs in users through PAR and gets tokens with a signed assertion instead of a secret, in end-to-end tests ✅ |
 | **M15: Passkeys as the second step** | Passkeys verify the second step after a password, an email code or another provider ([§10.4](#104-passkeys)) | A password sign-in that needs a second factor completes with a passkey, in end-to-end tests with a software authenticator ✅ |
 | **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ (M9 to M16 released as v0.2.0, 2026-10-10) |
+| **M17: Phone numbers and SMS codes** | Netgsm, İleti Merkezi and Twilio adapters; verified phone numbers on accounts; sign-in with SMS codes ([§10.9](#109-phone-numbers-and-sms-codes)) | A person adds a number and signs in with a code sent to it, in end-to-end tests with a fake provider, and each adapter sends the request its provider documents ✅ |
 
 ---
 

@@ -28,6 +28,8 @@ public static class AuditActions
     public const string UserPasskeyAdded = "user.passkey_added";
     public const string UserPasskeyRenamed = "user.passkey_renamed";
     public const string UserPasskeyRemoved = "user.passkey_removed";
+    public const string UserPhoneNumberVerified = "user.phone_number_verified";
+    public const string UserPhoneNumberRemoved = "user.phone_number_removed";
     public const string ApiKeyCreated = "api_key.created";
     public const string ApiKeyRevoked = "api_key.revoked";
     public const string UserMfaEnabled = "user.mfa_enabled";

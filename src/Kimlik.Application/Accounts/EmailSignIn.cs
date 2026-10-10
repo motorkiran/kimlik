@@ -21,13 +21,6 @@ public sealed class EmailSignIn(
     IOptions<AccountOptions> options,
     TimeProvider timeProvider)
 {
-    /// <summary>The Identity token provider that creates and checks the codes.</summary>
-    public const string TokenProvider = "EmailSignIn";
-
-    public const string Purpose = "sign-in";
-
-    public const int CodeLength = 6;
-
     public bool Enabled => options.Value.EmailSignIn;
 
     /// <summary>Sends a code to the account with the address, if one can sign in; at most one a minute.</summary>
@@ -55,7 +48,7 @@ public sealed class EmailSignIn(
         }
 
         var normalized = code.Replace(" ", string.Empty, StringComparison.Ordinal);
-        if (!await userManager.VerifyUserTokenAsync(user, TokenProvider, Purpose, normalized))
+        if (!await userManager.VerifyUserTokenAsync(user, OneTimeCodes.TokenProvider, OneTimeCodes.EmailSignIn, normalized))
         {
             await userManager.AccessFailedAsync(user);
             auditLog.Record(

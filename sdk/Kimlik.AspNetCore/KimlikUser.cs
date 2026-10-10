@@ -24,6 +24,7 @@ public sealed class KimlikUser
         ClientId = principal.FindFirstValue(ClientIdClaim);
         Name = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
         Email = principal.FindFirstValue(JwtRegisteredClaimNames.Email);
+        PhoneNumber = principal.FindFirstValue(JwtRegisteredClaimNames.PhoneNumber);
         Roles = Values(principal, KimlikClaimTypes.Roles);
         Permissions = Values(principal, KimlikClaimTypes.Permissions);
         OrganizationId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
@@ -53,6 +54,9 @@ public sealed class KimlikUser
 
     /// <summary>Present when the client was granted the <c>email</c> scope.</summary>
     public string? Email { get; }
+
+    /// <summary>The verified phone number, in E.164; present when the client was granted the <c>phone</c> scope.</summary>
+    public string? PhoneNumber { get; }
 
     /// <summary>The user's global roles, or a service client's roles.</summary>
     public IReadOnlySet<string> Roles { get; }

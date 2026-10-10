@@ -1,0 +1,28 @@
+@page "/signin/phone"
+@model SignInPhoneModel
+@{
+    ViewData["Title"] = L["Sign in with a phone number"];
+}
+
+<h1 id="page-title">@L["Sign in with a phone number"]</h1>
+<p class="lead">@L["We'll text a code to the phone number on your account."]</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post" novalidate>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="field">
+        <label asp-for="Input.PhoneNumber"></label>
+        <input asp-for="Input.PhoneNumber" type="tel" autocomplete="tel" inputmode="tel" autofocus />
+        <span asp-validation-for="Input.PhoneNumber" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label class="checkbox"><input asp-for="Input.RememberMe" /> @L["Keep me signed in"]</label>
+    </div>
+    <button type="submit" class="button">@L["Text me a code"]</button>
+</form>
+
+<p class="switch"><a asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in another way"]</a></p>

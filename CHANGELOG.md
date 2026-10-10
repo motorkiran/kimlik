@@ -4,6 +4,15 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+
+- Phone numbers and SMS codes: texts go out through Netgsm, İleti Merkezi or Twilio (`Kimlik:Sms`); people add a number on the account pages by entering the code texted to it, and sign in with texted codes (`amr` `["sms"]`); the `phone` scope adds `phone_number` and `phone_number_verified`; administrators see and remove numbers through the Management API, `Kimlik.Client` and the admin panel, and users through the Account API.
+
+### Changed
+
+- `UserResponse` and `ProfileResponse` gained `PhoneNumber`; code that constructs them positionally must pass it.
+- Sign-in codes are kept per purpose, so codes asked for before the upgrade stop working.
+
 ## [0.2.0] - 2026-10-10
 
 Passwordless and phishing-resistant sign-in, stronger client authentication, and support tools for administrators.

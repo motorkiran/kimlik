@@ -54,7 +54,7 @@ internal static class OidcServiceCollectionExtensions
                 // PKCE for every client, confidential ones included (OAuth 2.0 Security BCP, RFC 9700).
                 options.RequireProofKeyForCodeExchange();
 
-                options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess);
+                options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.Phone, Scopes.OfflineAccess);
 
                 // Access tokens are plain signed JWTs (RFC 9068) so any resource server can validate them.
                 options.DisableAccessTokenEncryption();

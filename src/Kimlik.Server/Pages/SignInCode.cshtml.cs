@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
+using Kimlik.Domain.Common;
+using Kimlik.Domain.Users;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,13 +11,15 @@ using Microsoft.Extensions.Localization;
 namespace Kimlik.Server.Pages;
 
 /// <summary>
-/// Where people enter the code sent to their address. It looks the same whether an account has the address or not;
-/// a right code signs them in as a password would, with the second factor next if the account needs one. The link in
-/// the email fills the code in, in the browser that asked for it; elsewhere, the page shows the code to enter there.
+/// Where people enter the code sent to their address or texted to their number. It looks the same whether an account
+/// has them or not; a right code signs them in as a password would, with the second factor next if the account needs
+/// one. The link in an emailed code fills the code in, in the browser that asked for it; elsewhere, the page shows the
+/// code to enter there.
 /// </summary>
 public sealed class SignInCodeModel(
     EmailSignIn emailSignIn,
-    PendingEmailCode pendingEmailCode,
+    PhoneSignIn phoneSignIn,
+    PendingSignInCode pendingSignInCode,
     SignInFlow signInFlow,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer) : PageModel
@@ -26,7 +30,10 @@ public sealed class SignInCodeModel(
     [BindProperty(SupportsGet = true)]
     public string? ReturnUrl { get; set; }
 
-    public string? Email { get; private set; }
+    public SignInCodeChannel Channel { get; private set; }
+
+    /// <summary>The address, or the phone number, the code went to if an account has it.</summary>
+    public string? Address { get; private set; }
 
     public string? Message { get; private set; }
 
@@ -41,8 +48,8 @@ public sealed class SignInCodeModel(
     public IActionResult OnGet(string? code)
     {
         // Only what a code looks like is shown back.
-        code = code is { Length: 6 } && code.All(char.IsAsciiDigit) ? code : null;
-        if (pendingEmailCode.Read(HttpContext) is not { } pending)
+        code = code is { Length: OneTimeCodes.Length } && code.All(char.IsAsciiDigit) ? code : null;
+        if (pendingSignInCode.Read(HttpContext) is not { } pending)
         {
             if (code is null)
             {
@@ -53,8 +60,7 @@ public sealed class SignInCodeModel(
             return Page();
         }
 
-        Email = pending.Email;
-        ReturnUrl ??= pending.ReturnUrl;
+        Show(pending);
         if (code is not null)
         {
             Input.Code = code;
@@ -66,13 +72,12 @@ public sealed class SignInCodeModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (pendingEmailCode.Read(HttpContext) is not { } pending)
+        if (pendingSignInCode.Read(HttpContext) is not { } pending)
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
 
-        Email = pending.Email;
-        ReturnUrl ??= pending.ReturnUrl;
+        Show(pending);
         if (!ModelState.IsValid)
         {
             return Page();
@@ -80,43 +85,64 @@ public sealed class SignInCodeModel(
 
         if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
         {
-            Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
-            return Page();
+            return TooManyAttempts();
         }
 
-        var verified = await emailSignIn.VerifyAsync(pending.Email, Input.Code, cancellationToken);
+        Result<User> verified = pending.Channel == SignInCodeChannel.Sms
+            ? await phoneSignIn.VerifyAsync(pending.Address, Input.Code, cancellationToken)
+            : await emailSignIn.VerifyAsync(pending.Address, Input.Code, cancellationToken);
         if (verified.IsFailure)
         {
             ErrorMessage = localizer["That code is not right, or it has expired. Check it, or send a new one."];
             return Page();
         }
 
-        pendingEmailCode.End(HttpContext);
+        pendingSignInCode.End(HttpContext);
         var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
-        return LocalRedirect(await signInFlow.ContinueAsync(
-            verified.Value, pending.Persistent, provider: null, returnUrl, cancellationToken, SignInFlow.EmailMethod));
+        var firstFactor = pending.Channel == SignInCodeChannel.Sms ? SignInFlow.SmsMethod : SignInFlow.EmailMethod;
+        return LocalRedirect(await signInFlow.ContinueAsync(verified.Value, pending.Persistent, provider: null, returnUrl, cancellationToken, firstFactor));
     }
 
     public async Task<IActionResult> OnPostResendAsync(CancellationToken cancellationToken)
     {
-        if (pendingEmailCode.Read(HttpContext) is not { } pending)
+        if (pendingSignInCode.Read(HttpContext) is not { } pending)
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
 
         // The code field is not part of asking for a new code.
         ModelState.Clear();
-        Email = pending.Email;
+        Show(pending);
         if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
         {
-            Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
-            return Page();
+            return TooManyAttempts();
         }
 
-        await emailSignIn.RequestAsync(pending.Email, cancellationToken);
-        Message = localizer["If an account has this address, a new code is on its way. Codes can be sent once a minute."];
+        if (pending.Channel == SignInCodeChannel.Sms)
+        {
+            await phoneSignIn.RequestAsync(pending.Address, cancellationToken);
+            Message = localizer["If an account has this number, a new code is on its way. Codes can be sent once a minute."];
+        }
+        else
+        {
+            await emailSignIn.RequestAsync(pending.Address, cancellationToken);
+            Message = localizer["If an account has this address, a new code is on its way. Codes can be sent once a minute."];
+        }
+
+        return Page();
+    }
+
+    private void Show(PendingSignInCode.Pending pending)
+    {
+        Channel = pending.Channel;
+        Address = pending.Address;
+        ReturnUrl ??= pending.ReturnUrl;
+    }
+
+    private PageResult TooManyAttempts()
+    {
+        Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
         return Page();
     }
 }

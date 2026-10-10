@@ -10,6 +10,7 @@ using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Plans;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
+using Kimlik.Infrastructure.Sms;
 using Kimlik.Infrastructure.Webhooks;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         AddIdentity(services);
         AddOutbox(services);
         AddEmail(services);
+        services.AddSms();
 
         services.AddScoped<IAuditLog, AuditLog>();
         AddWebhooks(services);
@@ -105,7 +107,7 @@ public static class DependencyInjection
             .AddDefaultTokenProviders()
             .AddTokenProvider<PasswordResetTokenProvider<User>>(PasswordResetTokenProviderOptions.ProviderName)
             .AddTokenProvider<TotpTokenProvider>(TokenOptions.DefaultAuthenticatorProvider)
-            .AddTokenProvider<EmailSignInCodeProvider>(EmailSignIn.TokenProvider)
+            .AddTokenProvider<OneTimeCodeProvider>(OneTimeCodes.TokenProvider)
             .AddPasswordValidator<MaximumLengthPasswordValidator<User>>()
             .AddPasswordValidator<BreachedPasswordValidator>();
 

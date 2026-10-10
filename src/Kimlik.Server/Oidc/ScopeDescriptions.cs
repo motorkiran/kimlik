@@ -18,6 +18,7 @@ public sealed class ScopeDescriptions(IOpenIddictScopeManager scopes, IStringLoc
                 Scopes.OpenId => localizer["Confirm your identity"].Value,
                 Scopes.Profile => localizer["See your name and profile"].Value,
                 Scopes.Email => localizer["See your email address"].Value,
+                Scopes.Phone => localizer["See your phone number"].Value,
                 Scopes.OfflineAccess => localizer["Stay signed in to it"].Value,
                 _ => await scopes.FindByNameAsync(scope, cancellationToken) is { } apiScope
                     ? await scopes.GetLocalizedDisplayNameAsync(apiScope, cancellationToken) ?? scope

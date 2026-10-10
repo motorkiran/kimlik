@@ -4,7 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace Kimlik.Contracts.Account;
 
-/// <summary>The signed-in user as they see themselves: with the public metadata, but not the private one.</summary>
+/// <summary>
+/// The signed-in user as they see themselves: with the public metadata, but not the private one, and the verified phone
+/// number they sign in with by text message, in E.164.
+/// </summary>
 public sealed record ProfileResponse(
     Guid Id,
     string? Email,
@@ -19,7 +22,8 @@ public sealed record ProfileResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? LastSignInAt,
-    JsonObject PublicMetadata);
+    JsonObject PublicMetadata,
+    string? PhoneNumber);
 
 /// <summary>
 /// Changes the profile with JSON Merge Patch semantics (RFC 7396): omitted properties keep their value and

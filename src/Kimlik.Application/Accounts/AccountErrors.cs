@@ -60,6 +60,24 @@ public static class AccountErrors
     public static readonly Error Impersonating = Error.Forbidden(
         "account.impersonating", "An administrator acting as the user cannot change their account.");
 
+    public static readonly Error SmsOff = Error.Validation("account.sms_off", "Text messages are not set up, so phone numbers cannot be used.");
+
+    public static readonly Error InvalidPhoneNumber = Error.Validation(
+        "account.invalid_phone_number", "Enter a phone number with its country code, such as +90 532 123 45 67.");
+
+    public static readonly Error PhoneNumberNotAllowed = Error.Validation(
+        "account.phone_number_not_allowed", "Text messages cannot be sent to numbers in that country.");
+
+    public static readonly Error PhoneNumberUnchanged = Error.Validation("account.phone_number_unchanged", "That number is already verified on the account.");
+
+    public static readonly Error PhoneNumberInUse = Error.Conflict("account.phone_number_in_use", "That number is verified on another account.");
+
+    public static readonly Error PhoneNumberMissing = Error.NotFound("account.phone_number_missing", "The account has no phone number.");
+
+    /// <summary>A code went to the account moments ago, or too many in the last hour.</summary>
+    public static readonly Error TooManyTexts = Error.Conflict(
+        "account.too_many_texts", "A code was sent moments ago. Wait a minute, or an hour after several, before asking for another.");
+
     public static readonly Error SessionNotFound = Error.NotFound("account.session_not_found", "The session does not exist.");
 
     /// <summary>A verification or reset link that is invalid, expired or already used.</summary>

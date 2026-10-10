@@ -16,7 +16,7 @@ public sealed class SignUpModel(
     RegisterUserHandler registerUser,
     FindInvitationHandler findInvitation,
     EmailSignIn emailSignIn,
-    PendingEmailCode pendingEmailCode,
+    PendingSignInCode pendingSignInCode,
     SignInFlow signInFlow,
     AccountErrorMessages errorMessages,
     RequestThrottle throttle,
@@ -112,7 +112,7 @@ public sealed class SignUpModel(
     /// <summary>The code sent to the address signs the person in, and verifies the address of a new account.</summary>
     private RedirectToPageResult AskForCode()
     {
-        pendingEmailCode.Start(HttpContext, Input.Email.Trim(), persistent: false, ReturnUrl);
+        pendingSignInCode.Start(HttpContext, SignInCodeChannel.Email, Input.Email.Trim(), persistent: false, ReturnUrl);
         return RedirectToPage("/SignInCode", new { ReturnUrl });
     }
 

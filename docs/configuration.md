@@ -88,6 +88,25 @@ Kimlik checks its settings at startup and refuses to start with an invalid one, 
 | `Kimlik:Email:Smtp:Username`, `Kimlik:Email:Smtp:Password` | | |
 | `Kimlik:Email:Smtp:Security` | `Auto` | `Auto`, `StartTls`, `SslOnConnect` or `None`. |
 
+## Text messages
+
+Phone numbers on accounts and sign-in with texted codes ([design §10.9](design.md#109-phone-numbers-and-sms-codes)). Without a provider, nothing offers them. Keep credentials in environment variables or a secret store, such as `Kimlik__Sms__Twilio__AuthToken`.
+
+| Setting | Default | Description |
+|---|---|---|
+| `Kimlik:Sms:Provider` | `None` | `Netgsm`, `IletiMerkezi` or `Twilio`. Kimlik refuses to start when the chosen provider is missing a setting it needs. |
+| `Kimlik:Sms:DefaultCountryCode` | | The country calling code of numbers written without one, such as `90` for `0532 123 45 67`. Without it, numbers start with `+` or `00`. |
+| `Kimlik:Sms:AllowedCountryCodes` | all | The country calling codes texts may go to, such as `["90"]`. Limiting them guards against SMS pumping fraud. |
+| `Kimlik:Sms:Netgsm:Username`, `Kimlik:Sms:Netgsm:Password` | | The subscriber number or API sub-user and its password, for Netgsm's REST v2 API. |
+| `Kimlik:Sms:Netgsm:Header` | | The sender name (`msgheader`) approved in the Netgsm panel. |
+| `Kimlik:Sms:Netgsm:AppName` | | Optional; the application name in Netgsm's reports. |
+| `Kimlik:Sms:IletiMerkezi:ApiKey`, `Kimlik:Sms:IletiMerkezi:ApiHash` | | The API key and the hash next to it, from Settings, Security, API access in the İleti Merkezi panel. İleti Merkezi sends to Turkish numbers only. |
+| `Kimlik:Sms:IletiMerkezi:Sender` | | The sender name approved in the panel. |
+| `Kimlik:Sms:Twilio:AccountSid`, `Kimlik:Sms:Twilio:AuthToken` | | |
+| `Kimlik:Sms:Twilio:From` or `Kimlik:Sms:Twilio:MessagingServiceSid` | | The number texts come from, in E.164, or a messaging service that picks it. |
+
+Netgsm and İleti Merkezi send the codes as informational messages (İYS `0`), which need no marketing consent.
+
 ## Branding
 
 | Setting | Default | Description |

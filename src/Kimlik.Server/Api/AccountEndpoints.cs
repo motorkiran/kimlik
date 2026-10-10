@@ -60,6 +60,11 @@ internal static class AccountEndpoints
             .WithSummary("Remove a passkey")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        me.MapDelete("phone-number", RemovePhoneNumberAsync).WithName("RemoveMyPhoneNumber")
+            .WithSummary("Remove my phone number")
+            .WithDescription("Signing in with codes texted to it stops. Numbers are added in the browser, on the account pages.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         me.MapGet("logins", ListLoginsAsync).WithName("ListMyLogins")
             .WithSummary("List the accounts at other providers that I sign in with");
 
@@ -343,6 +348,10 @@ internal static class AccountEndpoints
     private static async Task<Results<NoContent, ProblemHttpResult>> RemovePasskeyAsync(
         ClaimsPrincipal principal, string id, UserPasskeys passkeys, CancellationToken cancellationToken) =>
         (await passkeys.RemoveAsync(Caller(principal), id, cancellationToken)).ToNoContent();
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemovePhoneNumberAsync(
+        ClaimsPrincipal principal, UserPhoneNumbers phoneNumbers, CancellationToken cancellationToken) =>
+        (await phoneNumbers.RemoveAsync(Caller(principal), cancellationToken)).ToNoContent();
 
     private static async Task<Results<Ok<IReadOnlyList<UserLoginResponse>>, ProblemHttpResult>> ListLoginsAsync(
         ClaimsPrincipal principal, ExternalLogins logins) =>

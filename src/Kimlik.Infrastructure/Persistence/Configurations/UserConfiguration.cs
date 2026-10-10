@@ -16,6 +16,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.Locale).HasMaxLength(User.LocaleMaxLength);
         builder.Property(user => user.PictureUrl).HasMaxLength(User.PictureUrlMaxLength);
         builder.Property(user => user.TimeZone).HasMaxLength(User.TimeZoneMaxLength);
+        builder.Property(user => user.PhoneNumber).HasMaxLength(User.PhoneNumberMaxLength);
         builder.Property(user => user.Status).HasConversion<string>().HasMaxLength(16);
         builder.Property(user => user.PublicMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         builder.Property(user => user.PrivateMetadata).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
@@ -24,6 +25,9 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         // Identity only checks email uniqueness in code; the unique index closes the race between two sign-ups.
         builder.HasIndex(user => user.NormalizedEmail).IsUnique().HasDatabaseName("ix_users_normalized_email");
+
+        // A verified number belongs to one account, which signing in with texts finds by it.
+        builder.HasIndex(user => user.PhoneNumber).IsUnique().HasFilter("phone_number_confirmed").HasDatabaseName("ix_users_phone_number");
     }
 }
 

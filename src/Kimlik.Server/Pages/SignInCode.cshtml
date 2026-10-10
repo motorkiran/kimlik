@@ -1,7 +1,12 @@
 @page "/signin/code"
+@using Kimlik.Server.Identity
 @model SignInCodeModel
 @{
-    ViewData["Title"] = Model.CodeForAnotherBrowser is null ? L["Check your email"] : L["Use the browser where you asked for the code"];
+    var texted = Model.Channel == SignInCodeChannel.Sms;
+    var title = Model.CodeForAnotherBrowser is not null ? L["Use the browser where you asked for the code"]
+        : texted ? L["Check your phone"]
+        : L["Check your email"];
+    ViewData["Title"] = title;
 }
 
 @if (Model.CodeForAnotherBrowser is { } code)
@@ -13,8 +18,12 @@
     return;
 }
 
-<h1 id="page-title">@L["Check your email"]</h1>
-<p class="lead">@L["If an account has the address {0}, we sent it a code. Enter it to sign in.", Model.Email ?? string.Empty]</p>
+<h1 id="page-title">@title</h1>
+<p class="lead">
+    @(texted
+        ? L["If an account has the number {0}, we texted it a code. Enter it to sign in.", Model.Address ?? string.Empty]
+        : L["If an account has the address {0}, we sent it a code. Enter it to sign in.", Model.Address ?? string.Empty])
+</p>
 
 @if (Model.FilledIn)
 {

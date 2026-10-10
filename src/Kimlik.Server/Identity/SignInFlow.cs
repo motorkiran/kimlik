@@ -46,8 +46,9 @@ public sealed class SignInFlow(
     TimeProvider timeProvider)
 {
     /// <summary>
-    /// The authentication method claim Identity puts on sessions: <c>pwd</c>, <c>fed</c> or <c>email</c> (a code sent by
-    /// email) for the first factor alone, or <c>mfa</c> after a second factor, with <c>email</c> kept beside it. A
+    /// The authentication method claim Identity puts on sessions: <c>pwd</c>, <c>fed</c>, <c>email</c> (a code sent by
+    /// email) or <c>sms</c> (a code sent by text message) for the first factor alone, or <c>mfa</c> after a second factor,
+    /// with <c>email</c> or <c>sms</c> kept beside it. A
     /// passkey, which verifies the user on the device, counts as both factors: its sessions carry <c>pop</c> (proof of
     /// possession of a key) and <c>mfa</c>.
     /// </summary>
@@ -55,6 +56,7 @@ public sealed class SignInFlow(
     public const string PasswordMethod = "pwd";
     public const string FederatedMethod = "fed";
     public const string EmailMethod = "email";
+    public const string SmsMethod = "sms";
     public const string MultiFactorMethod = "mfa";
     public const string PasskeyMethod = "pop";
 
@@ -104,9 +106,9 @@ public sealed class SignInFlow(
     public async Task<bool> HasPasskeyAsync(User user) => (await signInManager.UserManager.GetPasskeysAsync(user)).Count > 0;
 
     /// <summary>
-    /// Goes on after a correct first factor, a password, a code sent by email (<paramref name="firstFactor"/>
-    /// <see cref="EmailMethod"/>) or an account at <paramref name="provider"/>: starts the session, or holds it for the
-    /// second factor. Returns where the browser goes next.
+    /// Goes on after a correct first factor, a password, a code sent by email or text message
+    /// (<paramref name="firstFactor"/> <see cref="EmailMethod"/> or <see cref="SmsMethod"/>) or an account at
+    /// <paramref name="provider"/>: starts the session, or holds it for the second factor. Returns where the browser goes next.
     /// </summary>
     public async Task<string> ContinueAsync(
         User user, bool persistent, string? provider, string returnUrl, CancellationToken cancellationToken, string? firstFactor = null)
@@ -156,7 +158,7 @@ public sealed class SignInFlow(
         List<Claim> claims = (method, firstFactor) switch
         {
             (PasskeyMethod, _) => [new(MethodClaim, PasskeyMethod), new(MethodClaim, MultiFactorMethod)],
-            (MultiFactorMethod, EmailMethod) => [new(MethodClaim, EmailMethod), new(MethodClaim, MultiFactorMethod)],
+            (MultiFactorMethod, EmailMethod or SmsMethod) => [new(MethodClaim, firstFactor), new(MethodClaim, MultiFactorMethod)],
             _ => [new(MethodClaim, method)],
         };
 
@@ -221,12 +223,13 @@ public sealed class SignInFlow(
     public static string? ActorOf(ClaimsPrincipal session) => session.FindFirstValue(ActorClaim);
 
     /// <summary>
-    /// How the session's user signed in first: with a passkey (<c>pop</c>), a code sent by email, an account at another
-    /// provider or a password.
+    /// How the session's user signed in first: with a passkey (<c>pop</c>), a code sent by email or text message, an account
+    /// at another provider or a password.
     /// </summary>
     public static string FirstFactorOf(ClaimsPrincipal session) =>
         session.HasClaim(MethodClaim, PasskeyMethod) ? PasskeyMethod
         : session.HasClaim(MethodClaim, EmailMethod) ? EmailMethod
+        : session.HasClaim(MethodClaim, SmsMethod) ? SmsMethod
         : session.HasClaim(claim => claim.Type == ProviderClaim) ? FederatedMethod
         : PasswordMethod;
 

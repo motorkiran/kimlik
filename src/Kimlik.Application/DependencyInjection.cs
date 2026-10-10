@@ -24,6 +24,12 @@ public static class DependencyInjection
             .Validate(options => options.LockoutDuration > TimeSpan.Zero && options.SessionLifetime > TimeSpan.Zero, $"{AccountOptions.SectionName}: durations must be positive.")
             .ValidateOnStart();
 
+        services.AddOptions<SmsOptions>()
+            .BindConfiguration(SmsOptions.SectionName)
+            .ValidateDataAnnotations()
+            .Validate(options => options.AllowedCountryCodes.TrueForAll(code => code is { Length: >= 1 and <= 3 } && code[0] != '0' && code.All(char.IsAsciiDigit)), $"{SmsOptions.SectionName}:AllowedCountryCodes are country calling codes, such as 90.")
+            .ValidateOnStart();
+
         services.AddOptions<BrandingOptions>()
             .BindConfiguration(BrandingOptions.SectionName)
             .ValidateDataAnnotations()
@@ -66,6 +72,8 @@ public static class DependencyInjection
         services.AddScoped<ApplicationSessions>();
         services.AddScoped<UserPasskeys>();
         services.AddScoped<EmailSignIn>();
+        services.AddScoped<PhoneSignIn>();
+        services.AddScoped<UserPhoneNumbers>();
         services.AddScoped<PersonalDataExporter>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();

@@ -791,6 +791,53 @@
         ]
       }
     },
+    "/api/v1/users/{id}/phone-number": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Remove a user's phone number",
+        "description": "The user can no longer sign in with codes texted to it, as after losing the phone.\n\nRequires the `kimlik.users:write` permission.",
+        "operationId": "RemoveUserPhoneNumber",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.users:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/users/{id}/sessions": {
       "get": {
         "tags": [
@@ -5876,6 +5923,42 @@
         ]
       }
     },
+    "/api/v1/me/phone-number": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Remove my phone number",
+        "description": "Signing in with codes texted to it stops. Numbers are added in the browser, on the account pages.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "operationId": "RemoveMyPhoneNumber",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/me/logins": {
       "get": {
         "tags": [
@@ -9552,7 +9635,8 @@
           "createdAt",
           "updatedAt",
           "lastSignInAt",
-          "publicMetadata"
+          "publicMetadata",
+          "phoneNumber"
         ],
         "type": "object",
         "properties": {
@@ -9628,9 +9712,15 @@
           },
           "publicMetadata": {
             "$ref": "#/components/schemas/JsonObject"
+          },
+          "phoneNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The signed-in user as they see themselves: with the public metadata, but not the private one."
+        "description": "The signed-in user as they see themselves: with the public metadata, but not the private one, and the verified phone\nnumber they sign in with by text message, in E.164."
       },
       "ProvisionedApiResource": {
         "required": [
@@ -10767,7 +10857,8 @@
           "updatedAt",
           "lastSignInAt",
           "publicMetadata",
-          "privateMetadata"
+          "privateMetadata",
+          "phoneNumber"
         ],
         "type": "object",
         "properties": {
@@ -10849,9 +10940,15 @@
           },
           "privateMetadata": {
             "$ref": "#/components/schemas/JsonObject"
+          },
+          "phoneNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A user. Metadata is what the application keeps about the user: the user can read the public metadata through the\nAccount API, and only the Management API reads the private metadata."
+        "description": "A user. Metadata is what the application keeps about the user: the user can read the public metadata through the\nAccount API, and only the Management API reads the private metadata.\n`phoneNumber` is the verified number the user signs in with by text message, in E.164."
       },
       "UserStatus": {
         "enum": [

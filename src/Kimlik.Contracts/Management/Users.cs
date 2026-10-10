@@ -13,6 +13,7 @@ public enum UserStatus
 /// <summary>
 /// A user. Metadata is what the application keeps about the user: the user can read the public metadata through the
 /// Account API, and only the Management API reads the private metadata.
+/// <c>phoneNumber</c> is the verified number the user signs in with by text message, in E.164.
 /// </summary>
 public sealed record UserResponse(
     Guid Id,
@@ -30,7 +31,8 @@ public sealed record UserResponse(
     DateTimeOffset UpdatedAt,
     DateTimeOffset? LastSignInAt,
     JsonObject PublicMetadata,
-    JsonObject PrivateMetadata);
+    JsonObject PrivateMetadata,
+    string? PhoneNumber);
 
 /// <summary>Creates a user. Without a password, the user sets one through the password reset flow.</summary>
 public sealed record CreateUserRequest

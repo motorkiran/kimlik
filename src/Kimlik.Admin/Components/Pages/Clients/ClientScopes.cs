@@ -9,7 +9,7 @@ namespace Kimlik.Admin.Components.Pages.Clients;
 /// <summary>The scopes a client can be allowed: OpenID Connect's own and those of the registered API resources.</summary>
 internal static class ClientScopes
 {
-    public static readonly string[] Standard = ["openid", "profile", "email", "offline_access"];
+    public static readonly string[] Standard = ["openid", "profile", "email", "phone", "offline_access"];
 
     public static async Task<IReadOnlyList<string>> AllAsync(AdminOperations operations, CancellationToken cancellationToken)
     {

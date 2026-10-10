@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages.Account;
 
@@ -16,6 +17,7 @@ public sealed class ProfileModel(
     UserManager<User> userManager,
     MyAccount account,
     ExternalProviders providers,
+    IOptions<SmsOptions> sms,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
     private static readonly string[] IanaTimeZones =
@@ -27,6 +29,11 @@ public sealed class ProfileModel(
     public string? Email { get; private set; }
 
     public bool TwoFactorEnabled { get; private set; }
+
+    /// <summary>The account's phone number, when text messages are set up.</summary>
+    public string? PhoneNumber { get; private set; }
+
+    public bool CanUsePhone => sms.Value.Enabled;
 
     /// <summary>Whether accounts at other providers can be connected.</summary>
     public bool HasProviders => providers.All.Count > 0;
@@ -87,6 +94,7 @@ public sealed class ProfileModel(
     {
         Email = user.Email;
         TwoFactorEnabled = user.TwoFactorEnabled;
+        PhoneNumber = user.PhoneNumber;
 
         var languages = new List<SelectListItem> { new(localizer["Not set"], string.Empty) };
         languages.AddRange(HostedUiServiceCollectionExtensions.SupportedCultures.Select(culture =>

@@ -1,0 +1,62 @@
+@page "/account/phone"
+@model PhoneModel
+@{
+    ViewData["Title"] = L["Phone number"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Phone number"]</h1>
+<p class="lead">@L["Sign in with a code texted to your phone, instead of your password."]</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Message</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.PhoneNumber is { } current)
+{
+    <ul class="list" id="phone-number">
+        <li>
+            <span>@current</span>
+            <form method="post" asp-page-handler="Remove" class="inline-form">
+                <button type="submit" class="button button-small button-secondary">@L["Remove"]</button>
+            </form>
+        </li>
+    </ul>
+}
+
+@if (!Model.SignedInRecently)
+{
+    <p id="sign-in-again">@L["For your security, sign in again before you add a phone number."]</p>
+    <div class="actions">
+        <a class="button" asp-page="/SignIn" asp-route-returnUrl="/account/phone">@L["Sign in again"]</a>
+    </div>
+}
+else if (Model.PendingNumber is null)
+{
+    <form method="post" asp-page-handler="Send" id="add-phone" novalidate>
+        <div class="field">
+            <label asp-for="Input.PhoneNumber">@(Model.PhoneNumber is null ? L["Phone number"] : L["New phone number"])</label>
+            <input asp-for="Input.PhoneNumber" type="tel" autocomplete="tel" inputmode="tel" />
+            <span asp-validation-for="Input.PhoneNumber" class="field-error"></span>
+        </div>
+        <button type="submit" class="button">@L["Text me a code"]</button>
+    </form>
+}
+else
+{
+    <form method="post" asp-page-handler="Confirm" id="confirm-phone" novalidate>
+        <input type="hidden" asp-for="PendingNumber" />
+        <div class="field">
+            <label asp-for="Input.Code"></label>
+            <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" autofocus />
+            <span asp-validation-for="Input.Code" class="field-error"></span>
+        </div>
+        <button type="submit" class="button">@L["Verify"]</button>
+    </form>
+}

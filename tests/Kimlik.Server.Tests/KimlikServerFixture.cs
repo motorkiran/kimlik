@@ -29,6 +29,8 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     /// <summary>Every email the server sends during the test run.</summary>
     public CapturingEmailSender Emails { get; } = new();
 
+    public CapturingSmsSender Texts { get; } = new();
+
     /// <summary>The webhook endpoints of the test run, which every host sends its webhooks to.</summary>
     internal Webhooks.TestWebhookReceiver Webhooks { get; } = new();
 
@@ -71,6 +73,7 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
         .ConfigureTestServices(services =>
         {
             services.AddSingleton<IEmailSender>(Emails);
+            services.AddSingleton<ISmsSender>(Texts);
             services.AddHttpClient(WebhookSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(Webhooks.CreateHandler);
         });
 
