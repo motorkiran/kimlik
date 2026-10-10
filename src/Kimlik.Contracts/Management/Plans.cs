@@ -13,6 +13,19 @@ public enum FeatureType
     Limit,
 }
 
+/// <summary>What a plan is for: subscribing to, or adding to a subscription.</summary>
+public enum PlanKind
+{
+    /// <summary>A plan subscribers subscribe to.</summary>
+    Base,
+
+    /// <summary>
+    /// An add-on that subscriptions take with a quantity: its <c>true</c> turns a boolean feature on, and its value for
+    /// a limit is added for each unit, <c>null</c> making the limit unlimited.
+    /// </summary>
+    AddOn,
+}
+
 /// <summary>An entitlement the application defines; plans set a value for it.</summary>
 public sealed record FeatureResponse(Guid Id, string Key, string Name, string? Description, FeatureType Type, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
@@ -80,7 +93,8 @@ public sealed record PlanResponse(
     bool IsArchived,
     IReadOnlyDictionary<string, JsonElement> Features,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    PlanKind Kind);
 
 public sealed record CreatePlanRequest
 {
@@ -98,6 +112,9 @@ public sealed record CreatePlanRequest
 
     /// <summary>Feature values by key, such as <c>{ "export_pdf": true, "max_projects": 3 }</c>. Features left out are off, or zero.</summary>
     public IReadOnlyDictionary<string, JsonElement> Features { get; init; } = new Dictionary<string, JsonElement>();
+
+    /// <summary>A base plan, or an add-on; it cannot be changed later.</summary>
+    public PlanKind Kind { get; init; }
 }
 
 /// <summary>Changes a plan with JSON Merge Patch semantics: an omitted property keeps its value; <c>features</c> replaces them all.</summary>

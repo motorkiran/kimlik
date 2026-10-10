@@ -22,7 +22,7 @@ public sealed class PlanEditorTests(KimlikServerFixture server)
             var suffix = Guid.NewGuid().ToString("N")[..10];
             var flag = Feature.Create($"flag_{suffix}", "Flag", null, FeatureType.Boolean, now).Value;
             var limit = Feature.Create($"limit_{suffix}", "Limit", null, FeatureType.Limit, now).Value;
-            var plan = Plan.Create($"plan_{suffix}", "Plan", null, now).Value;
+            var plan = Plan.Create($"plan_{suffix}", "Plan", null, PlanKind.Base, now).Value;
             context.Features.AddRange(flag, limit);
             context.Plans.Add(plan);
             await context.SaveChangesAsync();

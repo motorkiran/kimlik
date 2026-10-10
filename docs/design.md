@@ -230,14 +230,14 @@ The backlog, roughly in priority order:
 1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
 2. Developer-hosted sign-in UI through an interaction API.
 3. Hosted or embeddable components for organization management.
-4. Per-subscriber entitlement overrides and add-ons, and usage metering.
+4. Usage metering.
 5. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
 6. Multiple client secrets and DPoP.
 7. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 8. A JavaScript/TypeScript SDK and a Helm chart.
 9. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)).
 
 ### 4.3 Out of scope
 
@@ -318,6 +318,16 @@ Application backend ── PATCH /api/v1/subscriptions/{id} ──▶ Kimlik
 Kimlik ── subscription.updated (signed webhook) ──▶ Application backend
 The next token refresh carries the new plan claim.
 ```
+
+### 5.7 Add-ons and custom deals
+
+Some subscribers get more than their plan: they buy add-ons, such as extra seats, or sign a deal with limits of their own.
+
+- **Add-ons** are plans of the `addOn` kind, kept in the same catalog. A subscription takes any number of them, each with a quantity. A boolean feature that an add-on turns on is on; a limit grows by the add-on's value for each unit, and an add-on that makes it unlimited makes it unlimited. Add-ons are not subscribed to on their own, and plans of the `base` kind are not add-ons.
+- **Overrides** set a feature's value for one subscription, whatever its plan and add-ons say, in the same form as plan values.
+- **Effective entitlements** are the plan's values, then the add-ons, then the overrides. The entitlements API returns them, and webhooks report changes as `subscription.updated`.
+- **Tokens** still carry only the `plan` key. A subscription with add-ons or overrides adds `custom_entitlements: true`, and the SDK then reads that subscriber's entitlements from the API, cached, instead of the plan definition. API key principals carry the same flag.
+- **Billing** stays outside Kimlik: the billing system sets the add-ons and overrides as it sets the plan, through the Management API.
 
 ---
 
@@ -524,9 +534,11 @@ erDiagram
 | | `membership_roles` | Organization roles only |
 | | `invitations` | `email`, `token_hash`, `status`, `expires_at`, `invited_by_user_id`, roles to grant |
 | Plans | `features` | `key`, `name`, `type` (boolean/limit) |
-| | `plans` | `key`, `name`, `description`, `is_archived` |
+| | `plans` | `key`, `name`, `description`, `is_archived`, `kind` (`base` or `add_on`) |
 | | `plan_features` | `is_enabled` for boolean features, `limit_value` for limits (null means unlimited) |
 | | `subscriptions` | `plan_id`, exactly one of `user_id` and `organization_id`, `status`, `current_period_start`, `current_period_end`, `trial_ends_at`, `canceled_at`, `external_reference`. A partial unique index allows one current subscription per subscriber. |
+| | `subscription_add_on` | `subscription_id`, `plan_id` of the add-on, `quantity` |
+| | `subscription_feature_override` | `subscription_id`, `feature_id`, and a value as in `plan_features` |
 | Keys | `api_keys` | Owner (user or organization), `name`, `display_prefix`, `secret_hash` (unique), `permissions`, `expires_at`, `last_used_at`, `revoked_at` |
 | | `signing_keys` | `kid`, `algorithm`, encrypted key material, `activates_at`, `retires_at`, `expires_at` |
 | | `data_protection_keys` | ASP.NET Core Data Protection key ring |
@@ -605,6 +617,7 @@ erDiagram
 - **`org_id` and `org_roles`:** present when an organization context is active.
 - **`permissions`:** the effective permissions for the current context (global roles plus organization roles), deduplicated.
 - **`plan`:** the plan key of the active subscriber. That is the organization when `org_id` is present, otherwise the user. The SDK looks up feature values and limits in cached plan definitions, which keeps tokens small.
+- **`custom_entitlements`:** `true` when the subscriber's subscription has add-ons or overrides ([§5.7](#57-add-ons-and-custom-deals)); the SDK then reads its entitlements from the API.
 - **System permissions (`kimlik.*`):** emitted only when the token's audience includes the Kimlik API (`kimlik`).
 - **Service-client tokens:** `sub` is the client ID, `permissions` come from the client's roles, and there are no organization claims.
 - **ID tokens and UserInfo:** return the standard OIDC claims for the requested scopes (`profile`, `email`).
@@ -1052,6 +1065,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M17: Phone numbers and SMS codes** | Netgsm, İleti Merkezi and Twilio adapters; verified phone numbers on accounts; sign-in with SMS codes ([§10.9](#109-phone-numbers-and-sms-codes)) | A person adds a number and signs in with a code sent to it, in end-to-end tests with a fake provider, and each adapter sends the request its provider documents ✅ |
 | **M18: Token exchange** | Delegation to other APIs with RFC 8693 token exchange ([§8.9](#89-token-exchange)) | A service exchanges a user's access token for one to another API, with `act`, in end-to-end tests ✅ |
 | **M19: Back-channel logout** | Logout tokens to web clients when a session or all of a user's sessions end ([§8.10](#810-back-channel-logout)) | Signing out sends the apps of that session a signed logout token, and signing out everywhere those of every session, in end-to-end tests ✅ |
+| **M20: Add-ons and overrides** | Add-on plans with quantities and per-subscription feature overrides, in the API, SDK, provisioning and admin panel ([§5.7](#57-add-ons-and-custom-deals)) | A subscriber's entitlements combine its plan, add-ons and overrides, in the API and the SDK, in end-to-end tests ✅ |
 
 ---
 

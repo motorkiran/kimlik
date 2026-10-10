@@ -131,6 +131,25 @@ public sealed class ProvisioningApiTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task AddOns_AreProvisioned_AndTheirKindIsFixed()
+    {
+        using var api = await server.CreateApiClientAsync();
+        var key = $"extra_{Guid.NewGuid():N}"[..20];
+        var declared = new ProvisioningDocument { Plans = [new ProvisionedPlan { Key = key, Name = "Extra seats", Kind = PlanKind.AddOn }] };
+
+        using var applied = await api.Http.PostJsonAsync(Provisioning, declared);
+        (await applied.ReadAsync<ProvisioningResult>()).Created.ShouldBe(1);
+        using var exported = await api.Http.GetAsync(Provisioning, CancellationToken);
+        (await exported.ReadAsync<ProvisioningDocument>()).Plans!.Single(plan => plan.Key == key).Kind.ShouldBe(PlanKind.AddOn);
+
+        using var changed = await api.Http.PostJsonAsync(Provisioning, new ProvisioningDocument
+        {
+            Plans = [new ProvisionedPlan { Key = key, Name = "Extra seats", Kind = PlanKind.Base }],
+        });
+        (await changed.ReadProblemCodeAsync()).ShouldBe("provisioning.fixed_property");
+    }
+
+    [Fact]
     public async Task Document_StaysWithinTheCallersOwnAccess()
     {
         using var catalogManager = await server.CreateApiClientAsync(

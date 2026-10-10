@@ -69,6 +69,71 @@ internal static class FeatureValues
             StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// The value of every feature for a subscriber, by key: the plan's, then each add-on's for its quantity, then the
+    /// subscription's overrides. An add-on turns a boolean feature on, and raises a limit by its value for each unit, or
+    /// makes it unlimited.
+    /// </summary>
+    public static Dictionary<string, JsonElement> Describe(
+        Plan plan, IReadOnlyCollection<(Plan AddOn, int Quantity)> addOns, IReadOnlyCollection<SubscriptionFeatureOverride> overrides, IEnumerable<Feature> features)
+    {
+        var values = Describe(plan, features);
+        foreach (var feature in features)
+        {
+            var value = values[feature.Key];
+            foreach (var (addOn, quantity) in addOns)
+            {
+                if (addOn.Features.FirstOrDefault(setting => setting.FeatureId == feature.Id) is not { } setting)
+                {
+                    continue;
+                }
+
+                value = (feature.Type, value.ValueKind) switch
+                {
+                    (FeatureType.Boolean, _) when setting.Enabled => True,
+                    (FeatureType.Limit, JsonValueKind.Number) when setting.Limit is null => Unlimited,
+                    (FeatureType.Limit, JsonValueKind.Number) => JsonSerializer.SerializeToElement(Add(value.GetInt64(), setting.Limit.Value, quantity)),
+                    _ => value,
+                };
+            }
+
+            if (overrides.FirstOrDefault(setting => setting.FeatureId == feature.Id) is { } overridden)
+            {
+                value = ValueOf(feature.Type, overridden.Enabled, overridden.Limit);
+            }
+
+            values[feature.Key] = value;
+        }
+
+        return values;
+    }
+
+    /// <summary>The values of feature settings by key, as an API returns them.</summary>
+    public static Dictionary<string, JsonElement> Describe(IEnumerable<SubscriptionFeatureOverride> overrides, IEnumerable<Feature> features)
+    {
+        var byId = features.ToDictionary(feature => feature.Id);
+        return overrides.Where(setting => byId.ContainsKey(setting.FeatureId)).ToDictionary(
+            setting => byId[setting.FeatureId].Key,
+            setting => ValueOf(byId[setting.FeatureId].Type, setting.Enabled, setting.Limit),
+            StringComparer.Ordinal);
+    }
+
+    private static JsonElement ValueOf(FeatureType type, bool enabled, long? limit) =>
+        type == FeatureType.Boolean ? (enabled ? True : False) : limit is { } value ? JsonSerializer.SerializeToElement(value) : Unlimited;
+
+    /// <summary>A limit raised by an add-on, which stays within what a limit can hold.</summary>
+    private static long Add(long limit, long increment, int quantity)
+    {
+        try
+        {
+            return checked(limit + (increment * quantity));
+        }
+        catch (OverflowException)
+        {
+            return long.MaxValue;
+        }
+    }
+
     private static (bool Enabled, long? Limit) Effective(IReadOnlyCollection<Feature> features, Guid featureId, bool enabled, long? limit) =>
         features.FirstOrDefault(feature => feature.Id == featureId)?.Type == FeatureType.Boolean ? (enabled, null) : (true, limit);
 

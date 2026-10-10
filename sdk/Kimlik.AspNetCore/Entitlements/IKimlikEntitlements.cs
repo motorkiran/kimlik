@@ -2,7 +2,8 @@ namespace Kimlik.AspNetCore.Entitlements;
 
 /// <summary>
 /// What a caller's plan gives: whether a feature is on, and the maximum of a limit. The plan comes from the access
-/// token; feature values come from plan definitions that Kimlik.Client fetches and caches.
+/// token; feature values come from plan definitions that Kimlik.Client fetches and caches, or, for subscribers with
+/// add-ons or overrides, from their own entitlements.
 /// </summary>
 public interface IKimlikEntitlements
 {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Common;
 using Kimlik.Contracts.Management;
@@ -6,6 +7,7 @@ using Kimlik.Domain.Common;
 using Kimlik.Domain.Plans;
 using Microsoft.EntityFrameworkCore;
 using DomainStatus = Kimlik.Domain.Plans.SubscriptionStatus;
+using PlanKind = Kimlik.Domain.Plans.PlanKind;
 using SubscriptionStatus = Kimlik.Contracts.Management.SubscriptionStatus;
 
 namespace Kimlik.Application.Plans;
@@ -15,8 +17,9 @@ internal static class SubscriptionMapping
     public static async Task<List<SubscriptionResponse>> ToResponsesAsync(
         this IKimlikDbContext context, IReadOnlyCollection<Subscription> subscriptions, CancellationToken cancellationToken)
     {
-        var planIds = subscriptions.Select(subscription => subscription.PlanId).Distinct().ToList();
+        var planIds = subscriptions.SelectMany(subscription => subscription.AddOns.Select(addOn => addOn.PlanId).Append(subscription.PlanId)).Distinct().ToList();
         var plans = await context.Plans.Where(plan => planIds.Contains(plan.Id)).ToDictionaryAsync(plan => plan.Id, plan => plan.Key, cancellationToken);
+        var features = subscriptions.Any(subscription => subscription.FeatureOverrides.Count > 0) ? await context.AllFeaturesAsync(cancellationToken) : [];
 
         return [.. subscriptions.Select(subscription => new SubscriptionResponse(
             subscription.Id,
@@ -30,11 +33,73 @@ internal static class SubscriptionMapping
             subscription.CanceledAt,
             subscription.ExternalReference,
             subscription.CreatedAt,
-            subscription.UpdatedAt))];
+            subscription.UpdatedAt,
+            subscription.AddOns.ToDictionary(addOn => plans[addOn.PlanId], addOn => addOn.Quantity, StringComparer.Ordinal),
+            FeatureValues.Describe(subscription.FeatureOverrides, features)))];
     }
 
     public static async Task<SubscriptionResponse> ToResponseAsync(this IKimlikDbContext context, Subscription subscription, CancellationToken cancellationToken) =>
         (await context.ToResponsesAsync([subscription], cancellationToken))[0];
+
+    /// <summary>Subscriptions with their add-ons and feature overrides.</summary>
+    public static IQueryable<Subscription> WithExtras(this IQueryable<Subscription> subscriptions) =>
+        subscriptions.Include(subscription => subscription.AddOns).Include(subscription => subscription.FeatureOverrides);
+
+    /// <summary>
+    /// Replaces the add-ons, by key and quantity, and the feature overrides of the subscription, those that are given.
+    /// Only add-ons go with a subscription, and an archived one only if the subscription has it already.
+    /// </summary>
+    public static async Task<Result> SetExtrasAsync(
+        this IKimlikDbContext context,
+        Subscription subscription,
+        IReadOnlyDictionary<string, int>? addOns,
+        IReadOnlyDictionary<string, JsonElement>? featureOverrides,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (addOns is not null)
+        {
+            var keys = addOns.Keys.ToList();
+            var found = await context.Plans.Where(plan => keys.Contains(plan.Key)).ToDictionaryAsync(plan => plan.Key, StringComparer.Ordinal, cancellationToken);
+            if (found.Count != keys.Count)
+            {
+                return PlanErrors.PlanNotFound;
+            }
+
+            if (found.Values.Any(plan => plan.Kind != PlanKind.AddOn))
+            {
+                return PlanErrors.NotAnAddOn;
+            }
+
+            if (found.Values.Any(plan => plan.IsArchived && subscription.AddOns.All(taken => taken.PlanId != plan.Id)))
+            {
+                return PlanErrors.PlanArchived;
+            }
+
+            var set = subscription.SetAddOns(addOns.ToDictionary(pair => found[pair.Key].Id, pair => pair.Value), now);
+            if (set.IsFailure)
+            {
+                return set;
+            }
+        }
+
+        if (featureOverrides is not null)
+        {
+            var settings = FeatureValues.Parse(featureOverrides, await context.FeaturesByKeyAsync(cancellationToken));
+            if (settings.IsFailure)
+            {
+                return settings.Error;
+            }
+
+            var set = subscription.SetFeatureOverrides(settings.Value, now);
+            if (set.IsFailure)
+            {
+                return set;
+            }
+        }
+
+        return Result.Success();
+    }
 
     public static Subscriber ToSubscriber(SubscriberType type, Guid id) =>
         type == SubscriberType.User ? Subscriber.User(id) : Subscriber.Organization(id);
@@ -60,7 +125,7 @@ public sealed class ListSubscriptionsHandler(IKimlikDbContext context)
             return CommonErrors.InvalidParameter("subscriberType");
         }
 
-        var subscriptions = context.Subscriptions.AsNoTracking();
+        var subscriptions = context.Subscriptions.WithExtras().AsNoTracking();
         if (before is { } beforeId)
         {
             subscriptions = subscriptions.Where(subscription => subscription.Id < beforeId);
@@ -83,7 +148,7 @@ public sealed class ListSubscriptionsHandler(IKimlikDbContext context)
 public sealed class GetSubscriptionHandler(IKimlikDbContext context)
 {
     public async Task<Result<SubscriptionResponse>> HandleAsync(Guid id, CancellationToken cancellationToken) =>
-        await context.Subscriptions.AsNoTracking().SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is { } subscription
+        await context.Subscriptions.WithExtras().AsNoTracking().SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is { } subscription
             ? await context.ToResponseAsync(subscription, cancellationToken)
             : PlanErrors.SubscriptionNotFound;
 }
@@ -105,6 +170,11 @@ public sealed class CreateSubscriptionHandler(IKimlikDbContext context, IAuditLo
         if (await context.Plans.SingleOrDefaultAsync(plan => plan.Key == request.Plan, cancellationToken) is not { } plan)
         {
             return PlanErrors.PlanNotFound;
+        }
+
+        if (plan.Kind != PlanKind.Base)
+        {
+            return PlanErrors.NotABasePlan;
         }
 
         if (plan.IsArchived)
@@ -136,6 +206,12 @@ public sealed class CreateSubscriptionHandler(IKimlikDbContext context, IAuditLo
             return created.Error;
         }
 
+        var extras = await context.SetExtrasAsync(created.Value, request.AddOns, request.FeatureOverrides, now, cancellationToken);
+        if (extras.IsFailure)
+        {
+            return extras.Error;
+        }
+
         context.Subscriptions.Add(created.Value);
         auditLog.Audit(AuditActions.SubscriptionCreated, created.Value, new Dictionary<string, object?> { ["plan"] = plan.Key });
 
@@ -157,7 +233,7 @@ public sealed class UpdateSubscriptionHandler(IKimlikDbContext context, IAuditLo
 {
     public async Task<Result<SubscriptionResponse>> HandleAsync(Guid id, UpdateSubscriptionRequest request, CancellationToken cancellationToken)
     {
-        if (await context.Subscriptions.SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is not { } subscription)
+        if (await context.Subscriptions.WithExtras().SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is not { } subscription)
         {
             return PlanErrors.SubscriptionNotFound;
         }
@@ -170,6 +246,11 @@ public sealed class UpdateSubscriptionHandler(IKimlikDbContext context, IAuditLo
             if (await context.Plans.SingleOrDefaultAsync(plan => plan.Key == planKey, cancellationToken) is not { } plan)
             {
                 return PlanErrors.PlanNotFound;
+            }
+
+            if (plan.Kind != PlanKind.Base)
+            {
+                return PlanErrors.NotABasePlan;
             }
 
             if (plan.Id != subscription.PlanId)
@@ -200,6 +281,22 @@ public sealed class UpdateSubscriptionHandler(IKimlikDbContext context, IAuditLo
             return updated.Error;
         }
 
+        var extras = await context.SetExtrasAsync(subscription, request.AddOns, request.FeatureOverrides, now, cancellationToken);
+        if (extras.IsFailure)
+        {
+            return extras.Error;
+        }
+
+        if (request.AddOns is not null)
+        {
+            data["add_ons"] = request.AddOns;
+        }
+
+        if (request.FeatureOverrides is not null)
+        {
+            data["feature_overrides"] = request.FeatureOverrides.Keys.Order(StringComparer.Ordinal).ToArray();
+        }
+
         auditLog.Audit(AuditActions.SubscriptionUpdated, subscription, data.Count > 0 ? data : null);
         await context.SaveChangesAsync(cancellationToken);
         return await context.ToResponseAsync(subscription, cancellationToken);
@@ -211,7 +308,7 @@ public sealed class CancelSubscriptionHandler(IKimlikDbContext context, IAuditLo
 {
     public async Task<Result<SubscriptionResponse>> HandleAsync(Guid id, CancellationToken cancellationToken)
     {
-        if (await context.Subscriptions.SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is not { } subscription)
+        if (await context.Subscriptions.WithExtras().SingleOrDefaultAsync(subscription => subscription.Id == id, cancellationToken) is not { } subscription)
         {
             return PlanErrors.SubscriptionNotFound;
         }

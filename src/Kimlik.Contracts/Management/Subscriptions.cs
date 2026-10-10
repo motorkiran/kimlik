@@ -21,7 +21,10 @@ public enum SubscriptionStatus
     Expired,
 }
 
-/// <summary>A user's or an organization's plan over time, as the billing system reports it.</summary>
+/// <summary>
+/// A user's or an organization's plan over time, as the billing system reports it, with the add-ons it takes, by key
+/// and quantity, and the feature values of its own that override what its plan and add-ons give.
+/// </summary>
 public sealed record SubscriptionResponse(
     Guid Id,
     SubscriberType SubscriberType,
@@ -34,7 +37,9 @@ public sealed record SubscriptionResponse(
     DateTimeOffset? CanceledAt,
     string? ExternalReference,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    IReadOnlyDictionary<string, int> AddOns,
+    IReadOnlyDictionary<string, JsonElement> FeatureOverrides);
 
 public sealed record CreateSubscriptionRequest
 {
@@ -56,6 +61,16 @@ public sealed record CreateSubscriptionRequest
     /// <summary>The subscription's ID in the billing system.</summary>
     [StringLength(200)]
     public string? ExternalReference { get; init; }
+
+    /// <summary>Add-ons by key, with the quantity of each, such as <c>{ "extra-seats": 3 }</c>.</summary>
+    [MaxLength(50)]
+    public IReadOnlyDictionary<string, int> AddOns { get; init; } = new Dictionary<string, int>();
+
+    /// <summary>
+    /// Feature values of the subscriber's own, in the form of plan values, such as <c>{ "max_projects": 50 }</c>; they
+    /// win over the plan and the add-ons.
+    /// </summary>
+    public IReadOnlyDictionary<string, JsonElement> FeatureOverrides { get; init; } = new Dictionary<string, JsonElement>();
 }
 
 /// <summary>
@@ -101,6 +116,13 @@ public sealed record UpdateSubscriptionRequest
         }
     }
 
+    /// <summary>Replaces the add-ons; <c>{}</c> removes them.</summary>
+    [MaxLength(50)]
+    public IReadOnlyDictionary<string, int>? AddOns { get; init; }
+
+    /// <summary>Replaces the feature overrides; <c>{}</c> removes them.</summary>
+    public IReadOnlyDictionary<string, JsonElement>? FeatureOverrides { get; init; }
+
     /// <summary>Whether the request sets <see cref="TrialEndsAt"/>, possibly to <see langword="null"/>.</summary>
     [JsonIgnore]
     public bool HasTrialEndsAt { get; private init; }
@@ -116,6 +138,7 @@ public sealed record UpdateSubscriptionRequest
 
 /// <summary>
 /// What a user or an organization is entitled to: the plan in effect, from its current subscription or the default
-/// plan, and the value of every feature. <c>plan</c> is <see langword="null"/> when there is neither.
+/// plan, and the value of every feature, with the subscription's add-ons and overrides. <c>plan</c> is
+/// <see langword="null"/> when there is neither.
 /// </summary>
 public sealed record EntitlementsResponse(string? Plan, IReadOnlyDictionary<string, JsonElement> Features);

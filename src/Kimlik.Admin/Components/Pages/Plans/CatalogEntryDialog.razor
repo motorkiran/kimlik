@@ -1,4 +1,4 @@
-@* A key, a name and a description, as plans and features have. *@
+@* A key, a name and a description, as plans and features have, with a feature's type or a plan's kind. *@
 <MudDialog>
     <DialogContent>
         <MudTextField @bind-Value="_key" Label="Key" Required MaxLength="64" HelperText="Lowercase letters, digits and _, such as export_pdf. Tokens and code use it." />
@@ -11,11 +11,18 @@
                 <MudSelectItem T="FeatureType" Value="FeatureType.Limit">Limit</MudSelectItem>
             </MudSelect>
         }
+        @if (AskKind)
+        {
+            <MudSelect T="PlanKind" @bind-Value="_kind" Label="Kind" HelperText="Add-ons go with a subscription, in any quantity, next to its plan.">
+                <MudSelectItem T="PlanKind" Value="PlanKind.Base">Plan</MudSelectItem>
+                <MudSelectItem T="PlanKind" Value="PlanKind.AddOn">Add-on</MudSelectItem>
+            </MudSelect>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="string.IsNullOrWhiteSpace(_key) || string.IsNullOrWhiteSpace(_name)"
-                   OnClick="() => Dialog.Close(DialogResult.Ok(new Entry(_key.Trim(), _name.Trim(), _description, _type)))">Create</MudButton>
+                   OnClick="() => Dialog.Close(DialogResult.Ok(new Entry(_key.Trim(), _name.Trim(), _description, _type, _kind)))">Create</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -24,6 +31,7 @@
     private string _name = string.Empty;
     private string? _description;
     private FeatureType _type = FeatureType.Boolean;
+    private PlanKind _kind = PlanKind.Base;
 
     [CascadingParameter]
     private IMudDialogInstance Dialog { get; set; } = null!;
@@ -31,5 +39,8 @@
     [Parameter]
     public bool AskType { get; set; }
 
-    public sealed record Entry(string Key, string Name, string? Description, FeatureType Type);
+    [Parameter]
+    public bool AskKind { get; set; }
+
+    public sealed record Entry(string Key, string Name, string? Description, FeatureType Type, PlanKind Kind);
 }

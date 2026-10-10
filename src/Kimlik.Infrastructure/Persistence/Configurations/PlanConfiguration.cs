@@ -27,6 +27,7 @@ internal sealed class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(plan => plan.Key).HasMaxLength(Feature.KeyMaxLength);
         builder.Property(plan => plan.Name).HasMaxLength(Feature.NameMaxLength);
         builder.Property(plan => plan.Description).HasMaxLength(Feature.DescriptionMaxLength);
+        builder.Property(plan => plan.Kind).HasConversion<string>().HasMaxLength(16);
         builder.HasIndex(plan => plan.Key).IsUnique();
 
         builder.HasMany(plan => plan.Features).WithOne().HasForeignKey(value => value.PlanId).OnDelete(DeleteBehavior.Cascade);
@@ -70,5 +71,33 @@ internal sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subsc
         builder.HasIndex(subscription => subscription.OrganizationId);
         builder.HasIndex(subscription => subscription.PlanId);
         builder.HasIndex(subscription => subscription.Status);
+
+        builder.HasMany(subscription => subscription.AddOns).WithOne().HasForeignKey(addOn => addOn.SubscriptionId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(subscription => subscription.AddOns).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(subscription => subscription.FeatureOverrides).WithOne().HasForeignKey(value => value.SubscriptionId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(subscription => subscription.FeatureOverrides).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Ignore(subscription => subscription.HasCustomEntitlements);
+    }
+}
+
+internal sealed class SubscriptionAddOnConfiguration : IEntityTypeConfiguration<SubscriptionAddOn>
+{
+    public void Configure(EntityTypeBuilder<SubscriptionAddOn> builder)
+    {
+        builder.HasKey(addOn => new { addOn.SubscriptionId, addOn.PlanId });
+
+        // An add-on with subscriptions is archived rather than deleted, as a plan is.
+        builder.HasOne<Plan>().WithMany().HasForeignKey(addOn => addOn.PlanId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(addOn => addOn.PlanId);
+    }
+}
+
+internal sealed class SubscriptionFeatureOverrideConfiguration : IEntityTypeConfiguration<SubscriptionFeatureOverride>
+{
+    public void Configure(EntityTypeBuilder<SubscriptionFeatureOverride> builder)
+    {
+        builder.HasKey(value => new { value.SubscriptionId, value.FeatureId });
+        builder.HasOne<Feature>().WithMany().HasForeignKey(value => value.FeatureId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(value => value.FeatureId);
     }
 }

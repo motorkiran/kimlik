@@ -29,6 +29,12 @@ public sealed class Subscription
 {
     public const int ExternalReferenceMaxLength = 200;
 
+    /// <summary>The most units of one add-on a subscription takes.</summary>
+    public const int MaxAddOnQuantity = 10_000;
+
+    private readonly List<SubscriptionAddOn> _addOns = [];
+    private readonly List<SubscriptionFeatureOverride> _featureOverrides = [];
+
     // Used by EF Core.
     private Subscription()
     {
@@ -61,6 +67,15 @@ public sealed class Subscription
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public Subscriber Subscriber => new(UserId, OrganizationId);
+
+    /// <summary>The add-ons the subscription takes, with their quantities.</summary>
+    public IReadOnlyCollection<SubscriptionAddOn> AddOns => _addOns;
+
+    /// <summary>Feature values of the subscriber's own, whatever its plan and add-ons say.</summary>
+    public IReadOnlyCollection<SubscriptionFeatureOverride> FeatureOverrides => _featureOverrides;
+
+    /// <summary>Whether the subscriber gets more, or other, than its plan gives.</summary>
+    public bool HasCustomEntitlements => _addOns.Count > 0 || _featureOverrides.Count > 0;
 
     /// <summary>When the subscription stops giving its plan, unless it is renewed first.</summary>
     public DateTimeOffset? EndsAt => Status switch
@@ -160,6 +175,45 @@ public sealed class Subscription
         return Result.Success();
     }
 
+    /// <summary>Replaces the add-ons, by the ID of each add-on plan and its quantity.</summary>
+    public Result SetAddOns(IReadOnlyDictionary<Guid, int> quantities, DateTimeOffset now)
+    {
+        if (Status == SubscriptionStatus.Expired)
+        {
+            return PlanErrors.SubscriptionEnded;
+        }
+
+        if (quantities.Values.Any(quantity => quantity is < 1 or > MaxAddOnQuantity))
+        {
+            return PlanErrors.InvalidQuantity;
+        }
+
+        _addOns.Clear();
+        _addOns.AddRange(quantities.Select(pair => new SubscriptionAddOn(Id, pair.Key, pair.Value)));
+        UpdatedAt = now;
+        return Result.Success();
+    }
+
+    /// <summary>Replaces the feature values the subscriber gets whatever its plan and add-ons say.</summary>
+    public Result SetFeatureOverrides(IEnumerable<FeatureSetting> settings, DateTimeOffset now)
+    {
+        if (Status == SubscriptionStatus.Expired)
+        {
+            return PlanErrors.SubscriptionEnded;
+        }
+
+        var wanted = settings.ToList();
+        if (wanted.Exists(setting => setting.Limit is < 0) || wanted.DistinctBy(setting => setting.FeatureId).Count() != wanted.Count)
+        {
+            return PlanErrors.InvalidFeatureValue;
+        }
+
+        _featureOverrides.Clear();
+        _featureOverrides.AddRange(wanted.Select(setting => new SubscriptionFeatureOverride(Id, setting.FeatureId, setting.Enabled, setting.Limit)));
+        UpdatedAt = now;
+        return Result.Success();
+    }
+
     /// <summary>Ends a subscription whose trial or period is over.</summary>
     public bool ExpireIfEnded(DateTimeOffset now)
     {
@@ -172,4 +226,28 @@ public sealed class Subscription
         UpdatedAt = now;
         return true;
     }
+}
+
+/// <summary>An add-on that a subscription takes, and how many units of it.</summary>
+public sealed class SubscriptionAddOn(Guid subscriptionId, Guid planId, int quantity)
+{
+    public Guid SubscriptionId { get; private init; } = subscriptionId;
+
+    /// <summary>The add-on: a plan of the <see cref="PlanKind.AddOn"/> kind.</summary>
+    public Guid PlanId { get; private init; } = planId;
+
+    public int Quantity { get; private init; } = quantity;
+}
+
+/// <summary>A feature value of one subscription's own, in the form of <see cref="PlanFeature"/>.</summary>
+public sealed class SubscriptionFeatureOverride(Guid subscriptionId, Guid featureId, bool enabled, long? limit)
+{
+    public Guid SubscriptionId { get; private init; } = subscriptionId;
+
+    public Guid FeatureId { get; private init; } = featureId;
+
+    public bool Enabled { get; private init; } = enabled;
+
+    /// <summary>The maximum of a limit; null means unlimited.</summary>
+    public long? Limit { get; private init; } = limit;
 }

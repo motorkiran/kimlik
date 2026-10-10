@@ -7794,9 +7794,13 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "customEntitlements": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "What a resource server needs to know about an API key it was given. An unknown, expired or revoked key, or the key\nof a user who cannot sign in, is not `Active`, and nothing else is said about it. `Permissions` are what\nthe key may do now: for a user's key, its permissions that the user still holds; for an organization's key, its\npermissions. `Plan` is the key of the owner's plan, as in the `plan` claim of tokens."
+        "description": "What a resource server needs to know about an API key it was given. An unknown, expired or revoked key, or the key\nof a user who cannot sign in, is not `Active`, and nothing else is said about it. `Permissions` are what\nthe key may do now: for a user's key, its permissions that the user still holds; for an organization's key, its\npermissions. `Plan` is the key of the owner's plan, as in the `plan` claim of tokens, and\n`CustomEntitlements` says, as the `custom_entitlements` claim does, that the owner's subscription has add-ons\nor overrides."
       },
       "ApiResourceResponse": {
         "required": [
@@ -8499,6 +8503,10 @@
           "features": {
             "type": "object",
             "description": "Feature values by key, such as `{ \"export_pdf\": true, \"max_projects\": 3 }`. Features left out are off, or zero."
+          },
+          "kind": {
+            "description": "A base plan, or an add-on; it cannot be changed later.",
+            "$ref": "#/components/schemas/PlanKind"
           }
         }
       },
@@ -8585,6 +8593,23 @@
               "string"
             ],
             "description": "The subscription's ID in the billing system."
+          },
+          "addOns": {
+            "maxLength": 50,
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            },
+            "description": "Add-ons by key, with the quantity of each, such as `{ \"extra-seats\": 3 }`."
+          },
+          "featureOverrides": {
+            "type": "object",
+            "description": "Feature values of the subscriber's own, in the form of plan values, such as `{ \"max_projects\": 50 }`; they\nwin over the plan and the add-ons."
           }
         }
       },
@@ -8745,7 +8770,7 @@
             "type": "object"
           }
         },
-        "description": "What a user or an organization is entitled to: the plan in effect, from its current subscription or the default\nplan, and the value of every feature. `plan` is `null` when there is neither."
+        "description": "What a user or an organization is entitled to: the plan in effect, from its current subscription or the default\nplan, and the value of every feature, with the subscription's add-ons and overrides. `plan` is\n`null` when there is neither."
       },
       "FeatureResponse": {
         "required": [
@@ -9560,6 +9585,13 @@
         },
         "description": "What Kimlik holds about a user, for their right of access (KVKK article 11, GDPR article 15). `Activity` is the\naudit events about the user or by them, newest first; the private metadata is only in exports that administrators\nmake."
       },
+      "PlanKind": {
+        "enum": [
+          "base",
+          "addOn"
+        ],
+        "description": "What a plan is for: subscribing to, or adding to a subscription."
+      },
       "PlanResponse": {
         "required": [
           "id",
@@ -9569,7 +9601,8 @@
           "isArchived",
           "features",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "kind"
         ],
         "type": "object",
         "properties": {
@@ -9602,6 +9635,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PlanKind"
           }
         },
         "description": "A plan and the value of every feature in it: `true` or `false` for boolean features, and a maximum\nfor limits, where `null` means unlimited."
@@ -9965,6 +10001,10 @@
           "isArchived": {
             "type": "boolean"
           },
+          "kind": {
+            "description": "A base plan, or an add-on; it cannot be changed once the plan exists.",
+            "$ref": "#/components/schemas/PlanKind"
+          },
           "features": {
             "type": [
               "null",
@@ -10296,7 +10336,9 @@
           "canceledAt",
           "externalReference",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "addOns",
+          "featureOverrides"
         ],
         "type": "object",
         "properties": {
@@ -10355,9 +10397,23 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "addOns": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "featureOverrides": {
+            "type": "object"
           }
         },
-        "description": "A user's or an organization's plan over time, as the billing system reports it."
+        "description": "A user's or an organization's plan over time, as the billing system reports it, with the add-ons it takes, by key\nand quantity, and the feature values of its own that override what its plan and add-ons give."
       },
       "SubscriptionStatus": {
         "enum": [
@@ -10763,6 +10819,29 @@
               "null",
               "string"
             ]
+          },
+          "addOns": {
+            "maxLength": 50,
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            },
+            "description": "Replaces the add-ons; `{}` removes them."
+          },
+          "featureOverrides": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Replaces the feature overrides; `{}` removes them."
           }
         },
         "description": "Changes a subscription with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears\nit. Setting `status` to trialing or active resumes a canceled subscription."

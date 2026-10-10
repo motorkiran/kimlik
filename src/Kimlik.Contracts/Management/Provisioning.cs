@@ -91,6 +91,9 @@ public sealed record ProvisionedPlan
 
     public bool IsArchived { get; init; }
 
+    /// <summary>A base plan, or an add-on; it cannot be changed once the plan exists.</summary>
+    public PlanKind Kind { get; init; }
+
     /// <summary>
     /// Feature values by key: <c>true</c> or <c>false</c>, and a maximum or <c>null</c> (unlimited) for limits. Features
     /// left out are off, or zero. When the property is omitted, an existing plan keeps its values.

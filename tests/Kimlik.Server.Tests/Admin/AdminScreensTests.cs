@@ -9,6 +9,7 @@ using Kimlik.Admin.Components.Pages.Plans;
 using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
 using Kimlik.Server.Tests.Organizations;
 using Microsoft.EntityFrameworkCore;
@@ -139,6 +140,36 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
 
         admin.Dialogs.WaitForAssertion(() => admin.Dialogs.Markup.ShouldContain($"Finding users takes {SystemPermissions.UsersRead}."));
         admin.Dialogs.FindComponent<MudAutocomplete<Kimlik.Contracts.Management.UserResponse>>().Instance.Disabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Subscription_GetsAddOnsAndOverrides()
+    {
+        using var api = await server.CreateApiClientAsync();
+        var catalog = await Plans.AddOnCatalog.CreateAsync(api);
+        var user = await server.CreateUserAsync();
+        using var created = await api.Http.PostJsonAsync("/api/v1/subscriptions", new Kimlik.Contracts.Management.CreateSubscriptionRequest
+        {
+            SubscriberType = Kimlik.Contracts.Management.SubscriberType.User,
+            SubscriberId = user.Id,
+            Plan = catalog.Team,
+        });
+        var subscription = await created.ReadAsync<Kimlik.Contracts.Management.SubscriptionResponse>();
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+        var page = admin.Render<Subscriptions>();
+
+        page.WaitForElement($"[data-extras='{subscription.Id}']").Click();
+        await page.InvokeAsync(() => admin.Dialogs.FindComponents<MudNumericField<int>>()
+            .Single(field => field.Instance.UserAttributes.TryGetValue("data-add-on", out var key) && key as string == catalog.ExtraSeats)
+            .Instance.ValueChanged.InvokeAsync(3));
+        await page.InvokeAsync(() => admin.Dialogs.Find("textarea#feature-overrides").Change($$"""{ "{{catalog.Seats}}": 40 }"""));
+        await page.InvokeAsync(() => admin.Dialogs.Find("#save-extras").Click());
+
+        admin.WaitForNotification("The add-ons and overrides were saved.");
+        using var saved = await api.Http.GetAsync($"/api/v1/subscriptions/{subscription.Id}", Xunit.TestContext.Current.CancellationToken);
+        var extras = await saved.ReadAsync<Kimlik.Contracts.Management.SubscriptionResponse>();
+        extras.AddOns.ShouldBe(new Dictionary<string, int> { [catalog.ExtraSeats] = 3 });
+        extras.FeatureOverrides[catalog.Seats].GetInt64().ShouldBe(40);
     }
 
     [Fact]

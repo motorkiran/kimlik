@@ -47,7 +47,9 @@ public sealed record VerifyApiKeyRequest
 /// What a resource server needs to know about an API key it was given. An unknown, expired or revoked key, or the key
 /// of a user who cannot sign in, is not <c>Active</c>, and nothing else is said about it. <c>Permissions</c> are what
 /// the key may do now: for a user's key, its permissions that the user still holds; for an organization's key, its
-/// permissions. <c>Plan</c> is the key of the owner's plan, as in the <c>plan</c> claim of tokens.
+/// permissions. <c>Plan</c> is the key of the owner's plan, as in the <c>plan</c> claim of tokens, and
+/// <c>CustomEntitlements</c> says, as the <c>custom_entitlements</c> claim does, that the owner's subscription has add-ons
+/// or overrides.
 /// </summary>
 public sealed record ApiKeyVerificationResponse(
     bool Active,
@@ -56,4 +58,5 @@ public sealed record ApiKeyVerificationResponse(
     Guid? OrganizationId = null,
     IReadOnlyList<string>? Permissions = null,
     string? Plan = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    bool CustomEntitlements = false);

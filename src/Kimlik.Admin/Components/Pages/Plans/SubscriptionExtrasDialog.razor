@@ -1,0 +1,79 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using Kimlik.Application.Plans
+@inherits AdminPageBase
+
+@* A subscription's add-ons, with their quantities, and its feature overrides. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Add-ons</MudText>
+        @if (AddOns.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mb-4">There are no add-ons. Create a plan of the add-on kind to offer one.</MudText>
+        }
+        @foreach (var addOn in AddOns)
+        {
+            <MudNumericField T="int" Value="_quantities.GetValueOrDefault(addOn.Key)" ValueChanged="quantity => _quantities[addOn.Key] = quantity"
+                             Label="@addOn.Name" Min="0" Max="10000" HelperText="How many; 0 for none." data-add-on="@addOn.Key" />
+        }
+        <MudTextField @bind-Value="_overrides" Label="Feature overrides" Lines="5" Class="mt-4" id="feature-overrides"
+                      HelperText="Feature values of the subscriber's own, which win over the plan and add-ons, such as { &quot;max_projects&quot;: 50 }." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" id="save-extras">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    private Dictionary<string, int> _quantities = [];
+    private string? _overrides;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter]
+    public SubscriptionResponse Subscription { get; set; } = null!;
+
+    /// <summary>The add-ons that can be added: those that are not archived, and those the subscription has.</summary>
+    [Parameter]
+    public IReadOnlyList<PlanResponse> AddOns { get; set; } = [];
+
+    protected override void OnParametersSet()
+    {
+        _quantities = new Dictionary<string, int>(Subscription.AddOns, StringComparer.Ordinal);
+        _overrides = Subscription.FeatureOverrides.Count == 0 ? null : JsonSerializer.Serialize(Subscription.FeatureOverrides, Indented);
+    }
+
+    private async Task SaveAsync()
+    {
+        JsonObject? overrides;
+        try
+        {
+            overrides = string.IsNullOrWhiteSpace(_overrides) ? [] : JsonNode.Parse(_overrides) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            overrides = null;
+        }
+
+        if (overrides is null)
+        {
+            Snackbar.Add("Feature overrides must be a JSON object, such as { \"max_projects\": 50 }.", Severity.Error);
+            return;
+        }
+
+        var request = new UpdateSubscriptionRequest
+        {
+            AddOns = _quantities.Where(pair => pair.Value > 0).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            FeatureOverrides = overrides.ToDictionary(pair => pair.Key, pair => JsonSerializer.SerializeToElement(pair.Value), StringComparer.Ordinal),
+        };
+
+        if (await ChangeAsync<UpdateSubscriptionHandler, SubscriptionResponse>(
+            SystemPermissions.SubscriptionsWrite, handler => handler.HandleAsync(Subscription.Id, request, Aborted), "The add-ons and overrides were saved.") is { } saved)
+        {
+            Dialog.Close(DialogResult.Ok(saved));
+        }
+    }
+}

@@ -52,6 +52,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
                 Description = plan.Description,
                 IsArchived = plan.IsArchived,
                 Features = FeatureValues.Describe(plan, featureEntities),
+                Kind = Enum.Parse<Kimlik.Contracts.Management.PlanKind>(plan.Kind.ToString()),
             })
             .ToList();
 

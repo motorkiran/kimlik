@@ -44,8 +44,9 @@ public static class KimlikServiceCollectionExtensions
 
     /// <summary>
     /// Enables <see cref="IKimlikEntitlements"/> and <see cref="FeatureEndpointExtensions.RequireFeature{TBuilder}"/>.
-    /// Plan definitions come through Kimlik.Client, so register it with <c>AddKimlikClient</c> as a service client
-    /// holding <c>kimlik.plans:read</c>.
+    /// Plan definitions, and the entitlements of subscribers with add-ons or overrides, come through Kimlik.Client, so
+    /// register it with <c>AddKimlikClient</c> as a service client holding <c>kimlik.plans:read</c> and
+    /// <c>kimlik.subscriptions:read</c>.
     /// </summary>
     public static IServiceCollection AddKimlikEntitlements(this IServiceCollection services, Action<KimlikEntitlementsOptions>? configure = null)
     {

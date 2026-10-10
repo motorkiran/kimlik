@@ -25,6 +25,12 @@ public static class KimlikClaimTypes
     public const string Plan = "plan";
 
     /// <summary>
+    /// <c>true</c> when the subscriber's subscription has add-ons or feature overrides, so its entitlements differ from
+    /// the plan's; Kimlik.AspNetCore then reads them from the entitlements API.
+    /// </summary>
+    public const string CustomEntitlements = "custom_entitlements";
+
+    /// <summary>
     /// The ID of the API key the caller authenticated with, in the principals that Kimlik.AspNetCore builds for API
     /// keys. A user's key has the user as its subject; an organization's key acts on its own behalf and is its own
     /// subject.

@@ -50,7 +50,7 @@ public sealed class CreatePlanHandler(IKimlikDbContext context, IAuditLog auditL
     public async Task<Result<PlanResponse>> HandleAsync(CreatePlanRequest request, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var created = Plan.Create(request.Key, request.Name, request.Description, now);
+        var created = Plan.Create(request.Key, request.Name, request.Description, Enum.Parse<Domain.Plans.PlanKind>(request.Kind.ToString()), now);
         if (created.IsFailure)
         {
             return created.Error;
@@ -162,14 +162,24 @@ public sealed class DeletePlanHandler(IKimlikDbContext context, IAuditLog auditL
             return PlanErrors.PlanNotFound;
         }
 
-        if (await context.Subscriptions.AnyAsync(subscription => subscription.PlanId == id, cancellationToken))
+        // Subscriptions to it, ended ones included, or to it as an add-on, keep it.
+        if (await context.Subscriptions.AnyAsync(subscription => subscription.PlanId == id || subscription.AddOns.Any(addOn => addOn.PlanId == id), cancellationToken))
         {
             return PlanErrors.PlanInUse;
         }
 
         context.Plans.Remove(plan);
         auditLog.Record(AuditActions.PlanDeleted, AuditSubject.Plan(id), new Dictionary<string, object?> { ["key"] = plan.Key });
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsForeignKeyViolation())
+        {
+            // A subscription took it while it was being deleted.
+            return PlanErrors.PlanInUse;
+        }
+
         return Result.Success();
     }
 }

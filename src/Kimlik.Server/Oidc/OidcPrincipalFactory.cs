@@ -76,7 +76,13 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         AddAccess(identity, await access.ForUserAsync(user.Id, organizationId, cancellationToken));
 
         var subscriber = organizationId is { } organization ? Subscriber.Organization(organization) : Subscriber.User(user.Id);
-        identity.SetClaim(KimlikClaimTypes.Plan, (await entitlements.PlanOfAsync(subscriber, cancellationToken))?.Key);
+        var entitlementSource = await entitlements.SourceOfAsync(subscriber, cancellationToken);
+        identity.SetClaim(KimlikClaimTypes.Plan, entitlementSource.Plan?.Key);
+        if (entitlementSource.IsCustom)
+        {
+            identity.AddClaim(new Claim(KimlikClaimTypes.CustomEntitlements, "true", ClaimValueTypes.Boolean));
+        }
+
         identity.SetDestinations(GetDestinations);
 
         return identity;
@@ -239,7 +245,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             Claims.PhoneNumber or Claims.PhoneNumberVerified when identity.HasScope(Scopes.Phone)
                 => [Destinations.AccessToken, Destinations.IdentityToken],
 
-            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles or KimlikClaimTypes.Plan
+            KimlikClaimTypes.Roles or KimlikClaimTypes.Permissions or KimlikClaimTypes.OrganizationRoles or KimlikClaimTypes.Plan or KimlikClaimTypes.CustomEntitlements
                 => [Destinations.AccessToken],
 
             KimlikClaimTypes.OrganizationId => [Destinations.AccessToken, Destinations.IdentityToken],

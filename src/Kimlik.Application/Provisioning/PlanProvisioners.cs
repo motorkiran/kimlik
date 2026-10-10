@@ -48,6 +48,7 @@ public sealed class PlanProvisioner(IKimlikDbContext context, CreatePlanHandler 
                     Name = declared.Name,
                     Description = declared.Description,
                     Features = declared.Features ?? new Dictionary<string, System.Text.Json.JsonElement>(),
+                    Kind = declared.Kind,
                 },
                 cancellationToken);
             if (created.IsFailure)
@@ -65,6 +66,11 @@ public sealed class PlanProvisioner(IKimlikDbContext context, CreatePlanHandler 
             }
 
             return ProvisioningChange.Created;
+        }
+
+        if (existing.Kind.ToString() != declared.Kind.ToString())
+        {
+            return ProvisioningErrors.FixedProperty("kind");
         }
 
         var features = await context.FeaturesByKeyAsync(cancellationToken);

@@ -30,6 +30,7 @@ public sealed class KimlikUser
         OrganizationId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.OrganizationId), out var organizationId) ? organizationId : null;
         OrganizationRoles = Values(principal, KimlikClaimTypes.OrganizationRoles);
         Plan = principal.FindFirstValue(KimlikClaimTypes.Plan);
+        HasCustomEntitlements = principal.FindFirstValue(KimlikClaimTypes.CustomEntitlements) is "true" or "True";
         ApiKeyId = Guid.TryParse(principal.FindFirstValue(KimlikClaimTypes.ApiKeyId), out var apiKeyId) ? apiKeyId : null;
         ActorId = ActorOf(principal);
     }
@@ -72,6 +73,12 @@ public sealed class KimlikUser
 
     /// <summary>The key of the plan in effect: the organization's in an organization context, otherwise the user's.</summary>
     public string? Plan { get; }
+
+    /// <summary>
+    /// Whether the subscriber's subscription has add-ons or overrides, so that its entitlements are its own rather than
+    /// its plan's.
+    /// </summary>
+    public bool HasCustomEntitlements { get; }
 
     /// <summary>
     /// The administrator acting as the user, for support, when the token was issued while they signed in as them, also

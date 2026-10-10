@@ -2,6 +2,19 @@ using Kimlik.Domain.Common;
 
 namespace Kimlik.Domain.Plans;
 
+/// <summary>What a plan is for: subscribing to, or adding to a subscription.</summary>
+public enum PlanKind
+{
+    /// <summary>A plan subscribers subscribe to.</summary>
+    Base,
+
+    /// <summary>
+    /// An add-on that subscriptions take with a quantity: it turns boolean features on, and raises limits by its value
+    /// for each unit, or makes them unlimited.
+    /// </summary>
+    AddOn,
+}
+
 /// <summary>The value a plan sets for a feature. <see cref="Limit"/> is the maximum of a limit; null means unlimited.</summary>
 public readonly record struct FeatureSetting(Guid FeatureId, bool Enabled, long? Limit);
 
@@ -25,6 +38,8 @@ public sealed class Plan
 
     public string Key { get; private init; } = string.Empty;
 
+    public PlanKind Kind { get; private init; }
+
     public string Name { get; private set; } = string.Empty;
 
     public string? Description { get; private set; }
@@ -37,7 +52,7 @@ public sealed class Plan
 
     public IReadOnlyCollection<PlanFeature> Features => _features;
 
-    public static Result<Plan> Create(string key, string name, string? description, DateTimeOffset now)
+    public static Result<Plan> Create(string key, string name, string? description, PlanKind kind, DateTimeOffset now)
     {
         if (!Feature.IsValidKey(key))
         {
@@ -54,6 +69,7 @@ public sealed class Plan
         {
             Id = Guid.CreateVersion7(now),
             Key = key,
+            Kind = kind,
             Name = name.Trim(),
             Description = Feature.Normalize(description),
             CreatedAt = now,

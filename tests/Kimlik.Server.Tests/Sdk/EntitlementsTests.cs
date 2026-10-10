@@ -47,10 +47,37 @@ public sealed class EntitlementsTests(KimlikServerFixture server)
         (await pro.GetStringAsync("/limit", CancellationToken)).ShouldBe("unlimited");
     }
 
+    [Fact]
+    public async Task SubscriberWithOverrides_GetsItsOwnValues()
+    {
+        using var admin = await server.CreateApiClientAsync();
+        var catalog = await TestCatalog.CreateAsync(admin);
+        var user = await server.CreateUserAsync();
+        using var created = await admin.Http.PostJsonAsync("/api/v1/subscriptions", new CreateSubscriptionRequest
+        {
+            SubscriberType = SubscriberType.User,
+            SubscriberId = user.Id,
+            Plan = catalog.Free,
+            FeatureOverrides = new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                [catalog.Projects] = System.Text.Json.JsonSerializer.SerializeToElement(25),
+                [catalog.Export] = System.Text.Json.JsonSerializer.SerializeToElement(true),
+            },
+        });
+        created.StatusCode.ShouldBe(HttpStatusCode.Created);
+        await using var api = await StartApiAsync(catalog);
+
+        using var http = WithToken(api, await AccessTokenAsync(user));
+
+        (await http.GetStringAsync("/limit", CancellationToken)).ShouldBe("25");
+        using var export = await http.GetAsync("/export", CancellationToken);
+        export.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     private async Task<WebApplication> StartApiAsync(TestCatalog catalog)
     {
         var reader = await server.CreateServiceClientAsync(KimlikScopes.Api);
-        await server.AssignToClientAsync(reader.ClientId, await server.CreateRoleWithAsync(SystemPermissions.PlansRead));
+        await server.AssignToClientAsync(reader.ClientId, await server.CreateRoleWithAsync(SystemPermissions.PlansRead, SystemPermissions.SubscriptionsRead));
 
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseTestServer();

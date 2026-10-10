@@ -27,7 +27,10 @@
                         <tr>
                             <td><MudLink Href="@($"/admin/plans/{plan.Id}")">@plan.Name</MudLink></td>
                             <td><code>@plan.Key</code></td>
-                            <td>@if (plan.IsArchived) { <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Archived</MudChip> }</td>
+                            <td>
+                                @if (plan.Kind == PlanKind.AddOn) { <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Add-on</MudChip> }
+                                @if (plan.IsArchived) { <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Archived</MudChip> }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -89,10 +92,11 @@
 
     private async Task CreatePlanAsync()
     {
-        var dialog = await Dialogs.ShowAsync<CatalogEntryDialog>("New plan");
+        var parameters = new DialogParameters<CatalogEntryDialog> { { dialog => dialog.AskKind, true } };
+        var dialog = await Dialogs.ShowAsync<CatalogEntryDialog>("New plan", parameters);
         if (await dialog.Result is { Canceled: false, Data: CatalogEntryDialog.Entry entry }
             && await ChangeAsync<CreatePlanHandler, PlanResponse>(
-                SystemPermissions.PlansWrite, handler => handler.HandleAsync(new CreatePlanRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description }, Aborted), "The plan was created.") is { } plan)
+                SystemPermissions.PlansWrite, handler => handler.HandleAsync(new CreatePlanRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description, Kind = entry.Kind }, Aborted), "The plan was created.") is { } plan)
         {
             Navigation.NavigateTo($"/admin/plans/{plan.Id}");
         }

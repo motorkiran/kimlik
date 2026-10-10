@@ -65,7 +65,7 @@ public sealed class VerifyApiKeyHandler(
         }
 
         IEnumerable<string> permissions = (await store.PermissionsOfAsync([key.Id], cancellationToken))[key.Id];
-        Plan? plan;
+        EntitlementSource source;
         if (key.UserId is { } userId)
         {
             if (!await context.Users.AnyAsync(user => user.Id == userId && user.Status == DomainUserStatus.Active, cancellationToken))
@@ -75,11 +75,11 @@ public sealed class VerifyApiKeyHandler(
 
             var held = await access.ForUserAsync(userId, organizationId: null, cancellationToken);
             permissions = permissions.Intersect(held.Permissions, StringComparer.Ordinal);
-            plan = await entitlements.PlanOfAsync(Subscriber.User(userId), cancellationToken);
+            source = await entitlements.SourceOfAsync(Subscriber.User(userId), cancellationToken);
         }
         else
         {
-            plan = await entitlements.PlanOfAsync(Subscriber.Organization(key.OrganizationId!.Value), cancellationToken);
+            source = await entitlements.SourceOfAsync(Subscriber.Organization(key.OrganizationId!.Value), cancellationToken);
         }
 
         if (key.LastUsedAt is not { } lastUsed || now - lastUsed >= LastUsedPrecision)
@@ -88,6 +88,6 @@ public sealed class VerifyApiKeyHandler(
                 .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.LastUsedAt, now), cancellationToken);
         }
 
-        return new ApiKeyVerificationResponse(true, key.Id, key.UserId, key.OrganizationId, [.. permissions], plan?.Key, key.ExpiresAt);
+        return new ApiKeyVerificationResponse(true, key.Id, key.UserId, key.OrganizationId, [.. permissions], source.Plan?.Key, key.ExpiresAt, source.IsCustom);
     }
 }

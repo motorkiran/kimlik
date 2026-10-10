@@ -134,6 +134,12 @@
           "isArchived": {
             "type": "boolean"
           },
+          "kind": {
+            "enum": [
+              "base",
+              "addOn"
+            ]
+          },
           "features": {
             "type": [
               "object",

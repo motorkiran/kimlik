@@ -45,4 +45,10 @@ public static class PlanErrors
     public static readonly Error SubscriberNotFound = Error.NotFound("subscription.subscriber_not_found", "The user or organization does not exist.");
 
     public static readonly Error PlanInUse = Error.Conflict("plan.in_use", "The plan has subscriptions; archive it instead.");
+
+    public static readonly Error NotABasePlan = Error.Validation("plan.not_a_base_plan", "Subscriptions are to base plans; add-ons go with them.");
+
+    public static readonly Error NotAnAddOn = Error.Validation("plan.not_an_add_on", "Only add-ons go with a subscription, next to its one base plan.");
+
+    public static readonly Error InvalidQuantity = Error.Validation("subscription.invalid_quantity", "An add-on's quantity is from 1 to 10,000.");
 }

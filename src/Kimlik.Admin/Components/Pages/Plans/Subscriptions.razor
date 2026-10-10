@@ -30,18 +30,29 @@
                 @(context.SubscriberType == SubscriberType.User ? "User" : "Organization") @context.SubscriberId.ToString()[..8]
             </MudLink>
         </MudTd>
-        <MudTd DataLabel="Plan"><code>@context.Plan</code></MudTd>
+        <MudTd DataLabel="Plan">
+            <code>@context.Plan</code>
+            @foreach (var (addOn, quantity) in context.AddOns)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@addOn × @quantity</MudChip>
+            }
+            @if (context.FeatureOverrides.Count > 0)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.FeatureOverrides.Count overrides</MudChip>
+            }
+        </MudTd>
         <MudTd DataLabel="Status">@context.Status</MudTd>
         <MudTd DataLabel="Period ends"><Moment Value="context.CurrentPeriodEnd" Empty="No end" /></MudTd>
         <MudTd>
             @if (CanWrite && context.Status != SubscriptionStatus.Expired)
             {
                 <MudSelect T="string" Value="context.Plan" ValueChanged="plan => ChangePlanAsync(context, plan)" Dense Style="max-width: 10rem" aria-label="Plan">
-                    @foreach (var plan in _plans)
+                    @foreach (var plan in BasePlans.Where(plan => !plan.IsArchived || plan.Key == context.Plan))
                     {
                         <MudSelectItem T="string" Value="plan.Key">@plan.Name</MudSelectItem>
                     }
                 </MudSelect>
+                <MudButton Size="Size.Small" OnClick="() => EditExtrasAsync(context)" data-extras="@context.Id">Add-ons and overrides</MudButton>
                 @if (context.Status != SubscriptionStatus.Canceled)
                 {
                     <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => CancelAsync(context)">Cancel</MudButton>
@@ -63,10 +74,12 @@
 
     private bool CanWrite => Session.Has(SystemPermissions.SubscriptionsWrite);
 
+    private IEnumerable<PlanResponse> BasePlans => _plans.Where(plan => plan.Kind == PlanKind.Base);
+
     protected override async Task OnInitializedAsync()
     {
         var plans = await Operations.RunAsync<ListPlansHandler, Result<Page<PlanResponse>>>(
-            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListPlansQuery(false, null, 200), Aborted));
+            SystemPermissions.SubscriptionsRead, handler => handler.HandleAsync(new ListPlansQuery(null, null, 200), Aborted));
         _plans = plans.IsSuccess ? plans.Value.Items : [];
         await ReloadAsync();
     }
@@ -108,9 +121,20 @@
         }
     }
 
+    private async Task EditExtrasAsync(SubscriptionResponse subscription)
+    {
+        var addOns = _plans.Where(plan => plan.Kind == PlanKind.AddOn && (!plan.IsArchived || subscription.AddOns.ContainsKey(plan.Key))).ToList();
+        var parameters = new DialogParameters<SubscriptionExtrasDialog> { { dialog => dialog.Subscription, subscription }, { dialog => dialog.AddOns, addOns } };
+        var dialog = await Dialogs.ShowAsync<SubscriptionExtrasDialog>("Add-ons and overrides", parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            await ReloadAsync();
+        }
+    }
+
     private async Task CreateAsync()
     {
-        var parameters = new DialogParameters<CreateSubscriptionDialog> { { dialog => dialog.Plans, _plans } };
+        var parameters = new DialogParameters<CreateSubscriptionDialog> { { dialog => dialog.Plans, [.. BasePlans.Where(plan => !plan.IsArchived)] } };
         var dialog = await Dialogs.ShowAsync<CreateSubscriptionDialog>("New subscription", parameters);
         if (await dialog.Result is { Canceled: false })
         {

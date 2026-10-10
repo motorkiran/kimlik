@@ -92,6 +92,11 @@ internal sealed partial class KimlikApiKeyHandler(
             identity.AddClaim(new Claim(KimlikClaimTypes.Plan, plan));
         }
 
+        if (verification.CustomEntitlements)
+        {
+            identity.AddClaim(new Claim(KimlikClaimTypes.CustomEntitlements, "true", ClaimValueTypes.Boolean));
+        }
+
         return new ClaimsPrincipal(identity);
     }
 
