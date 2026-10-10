@@ -1,5 +1,7 @@
+using System.Buffers.Text;
 using System.Globalization;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Kimlik.Admin.Security;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
@@ -74,14 +76,23 @@ internal static class IdentityServiceCollectionExtensions
                 options.LogoutPath = "/signout";
                 options.AccessDeniedPath = "/error";
 
-                // Every new session records when the user signed in; renewals do not sign in again, so they keep it.
+                // Every new session records when the user signed in, and gets an ID; renewals do not sign in again, so they
+                // keep both.
                 var signingIn = options.Events.OnSigningIn;
                 options.Events.OnSigningIn = context =>
                 {
-                    if (context.Principal?.Identity is ClaimsIdentity identity && !identity.HasClaim(claim => claim.Type == SignInFlow.SignedInAtClaim))
+                    if (context.Principal?.Identity is ClaimsIdentity identity)
                     {
-                        var now = timeProvider.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-                        identity.AddClaim(new Claim(SignInFlow.SignedInAtClaim, now, ClaimValueTypes.Integer64));
+                        if (!identity.HasClaim(claim => claim.Type == SignInFlow.SignedInAtClaim))
+                        {
+                            var now = timeProvider.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+                            identity.AddClaim(new Claim(SignInFlow.SignedInAtClaim, now, ClaimValueTypes.Integer64));
+                        }
+
+                        if (!identity.HasClaim(claim => claim.Type == SignInFlow.SessionIdClaim))
+                        {
+                            identity.AddClaim(new Claim(SignInFlow.SessionIdClaim, Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16))));
+                        }
                     }
 
                     return signingIn(context);

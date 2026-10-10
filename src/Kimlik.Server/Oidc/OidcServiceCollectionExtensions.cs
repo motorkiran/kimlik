@@ -1,3 +1,4 @@
+using Kimlik.Application.Accounts;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Kimlik.Server.Diagnostics;
@@ -60,6 +61,14 @@ internal static class OidcServiceCollectionExtensions
                 // Access tokens are plain signed JWTs (RFC 9068) so any resource server can validate them.
                 options.DisableAccessTokenEncryption();
 
+                // Web apps hear when sessions end, server to server, with the session's ID (OpenID Connect Back-Channel Logout).
+                options.AddEventHandler<OpenIddictServerEvents.HandleConfigurationRequestContext>(handler => handler.UseInlineHandler(context =>
+                {
+                    context.Metadata["backchannel_logout_supported"] = true;
+                    context.Metadata["backchannel_logout_session_supported"] = true;
+                    return default;
+                }));
+
                 options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
                     .EnableTokenEndpointPassthrough()
@@ -76,6 +85,8 @@ internal static class OidcServiceCollectionExtensions
 
         services.AddScoped<OidcPrincipalFactory>();
         services.AddScoped<ScopeDescriptions>();
+        services.AddSingleton<IBackChannelLogoutSender, BackChannelLogoutSender>();
+        services.AddHttpClient(BackChannelLogoutSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
 
         // Must come after AddServer: see TokenKeyServiceCollectionExtensions.AddTokenKeys.
         services.AddTokenKeys(HealthProbeExtensions.ReadinessTag);

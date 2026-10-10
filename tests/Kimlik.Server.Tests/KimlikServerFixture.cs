@@ -2,6 +2,7 @@ using System.Net;
 using Kimlik.Application.Abstractions;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Webhooks;
+using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -75,6 +76,7 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
             services.AddSingleton<IEmailSender>(Emails);
             services.AddSingleton<ISmsSender>(Texts);
             services.AddHttpClient(WebhookSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(Webhooks.CreateHandler);
+            services.AddHttpClient(BackChannelLogoutSender.HttpClientName).ConfigurePrimaryHttpMessageHandler(Webhooks.CreateHandler);
         });
 
     /// <summary>

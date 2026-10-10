@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
@@ -43,6 +44,7 @@ public sealed class SignInFlow(
     LinkGenerator links,
     IKimlikDbContext context,
     IAuditLog auditLog,
+    BackChannelLogout backChannelLogout,
     TimeProvider timeProvider)
 {
     /// <summary>
@@ -71,6 +73,12 @@ public sealed class SignInFlow(
     /// renewed, so it cannot tell how recent the sign-in is.
     /// </summary>
     public const string SignedInAtClaim = "kimlik:signed_in_at";
+
+    /// <summary>
+    /// The ID of the browser session, which ID tokens carry as <c>sid</c> and logout tokens name (OpenID Connect
+    /// Back-Channel Logout); stamped when the session starts, and kept while it is renewed.
+    /// </summary>
+    public const string SessionIdClaim = "kimlik:session_id";
 
     /// <summary>The second factor of a session that used a passkey for it; sessions without it used a one-time code.</summary>
     public const string SecondFactorClaim = "kimlik:second_factor";
@@ -167,6 +175,13 @@ public sealed class SignInFlow(
             claims.Add(new Claim(SecondFactorClaim, PasskeyMethod));
         }
 
+        // A step-up, or signing in again, continues the browser session the user already has, with its ID.
+        var current = signInManager.Context.User;
+        if (SessionIdOf(current) is { } sessionId && signInManager.UserManager.GetUserId(current) == user.Id.ToString())
+        {
+            claims.Add(new Claim(SessionIdClaim, sessionId));
+        }
+
         if (provider is not null)
         {
             claims.Add(new Claim(ProviderClaim, provider));
@@ -185,7 +200,8 @@ public sealed class SignInFlow(
     public async Task ImpersonateAsync(User user, ClaimsPrincipal administrator, CancellationToken cancellationToken)
     {
         var administratorId = signInManager.UserManager.GetUserId(administrator)!;
-        var claims = KeptClaims(administrator).Append(new Claim(ActorClaim, administratorId));
+        // The impersonation gets a session ID of its own: ending it does not end the administrator's apps.
+        var claims = KeptClaims(administrator).Where(claim => claim.Type != SessionIdClaim).Append(new Claim(ActorClaim, administratorId));
         var properties = new AuthenticationProperties
         {
             IsPersistent = false,
@@ -213,11 +229,21 @@ public sealed class SignInFlow(
                 AuditSubject.User(Guid.Parse(userId)),
                 new Dictionary<string, object?> { ["administrator"] = administratorId },
                 AuditActor.User(Guid.Parse(administratorId)));
+
+            // The apps the administrator signed in to as the user hear that the impersonation ended.
+            if (SessionIdOf(session) is { } sessionId)
+            {
+                await backChannelLogout.EndSessionAsync(Guid.Parse(userId), sessionId, cancellationToken);
+            }
+
             await context.SaveChangesAsync(cancellationToken);
         }
 
         await signInManager.SignOutAsync();
     }
+
+    /// <summary>The ID of the browser session; sessions from before it was stamped have none.</summary>
+    public static string? SessionIdOf(ClaimsPrincipal session) => session.FindFirstValue(SessionIdClaim);
 
     /// <summary>The administrator acting as the session's user, when the session impersonates them.</summary>
     public static string? ActorOf(ClaimsPrincipal session) => session.FindFirstValue(ActorClaim);
@@ -255,7 +281,7 @@ public sealed class SignInFlow(
     /// user again.
     /// </summary>
     public static IEnumerable<Claim> KeptClaims(ClaimsPrincipal session) => session.Claims
-        .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or SecondFactorClaim or ActorClaim)
+        .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or SecondFactorClaim or ActorClaim or SessionIdClaim)
         .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
 
     /// <summary>How the session's user verified the second step, if they did: with a passkey (<c>pop</c>) or a one-time code.</summary>

@@ -38,7 +38,8 @@ public sealed record ClientResponse(
     bool RequireOrganization,
     bool RequirePushedAuthorization,
     JsonObject? JsonWebKeySet,
-    bool AllowTokenExchange);
+    bool AllowTokenExchange,
+    string? BackChannelLogoutUri);
 
 public sealed record CreateClientRequest
 {
@@ -101,6 +102,13 @@ public sealed record CreateClientRequest
     /// them on the users' behalf.
     /// </summary>
     public bool AllowTokenExchange { get; init; }
+
+    /// <summary>
+    /// Where a web client receives logout tokens when the user's session ends (OpenID Connect Back-Channel Logout 1.0):
+    /// HTTPS, or HTTP on localhost.
+    /// </summary>
+    [StringLength(2000)]
+    public string? BackChannelLogoutUri { get; init; }
 }
 
 /// <summary>
@@ -187,6 +195,18 @@ public sealed record UpdateClientRequest
         }
     }
 
+    /// <summary>Where a web client receives logout tokens; <c>null</c> stops them.</summary>
+    [StringLength(2000)]
+    public string? BackChannelLogoutUri
+    {
+        get;
+        init
+        {
+            field = value;
+            HasBackChannelLogoutUri = true;
+        }
+    }
+
     /// <summary>Whether the request sets <see cref="DisplayName"/>.</summary>
     [JsonIgnore]
     public bool HasDisplayName { get; private init; }
@@ -206,4 +226,8 @@ public sealed record UpdateClientRequest
     /// <summary>Whether the request sets <see cref="JsonWebKeySet"/>.</summary>
     [JsonIgnore]
     public bool HasJsonWebKeySet { get; private init; }
+
+    /// <summary>Whether the request sets <see cref="BackChannelLogoutUri"/>.</summary>
+    [JsonIgnore]
+    public bool HasBackChannelLogoutUri { get; private init; }
 }

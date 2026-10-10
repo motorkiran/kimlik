@@ -236,6 +236,12 @@
           "allowTokenExchange": {
             "type": "boolean"
           },
+          "backChannelLogoutUri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "roles": {
             "type": [
               "array",

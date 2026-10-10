@@ -232,12 +232,12 @@ The backlog, roughly in priority order:
 3. Hosted or embeddable components for organization management.
 4. Per-subscriber entitlement overrides and add-ons, and usage metering.
 5. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-6. Multiple client secrets, DPoP and back-channel logout.
+6. Multiple client secrets and DPoP.
 7. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 8. A JavaScript/TypeScript SDK and a Helm chart.
 9. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)).
 
 ### 4.3 Out of scope
 
@@ -649,6 +649,16 @@ A backend that received a user's access token can exchange it for one to call an
 - **The token.** An access token for the user (`sub`) and the APIs of the scopes, with the user's roles and permissions for them, in the subject token's organization, and its `amr` and `auth_time`. `act` names the exchanging client (`{"sub": client ID, "client_id": client ID}`, RFC 8693, section 4.1), with the subject token's own `act`, such as an impersonating administrator, nested inside. It expires no later than the subject token, and comes without a refresh or ID token.
 - **Checks.** The user must still be able to sign in, as on every refresh.
 
+### 8.10 Back-channel logout
+
+When someone signs out of Kimlik, the web apps they signed in to through that session hear of it server to server (OpenID Connect Back-Channel Logout 1.0), so they can end their own sessions.
+
+- **Clients.** Web clients may register a `backChannelLogoutUri`, on HTTPS, or HTTP on the loopback interface.
+- **Sessions.** Every browser session of the hosted pages has an ID, which ID tokens carry as `sid`, and Kimlik remembers which clients with a back-channel URI each session signed in to. An administrator impersonating a user gets a session ID of its own.
+- **Logout tokens.** When a session ends, by the sign-out page or a logout the app started, each of those clients gets a logout token: a JWT signed with Kimlik's token signing key, typed `logout+jwt`, with `iss`, `aud` (the client ID), `iat`, `exp` two minutes later, `jti`, `sub`, `sid` and the back-channel logout event, posted as the `logout_token` form field. When all of a user's sessions end, after signing out everywhere, a password change or reset, a suspension or a deletion, every client they signed in to through any session gets one without `sid`.
+- **Delivery** is from the outbox, retried until the client answers with a 2xx status. Discovery says `backchannel_logout_supported` and `backchannel_logout_session_supported`.
+- **Records** of which clients a session signed in to go when the session ends, and after 90 days otherwise.
+
 ---
 
 ## 9. API design
@@ -1041,6 +1051,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ (M9 to M16 released as v0.2.0, 2026-10-10) |
 | **M17: Phone numbers and SMS codes** | Netgsm, İleti Merkezi and Twilio adapters; verified phone numbers on accounts; sign-in with SMS codes ([§10.9](#109-phone-numbers-and-sms-codes)) | A person adds a number and signs in with a code sent to it, in end-to-end tests with a fake provider, and each adapter sends the request its provider documents ✅ |
 | **M18: Token exchange** | Delegation to other APIs with RFC 8693 token exchange ([§8.9](#89-token-exchange)) | A service exchanges a user's access token for one to another API, with `act`, in end-to-end tests ✅ |
+| **M19: Back-channel logout** | Logout tokens to web clients when a session or all of a user's sessions end ([§8.10](#810-back-channel-logout)) | Signing out sends the apps of that session a signed logout token, and signing out everywhere those of every session, in end-to-end tests ✅ |
 
 ---
 

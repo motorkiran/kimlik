@@ -1,3 +1,4 @@
+using Kimlik.Application.Accounts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +10,8 @@ namespace Kimlik.Infrastructure.Persistence;
 /// <summary>
 /// Deletes the protocol data that can no longer be used once it is two weeks old: expired, redeemed and revoked
 /// tokens (social login state tokens among them), and the authorizations of revoked sessions. Until then, a reused
-/// refresh token is still recognized and revokes its session. One instance prunes at a time.
+/// refresh token is still recognized and revokes its session. Records of the clients a browser session signed in to
+/// go after 90 days. One instance prunes at a time.
 /// </summary>
 internal sealed partial class ProtocolDataPruner(
     KimlikDbContext context,
@@ -40,6 +42,8 @@ internal sealed partial class ProtocolDataPruner(
                 var threshold = timeProvider.GetUtcNow() - RetentionPeriod;
                 var prunedTokens = await tokens.PruneAsync(threshold, cancellationToken);
                 var prunedAuthorizations = await authorizations.PruneAsync(threshold, cancellationToken);
+                var sessionsThreshold = timeProvider.GetUtcNow() - BackChannelLogout.RetentionPeriod;
+                await context.SessionClients.Where(record => record.SignedInAt < sessionsThreshold).ExecuteDeleteAsync(cancellationToken);
 
                 if (prunedTokens > 0 || prunedAuthorizations > 0)
                 {

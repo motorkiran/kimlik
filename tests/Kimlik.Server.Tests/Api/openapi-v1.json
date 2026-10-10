@@ -7995,7 +7995,8 @@
           "requireOrganization",
           "requirePushedAuthorization",
           "jsonWebKeySet",
-          "allowTokenExchange"
+          "allowTokenExchange",
+          "backChannelLogoutUri"
         ],
         "type": "object",
         "properties": {
@@ -8060,6 +8061,12 @@
           },
           "allowTokenExchange": {
             "type": "boolean"
+          },
+          "backChannelLogoutUri": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "An application that requests tokens. `scopes` are what it may request; `roles` are the global\nroles of a service client.\nA web or service client with `jsonWebKeySet` authenticates with those keys (`private_key_jwt`) instead of a secret."
@@ -8235,6 +8242,15 @@
           "allowTokenExchange": {
             "type": "boolean",
             "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693), to call\nthem on the users' behalf."
+          },
+          "backChannelLogoutUri": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where a web client receives logout tokens when the user's session ends (OpenID Connect Back-Channel Logout 1.0):\nHTTPS, or HTTP on localhost."
           }
         }
       },
@@ -9826,6 +9842,15 @@
             "type": "boolean",
             "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693)."
           },
+          "backChannelLogoutUri": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where a web client receives logout tokens when the user's session ends."
+          },
           "roles": {
             "maxItems": 50,
             "type": [
@@ -10440,6 +10465,15 @@
                 "$ref": "#/components/schemas/JsonObject"
               }
             ]
+          },
+          "backChannelLogoutUri": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where a web client receives logout tokens; `null` stops them."
           }
         },
         "description": "Changes a client with JSON Merge Patch semantics: an omitted property keeps its value, and `null` empties\na list. Lists are replaced as a whole."

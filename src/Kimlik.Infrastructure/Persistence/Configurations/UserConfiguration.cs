@@ -50,3 +50,16 @@ internal sealed class UserPasskeyConfiguration : IEntityTypeConfiguration<Identi
 {
     public void Configure(EntityTypeBuilder<IdentityUserPasskey<Guid>> builder) => builder.ToTable("user_passkeys");
 }
+
+internal sealed class SessionClientConfiguration : IEntityTypeConfiguration<SessionClient>
+{
+    public void Configure(EntityTypeBuilder<SessionClient> builder)
+    {
+        builder.ToTable("session_clients");
+        builder.HasKey(record => new { record.SessionId, record.ClientId });
+        builder.Property(record => record.SessionId).HasMaxLength(SessionClient.SessionIdMaxLength);
+        builder.Property(record => record.ClientId).HasMaxLength(SessionClient.ClientIdMaxLength);
+        builder.HasIndex(record => record.UserId);
+        builder.HasOne<User>().WithMany().HasForeignKey(record => record.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

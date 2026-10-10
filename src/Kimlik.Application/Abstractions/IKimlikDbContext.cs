@@ -16,6 +16,8 @@ public interface IKimlikDbContext
 {
     DbSet<User> Users { get; }
 
+    DbSet<SessionClient> SessionClients { get; }
+
     DbSet<Permission> Permissions { get; }
 
     DbSet<Role> Roles { get; }

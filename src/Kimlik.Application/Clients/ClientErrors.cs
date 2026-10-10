@@ -58,4 +58,10 @@ public static class ClientErrors
 
     public static readonly Error TokenExchangeNotSupported = Error.Validation(
         "client.token_exchange_not_supported", "Only web and service clients, which keep a secret or keys, may exchange tokens.");
+
+    public static readonly Error BackChannelLogoutNotSupported = Error.Validation(
+        "client.back_channel_logout_not_supported", "Only web clients, which have a server to receive them, get logout tokens.");
+
+    public static readonly Error InvalidBackChannelLogoutUri = Error.Validation(
+        "client.invalid_back_channel_logout_uri", "The back-channel logout URI is absolute, without a fragment, and uses HTTPS, or HTTP for localhost.");
 }

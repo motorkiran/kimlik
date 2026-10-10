@@ -148,6 +148,10 @@ public sealed record ProvisionedClient
     /// <summary>Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693).</summary>
     public bool AllowTokenExchange { get; init; }
 
+    /// <summary>Where a web client receives logout tokens when the user's session ends.</summary>
+    [StringLength(2000)]
+    public string? BackChannelLogoutUri { get; init; }
+
     /// <summary>Keys of a service client's global roles; when omitted, an existing client keeps its roles.</summary>
     [MaxLength(50)]
     public IReadOnlyList<string>? Roles { get; init; }

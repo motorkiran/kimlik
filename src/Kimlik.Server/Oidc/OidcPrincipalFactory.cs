@@ -37,6 +37,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         DateTimeOffset? authenticatedAt,
         IReadOnlyList<string> authenticationMethods,
         Guid? organizationId,
+        string? sessionId,
         CancellationToken cancellationToken)
     {
         var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
@@ -66,6 +67,9 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         }
 
         AddArrayClaim(identity, Claims.AuthenticationMethodReference, authenticationMethods);
+
+        // The browser session the tokens came from, which logout tokens name (OpenID Connect Back-Channel Logout).
+        identity.SetClaim(JwtRegisteredClaimNames.Sid, sessionId);
 
         identity.SetScopes(grantedScopes);
         identity.SetResources(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)]);
@@ -239,6 +243,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
                 => [Destinations.AccessToken],
 
             KimlikClaimTypes.OrganizationId => [Destinations.AccessToken, Destinations.IdentityToken],
+
+            JwtRegisteredClaimNames.Sid => [Destinations.IdentityToken],
 
             _ => [],
         };

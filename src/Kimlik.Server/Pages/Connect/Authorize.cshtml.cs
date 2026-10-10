@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Kimlik.Application.Accounts;
 using Kimlik.Application.Clients;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
@@ -40,6 +41,7 @@ public sealed class AuthorizeModel(
     OidcPrincipalFactory principalFactory,
     IAntiforgery antiforgery,
     IDataProtectionProvider dataProtection,
+    BackChannelLogout backChannelLogout,
     TimeProvider timeProvider) : PageModel
 {
     private const string ConsentField = "consent";
@@ -180,6 +182,7 @@ public sealed class AuthorizeModel(
             SignInFlow.SignedInAt(session),
             OidcPrincipalFactory.AuthenticationMethodsOf(session.Principal!),
             organizationId,
+            SignInFlow.SessionIdOf(session.Principal!),
             cancellationToken);
 
         // A permanent authorization records the consent and ties together every token issued under it. An administrator
@@ -198,6 +201,12 @@ public sealed class AuthorizeModel(
         }
 
         identity.SetAuthorizationId(await authorizations.GetIdAsync(authorization, cancellationToken));
+
+        // A web app that wants to hear when this browser session ends is remembered with it.
+        if (SignInFlow.SessionIdOf(session.Principal!) is { } sessionId)
+        {
+            await backChannelLogout.RecordAsync(sessionId, user.Id, request.ClientId!, cancellationToken);
+        }
 
         return SignIn(new System.Security.Claims.ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }

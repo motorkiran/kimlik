@@ -24,7 +24,8 @@ internal sealed record ClientSettings(
     IReadOnlyList<string> Scopes,
     bool RequireOrganization,
     bool RequirePushedAuthorization,
-    bool AllowTokenExchange);
+    bool AllowTokenExchange,
+    string? BackChannelLogoutUri);
 
 /// <summary>
 /// Turns a client type into OpenIddict settings, and back. The type is not stored: it is read from the settings
@@ -34,6 +35,9 @@ public static partial class ClientPresets
 {
     /// <summary>The application property, in OpenIddict's custom properties, that makes sign-ins require an organization.</summary>
     public const string RequireOrganizationProperty = "kimlik_require_organization";
+
+    /// <summary>The application property with the URI that receives logout tokens (OpenID Connect Back-Channel Logout).</summary>
+    public const string BackChannelLogoutUriProperty = "kimlik_backchannel_logout_uri";
 
     private const int UriMaxLength = 2000;
 
@@ -130,6 +134,19 @@ public static partial class ClientPresets
             return ClientErrors.TokenExchangeNotSupported;
         }
 
+        if (settings.BackChannelLogoutUri is { } logoutUri)
+        {
+            if (type != ClientType.Web)
+            {
+                return ClientErrors.BackChannelLogoutNotSupported;
+            }
+
+            if (!IsValidRedirectUri(logoutUri, ClientType.Web))
+            {
+                return ClientErrors.InvalidBackChannelLogoutUri;
+            }
+        }
+
         var apiScopes = settings.Scopes.Where(scope => !UserScopes.Contains(scope)).Distinct(StringComparer.Ordinal).ToList();
         var registered = await context.Scopes.CountAsync(scope => apiScopes.Contains(scope.Name!), cancellationToken);
 
@@ -197,6 +214,12 @@ public static partial class ClientPresets
             descriptor.Permissions.Add(OidcPermissions.GrantTypes.TokenExchange);
         }
 
+        descriptor.Properties.Remove(BackChannelLogoutUriProperty);
+        if (settings.BackChannelLogoutUri is { } backChannelLogoutUri)
+        {
+            descriptor.Properties[BackChannelLogoutUriProperty] = JsonSerializer.SerializeToElement(backChannelLogoutUri);
+        }
+
         descriptor.Properties.Remove(RequireOrganizationProperty);
         if (settings.RequireOrganization)
         {
@@ -207,6 +230,13 @@ public static partial class ClientPresets
     /// <summary>Whether sign-ins to the client must happen in an organization.</summary>
     public static bool RequiresOrganization(IReadOnlyDictionary<string, JsonElement> properties) =>
         properties.TryGetValue(RequireOrganizationProperty, out var value) && value.ValueKind == JsonValueKind.True;
+
+    /// <summary>Where the client receives logout tokens, if it wants to hear when sessions end.</summary>
+    public static Uri? BackChannelLogoutUriOf(IReadOnlyDictionary<string, JsonElement> properties) =>
+        properties.TryGetValue(BackChannelLogoutUriProperty, out var value) && value.ValueKind == JsonValueKind.String
+            && Uri.TryCreate(value.GetString(), UriKind.Absolute, out var uri)
+            ? uri
+            : null;
 
     internal static ClientType TypeOf(string? clientType, string? applicationType, IEnumerable<string> permissions) => clientType switch
     {

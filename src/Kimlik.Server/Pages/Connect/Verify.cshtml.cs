@@ -108,6 +108,7 @@ public sealed class VerifyModel(
             SignInFlow.SignedInAt(session),
             OidcPrincipalFactory.AuthenticationMethodsOf(session.Principal!),
             organizationId: null,
+            sessionId: null,
             cancellationToken);
 
         // The device's own authorization ties its tokens together and lists it among the user's sessions.

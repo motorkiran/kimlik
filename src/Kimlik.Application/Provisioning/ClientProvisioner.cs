@@ -39,6 +39,7 @@ public sealed class ClientProvisioner(
                     RequirePushedAuthorization = declared.RequirePushedAuthorization,
                     JsonWebKeySet = declared.JsonWebKeySet,
                     AllowTokenExchange = declared.AllowTokenExchange,
+                    BackChannelLogoutUri = declared.BackChannelLogoutUri,
                 },
                 declared.ClientSecret,
                 cancellationToken);
@@ -65,6 +66,7 @@ public sealed class ClientProvisioner(
                 RequireOrganization = declared.RequireOrganization,
                 RequirePushedAuthorization = declared.RequirePushedAuthorization,
                 AllowTokenExchange = declared.AllowTokenExchange,
+                BackChannelLogoutUri = declared.BackChannelLogoutUri,
             };
             var updated = await update.HandleAsync(
                 existing.Id, declared.JsonWebKeySet is { } keys ? request with { JsonWebKeySet = keys } : request, cancellationToken);
@@ -111,6 +113,7 @@ public sealed class ClientProvisioner(
         && existing.RequireOrganization == declared.RequireOrganization
         && existing.RequirePushedAuthorization == declared.RequirePushedAuthorization
         && existing.AllowTokenExchange == declared.AllowTokenExchange
+        && existing.BackChannelLogoutUri == (declared.BackChannelLogoutUri is { } uri && Uri.TryCreate(uri, UriKind.Absolute, out var parsed) ? parsed.AbsoluteUri : declared.BackChannelLogoutUri)
         && (declared.JsonWebKeySet is null || ClientKeys.AreSame(existing.JsonWebKeySet, declared.JsonWebKeySet))
         && Declared.SameUris(existing.RedirectUris, declared.RedirectUris)
         && Declared.SameUris(existing.PostLogoutRedirectUris, declared.PostLogoutRedirectUris)

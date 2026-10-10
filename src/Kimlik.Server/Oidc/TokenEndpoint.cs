@@ -11,6 +11,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -134,6 +135,7 @@ internal static class TokenEndpoint
                 authenticatedAt,
                 methods,
                 organization.Value?.Id,
+                exchange ? null : principal.GetClaim(JwtRegisteredClaimNames.Sid),
                 cancellationToken);
 
         if (exchange)

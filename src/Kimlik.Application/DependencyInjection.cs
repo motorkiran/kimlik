@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<EmailSignIn>();
         services.AddScoped<PhoneSignIn>();
         services.AddScoped<UserPhoneNumbers>();
+        services.AddScoped<BackChannelLogout>();
         services.AddScoped<PersonalDataExporter>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();

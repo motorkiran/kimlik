@@ -87,6 +87,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
                 RequireOrganization = client.RequireOrganization,
                 RequirePushedAuthorization = client.RequirePushedAuthorization,
                 AllowTokenExchange = client.AllowTokenExchange,
+                BackChannelLogoutUri = client.BackChannelLogoutUri,
                 JsonWebKeySet = client.JsonWebKeySet,
             });
         }

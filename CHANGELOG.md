@@ -8,10 +8,11 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 - Phone numbers and SMS codes: texts go out through Netgsm, İleti Merkezi or Twilio (`Kimlik:Sms`); people add a number on the account pages by entering the code texted to it, and sign in with texted codes (`amr` `["sms"]`); the `phone` scope adds `phone_number` and `phone_number_verified`; administrators see and remove numbers through the Management API, `Kimlik.Client` and the admin panel, and users through the Account API.
 - Token exchange (RFC 8693): web and service clients allowed to (`allowTokenExchange`) exchange a user's access token meant for them for one to other APIs, acting for the user (`act` names the client, with any earlier actor nested inside); an API registers as a service client whose client ID is its audience.
+- Back-channel logout (OpenID Connect Back-Channel Logout 1.0): web clients with a `backChannelLogoutUri` get a signed logout token when the browser session they signed a user in through ends, with its `sid`, which ID tokens now carry, and one without `sid` when all of the user's sessions end, as after signing out everywhere, a password change, a suspension or a deletion.
 
 ### Changed
 
-- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange`; code that constructs them positionally must pass them.
+- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange` and `BackChannelLogoutUri`; code that constructs them positionally must pass them.
 - The Account API refuses changes from any token in which someone else acts for the user, a client that exchanged it as well as an impersonating administrator.
 - Sign-in codes are kept per purpose, so codes asked for before the upgrade stop working.
 

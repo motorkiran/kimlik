@@ -21,6 +21,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 {
     public const string Schema = "kimlik";
 
+    public DbSet<SessionClient> SessionClients => Set<SessionClient>();
+
     public DbSet<Permission> Permissions => Set<Permission>();
 
     public DbSet<Role> Roles => Set<Role>();
