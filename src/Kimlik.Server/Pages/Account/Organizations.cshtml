@@ -1,0 +1,76 @@
+@page "/account/organizations"
+@model OrganizationsModel
+@{
+    ViewData["Title"] = L["Organizations"];
+}
+
+<p class="back"><a asp-page="/Account/Index">@L["Back to your account"]</a></p>
+
+<h1 id="page-title">@L["Organizations"]</h1>
+<p class="lead">@L["The organizations you belong to, such as your company or team."]</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.Invitations.Count > 0)
+{
+    <h2>@L["Invitations"]</h2>
+    <ul class="list" id="invitations">
+        @foreach (var invitation in Model.Invitations)
+        {
+            <li>
+                <div>
+                    <strong>@invitation.OrganizationName</strong>
+                    <div class="hint">@L["Until {0}", invitation.ExpiresAt.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)]</div>
+                </div>
+                <div class="inline-actions">
+                    <form method="post" asp-page-handler="Accept" asp-route-id="@invitation.Id">
+                        <button type="submit" class="button button-small">@L["Join"]</button>
+                    </form>
+                    <form method="post" asp-page-handler="Decline" asp-route-id="@invitation.Id">
+                        <button type="submit" class="button button-secondary button-small">@L["Decline"]</button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@if (Model.Organizations.Count == 0)
+{
+    <p class="hint" id="no-organizations">@L["You do not belong to any organizations yet."]</p>
+}
+else
+{
+    <nav class="menu" id="organizations" aria-label="@L["Organizations"]">
+        @foreach (var organization in Model.Organizations)
+        {
+            <a asp-page="/Account/Organization" asp-route-id="@organization.Id">
+                <span>@organization.Name</span>
+                <span class="badge">@(organization.Roles.Count == 0 ? L["Member"].Value : string.Join(", ", organization.Roles))</span>
+            </a>
+        }
+    </nav>
+}
+
+@if (Model.CanCreate)
+{
+    <h2>@L["Create an organization"]</h2>
+    <partial name="_FormError" />
+    <form method="post" asp-page-handler="Create" id="create-organization" novalidate>
+        <div class="field">
+            <label asp-for="Input.Name"></label>
+            <input asp-for="Input.Name" autocomplete="organization" />
+            <span asp-validation-for="Input.Name" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Slug"></label>
+            <input asp-for="Input.Slug" autocapitalize="none" spellcheck="false" aria-describedby="slug-hint" />
+            <span id="slug-hint" class="hint">@L["Lowercase letters, digits and hyphens, such as acme. Applications may show it in links."]</span>
+            <span asp-validation-for="Input.Slug" class="field-error"></span>
+        </div>
+        <button type="submit" class="button">@L["Create"]</button>
+    </form>
+}

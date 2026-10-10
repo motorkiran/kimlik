@@ -1,0 +1,40 @@
+@page "/account/organizations/{id:guid}/members/{userId:guid}"
+@model OrganizationMemberModel
+@{
+    ViewData["Title"] = Model.Member.Email ?? L["Member"];
+}
+
+<p class="back"><a asp-page="/Account/Organization" asp-route-id="@Model.OrganizationId">@L["Back to the organization"]</a></p>
+
+<h1 id="page-title">@(Model.Member.Name ?? Model.Member.Email)</h1>
+@if (Model.Member.Name is not null)
+{
+    <p class="lead">@Model.Member.Email</p>
+}
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Message</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post" asp-page-handler="Roles" id="roles">
+    <fieldset class="field">
+        <legend>@L["Roles"]</legend>
+        @foreach (var role in Model.Roles)
+        {
+            <label class="checkbox"><input type="checkbox" name="Selected" value="@role.Key" checked="@Model.Selected.Contains(role.Key)" /> @role.Name</label>
+        }
+    </fieldset>
+    <button type="submit" class="button">@L["Save"]</button>
+</form>
+
+<section class="section">
+    <form method="post" asp-page-handler="Remove" id="remove-member">
+        <button type="submit" class="button button-secondary">@L["Remove from the organization"]</button>
+        <p class="hint">@L["They lose their roles in the organization."]</p>
+    </form>
+</section>

@@ -4,6 +4,8 @@ using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Common;
+using Kimlik.Domain.Organizations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kimlik.Application.Organizations;
 
@@ -53,6 +55,20 @@ public sealed class OrganizationSelfService(
     {
         var caller = await guard.AuthorizeAsync(callerId, query.OrganizationId, SystemPermissions.OrganizationMembersRead, cancellationToken);
         return caller.IsFailure ? caller.Error : await listMembers.HandleAsync(query, cancellationToken);
+    }
+
+    public async Task<Result<MemberResponse>> GetMemberAsync(Guid callerId, Guid organizationId, Guid memberId, CancellationToken cancellationToken)
+    {
+        var caller = await guard.AuthorizeAsync(callerId, organizationId, SystemPermissions.OrganizationMembersRead, cancellationToken);
+        if (caller.IsFailure)
+        {
+            return caller.Error;
+        }
+
+        return await context.Memberships.AsNoTracking()
+            .SingleOrDefaultAsync(membership => membership.OrganizationId == organizationId && membership.UserId == memberId, cancellationToken) is { } member
+            ? await context.ToMemberResponseAsync(member, cancellationToken)
+            : OrganizationErrors.MemberNotFound;
     }
 
     public async Task<Result<MemberResponse>> SetMemberRolesAsync(

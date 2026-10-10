@@ -1,0 +1,141 @@
+@page "/account/organizations/{id:guid}"
+@model OrganizationModel
+@{
+    ViewData["Title"] = Model.Organization.Name;
+}
+
+<p class="back"><a asp-page="/Account/Organizations">@L["Back to your organizations"]</a></p>
+
+<h1 id="page-title">@Model.Organization.Name</h1>
+<p class="lead" id="your-roles">
+    @(Model.Organization.Roles.Count == 0 ? L["You are a member."] : L["Your roles: {0}", string.Join(", ", Model.Organization.Roles)])
+</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-success" role="status">@Model.Message</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+<partial name="_FormError" />
+
+@if (Model.CanSeeMembers)
+{
+    <section class="section" aria-labelledby="members-title">
+        <h2 id="members-title">@L["Members"]</h2>
+        <ul class="list" id="members">
+            @foreach (var member in Model.Members)
+            {
+                <li>
+                    <div>
+                        <strong>@(member.Name ?? member.Email)</strong>
+                        <div class="hint">
+                            @if (member.Name is not null)
+                            {
+                                <span>@member.Email ·</span>
+                            }
+                            @(member.Roles.Count == 0 ? L["No roles"].Value : string.Join(", ", member.Roles))
+                        </div>
+                    </div>
+                    @if (Model.CanManageMembers)
+                    {
+                        <a class="button button-secondary button-small" asp-page="/Account/OrganizationMember" asp-route-id="@Model.Organization.Id" asp-route-userId="@member.UserId">@L["Manage"]</a>
+                    }
+                </li>
+            }
+        </ul>
+        @if (Model.NextCursor is not null)
+        {
+            <p><a asp-route-cursor="@Model.NextCursor" id="more-members">@L["More members"]</a></p>
+        }
+
+        @if (Model.Invitations.Count > 0)
+        {
+            <h2>@L["Invitations"]</h2>
+            <ul class="list" id="invitations">
+                @foreach (var invitation in Model.Invitations)
+                {
+                    <li>
+                        <div>
+                            <strong>@invitation.Email</strong>
+                            <div class="hint">@L["Until {0}", invitation.ExpiresAt.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)]</div>
+                        </div>
+                        @if (Model.CanManageMembers)
+                        {
+                            <div class="inline-actions">
+                                <form method="post" asp-page-handler="Resend" asp-route-invitationId="@invitation.Id">
+                                    <button type="submit" class="button button-secondary button-small">@L["Send again"]</button>
+                                </form>
+                                <form method="post" asp-page-handler="Revoke" asp-route-invitationId="@invitation.Id">
+                                    <button type="submit" class="button button-secondary button-small">@L["Revoke"]</button>
+                                </form>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (Model.CanManageMembers)
+        {
+            <h2>@L["Invite someone"]</h2>
+            <form method="post" asp-page-handler="Invite" id="invite" novalidate>
+                <div class="field">
+                    <label asp-for="Invite.Email"></label>
+                    <input asp-for="Invite.Email" autocomplete="off" />
+                    <span asp-validation-for="Invite.Email" class="field-error"></span>
+                </div>
+                @if (Model.Roles.Count > 0)
+                {
+                    <fieldset class="field">
+                        <legend>@L["Roles"]</legend>
+                        @foreach (var role in Model.Roles)
+                        {
+                            <label class="checkbox"><input type="checkbox" name="Invite.Roles" value="@role.Key" checked="@Model.Invite.Roles.Contains(role.Key)" /> @role.Name</label>
+                        }
+                    </fieldset>
+                }
+                <button type="submit" class="button">@L["Send invitation"]</button>
+            </form>
+        }
+    </section>
+}
+
+@if (Model.CanChangeSettings)
+{
+    <section class="section" aria-labelledby="settings-title">
+        <h2 id="settings-title">@L["Settings"]</h2>
+        <form method="post" asp-page-handler="Settings" id="settings" novalidate>
+            <div class="field">
+                <label asp-for="Settings.Name"></label>
+                <input asp-for="Settings.Name" autocomplete="organization" />
+                <span asp-validation-for="Settings.Name" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Settings.Slug"></label>
+                <input asp-for="Settings.Slug" autocapitalize="none" spellcheck="false" aria-describedby="slug-hint" />
+                <span id="slug-hint" class="hint">@L["Applications that use the short name in links must switch to the new one."]</span>
+                <span asp-validation-for="Settings.Slug" class="field-error"></span>
+            </div>
+            <button type="submit" class="button">@L["Save"]</button>
+        </form>
+
+        <form method="post" asp-page-handler="Delete" id="delete-organization" novalidate>
+            <div class="field">
+                <label for="confirmation">@L["Type {0} to delete the organization", Model.Organization.Slug]</label>
+                <input id="confirmation" name="confirmation" autocapitalize="none" spellcheck="false" autocomplete="off" aria-describedby="delete-hint" />
+                <span id="delete-hint" class="hint">@L["Its members lose their roles in it, and its invitations, subscription and API keys are deleted. This cannot be undone."]</span>
+            </div>
+            <button type="submit" class="button button-danger">@L["Delete organization"]</button>
+        </form>
+    </section>
+}
+
+<section class="section">
+    <form method="post" asp-page-handler="Leave" id="leave">
+        <button type="submit" class="button button-secondary">@L["Leave organization"]</button>
+        <p class="hint">@L["You lose your roles in it. Someone has to invite you to join again."]</p>
+    </form>
+</section>

@@ -871,4 +871,160 @@
   <data name="Your account is linked to another account at your organization's provider. Ask an administrator." xml:space="preserve">
     <value>Hesabınız, kurumunuzun kimlik sağlayıcısındaki başka bir hesaba bağlı. Bir yöneticiye başvurun.</value>
   </data>
+  <data name="Another organization has this short name." xml:space="preserve">
+    <value>Bu kısa ad başka bir organizasyonda kullanılıyor.</value>
+  </data>
+  <data name="Applications that use the short name in links must switch to the new one." xml:space="preserve">
+    <value>Kısa adı bağlantılarda kullanan uygulamaların yenisine geçmesi gerekir.</value>
+  </data>
+  <data name="Back to the organization" xml:space="preserve">
+    <value>Organizasyona dönün</value>
+  </data>
+  <data name="Back to your organizations" xml:space="preserve">
+    <value>Organizasyonlarınıza dönün</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Oluştur</value>
+  </data>
+  <data name="Create an organization" xml:space="preserve">
+    <value>Organizasyon oluştur</value>
+  </data>
+  <data name="Decline" xml:space="preserve">
+    <value>Reddet</value>
+  </data>
+  <data name="Delete organization" xml:space="preserve">
+    <value>Organizasyonu sil</value>
+  </data>
+  <data name="Enter a name of at most 100 characters." xml:space="preserve">
+    <value>En fazla 100 karakterlik bir ad girin.</value>
+  </data>
+  <data name="Enter a name." xml:space="preserve">
+    <value>Bir ad girin.</value>
+  </data>
+  <data name="Enter a short name." xml:space="preserve">
+    <value>Bir kısa ad girin.</value>
+  </data>
+  <data name="Enter an email address." xml:space="preserve">
+    <value>Bir e-posta adresi girin.</value>
+  </data>
+  <data name="Invitations" xml:space="preserve">
+    <value>Davetler</value>
+  </data>
+  <data name="Invite someone" xml:space="preserve">
+    <value>Birini davet et</value>
+  </data>
+  <data name="Its members lose their roles in it, and its invitations, subscription and API keys are deleted. This cannot be undone." xml:space="preserve">
+    <value>Üyeleri organizasyondaki rollerini kaybeder; davetleri, aboneliği ve API anahtarları silinir. Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Join" xml:space="preserve">
+    <value>Katıl</value>
+  </data>
+  <data name="Leave organization" xml:space="preserve">
+    <value>Organizasyondan ayrıl</value>
+  </data>
+  <data name="Lowercase letters, digits and hyphens, such as acme. Applications may show it in links." xml:space="preserve">
+    <value>Küçük harfler, rakamlar ve kısa çizgiler; örneğin acme. Uygulamalar bunu bağlantılarda gösterebilir.</value>
+  </data>
+  <data name="Manage" xml:space="preserve">
+    <value>Yönet</value>
+  </data>
+  <data name="Member" xml:space="preserve">
+    <value>Üye</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Üyeler</value>
+  </data>
+  <data name="More members" xml:space="preserve">
+    <value>Diğer üyeler</value>
+  </data>
+  <data name="No roles" xml:space="preserve">
+    <value>Rolü yok</value>
+  </data>
+  <data name="Only administrators can create organizations here." xml:space="preserve">
+    <value>Burada organizasyonları yalnızca yöneticiler oluşturabilir.</value>
+  </data>
+  <data name="Organizations" xml:space="preserve">
+    <value>Organizasyonlar</value>
+  </data>
+  <data name="Remove from the organization" xml:space="preserve">
+    <value>Organizasyondan çıkar</value>
+  </data>
+  <data name="Revoke" xml:space="preserve">
+    <value>İptal et</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roller</value>
+  </data>
+  <data name="Send again" xml:space="preserve">
+    <value>Yeniden gönder</value>
+  </data>
+  <data name="Send invitation" xml:space="preserve">
+    <value>Davet gönder</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Ayarlar</value>
+  </data>
+  <data name="Short name" xml:space="preserve">
+    <value>Kısa ad</value>
+  </data>
+  <data name="Someone else must be able to manage the members before you leave." xml:space="preserve">
+    <value>Ayrılmadan önce üyeleri yönetebilecek başka birinin olması gerekir.</value>
+  </data>
+  <data name="That address already has an open invitation. Send it again instead." xml:space="preserve">
+    <value>Bu adrese gönderilmiş açık bir davet zaten var. Onu yeniden gönderin.</value>
+  </data>
+  <data name="That person is already a member." xml:space="preserve">
+    <value>Bu kişi zaten üye.</value>
+  </data>
+  <data name="The invitation has been revoked." xml:space="preserve">
+    <value>Davet iptal edildi.</value>
+  </data>
+  <data name="The invitation has been sent again." xml:space="preserve">
+    <value>Davet yeniden gönderildi.</value>
+  </data>
+  <data name="The organization has been saved." xml:space="preserve">
+    <value>Organizasyon kaydedildi.</value>
+  </data>
+  <data name="The organizations you belong to, such as your company or team." xml:space="preserve">
+    <value>Şirketiniz ya da ekibiniz gibi üyesi olduğunuz organizasyonlar.</value>
+  </data>
+  <data name="The roles have been saved." xml:space="preserve">
+    <value>Roller kaydedildi.</value>
+  </data>
+  <data name="They lose their roles in the organization." xml:space="preserve">
+    <value>Organizasyondaki rollerini kaybeder.</value>
+  </data>
+  <data name="Type the organization's short name to delete it." xml:space="preserve">
+    <value>Organizasyonu silmek için kısa adını yazın.</value>
+  </data>
+  <data name="Type {0} to delete the organization" xml:space="preserve">
+    <value>Organizasyonu silmek için {0} yazın</value>
+  </data>
+  <data name="Until {0}" xml:space="preserve">
+    <value>{0} tarihine kadar</value>
+  </data>
+  <data name="Use lowercase letters, digits and inner hyphens, such as acme." xml:space="preserve">
+    <value>Küçük harfler, rakamlar ve araya kısa çizgiler kullanın; örneğin acme.</value>
+  </data>
+  <data name="We sent an invitation to {0}." xml:space="preserve">
+    <value>{0} adresine bir davet gönderdik.</value>
+  </data>
+  <data name="You are a member." xml:space="preserve">
+    <value>Üyesiniz.</value>
+  </data>
+  <data name="You can only give roles whose permissions you hold, and only manage members who hold no more than you." xml:space="preserve">
+    <value>Yalnızca izinlerine sahip olduğunuz rolleri verebilir, yalnızca sizden fazla izni olmayan üyeleri yönetebilirsiniz.</value>
+  </data>
+  <data name="You do not belong to any organizations yet." xml:space="preserve">
+    <value>Henüz hiçbir organizasyona üye değilsiniz.</value>
+  </data>
+  <data name="You lose your roles in it. Someone has to invite you to join again." xml:space="preserve">
+    <value>Organizasyondaki rollerinizi kaybedersiniz. Yeniden katılmak için birinin sizi davet etmesi gerekir.</value>
+  </data>
+  <data name="Your roles in the organization do not allow this." xml:space="preserve">
+    <value>Organizasyondaki rolleriniz buna izin vermiyor.</value>
+  </data>
+  <data name="Your roles: {0}" xml:space="preserve">
+    <value>Rolleriniz: {0}</value>
+  </data>
 </root>

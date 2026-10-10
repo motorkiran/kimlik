@@ -229,7 +229,7 @@ The backlog, roughly in priority order:
 
 1. SAML 2.0 for enterprise SSO connections, beside OpenID Connect.
 2. Developer-hosted sign-in UI through an interaction API.
-3. Hosted or embeddable components for organization management.
+3. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
 4. DPoP (RFC 9449), which OpenIddict does not support yet.
 5. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
 6. A JavaScript/TypeScript SDK and a Helm chart.
@@ -446,6 +446,7 @@ Principles:
 - Anti-forgery tokens on every form and a strict Content Security Policy with nonces. Pages run no script, except the first-party passkey script on the pages that need it ([§10.4](#104-passkeys)).
 - Localization through resource files, and theming through CSS custom properties driven by configuration.
 - Accessibility target: WCAG 2.2 AA.
+- **Organizations.** The account pages list the user's organizations and the invitations to their address, which they accept or decline, and let them create organizations when `Kimlik:Organizations:UsersCanCreate` allows and leave them. Each organization's page offers what the member's organization roles allow, as the Account API does: renaming or deleting it (`kimlik.org.settings:write`), seeing its members and invitations (`kimlik.org.members:read`), and inviting people, sending invitations again, revoking them, changing members' roles and removing members (`kimlik.org.members:write`), within the roles the member holds. Apps link people to `/account/organizations/{id}` to manage an organization without building the screens themselves.
 
 ### 6.5 Admin panel
 
@@ -1114,6 +1115,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M22: Usage metering** | Metered limits, recorded and enforced per subscriber and month, in the API, the SDK and the admin panel ([§5.8](#58-usage-metering)) | A backend consumes a subscriber's monthly allowance until it runs out, through the SDK, in end-to-end tests ✅ |
 | **M23: Secret rotation** | A new client secret can leave the previous one working for up to 30 days ([§8.2](#82-grants-and-client-authentication)) | Both secrets work until the previous one expires, in end-to-end tests ✅ |
 | **M24: Enterprise SSO** | OpenID Connect connections per organization, routed and enforced by email domain, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People with an address in an organization's domain sign in through its provider, join the organization, and cannot sign in another way, in end-to-end tests with a fake provider |
+| **M25: Organization pages** | Organizations on the hosted account pages: memberships, invitations, creating and leaving organizations, and managing settings, members and invitations as organization roles allow ([§6.4](#64-hosted-ui)) | A member creates an organization, invites someone who accepts, changes their roles and removes them, and members without the permissions cannot, in end-to-end tests |
 
 ---
 
