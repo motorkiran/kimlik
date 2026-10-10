@@ -36,6 +36,38 @@ else if (_organization is { } organization)
                 <MetadataEditor PublicMetadata="organization.PublicMetadata" PrivateMetadata="organization.PrivateMetadata" ReadOnly="!CanWrite"
                                 PublicHelperText="Members can read it through the Account API." OnSave="SaveMetadataAsync" />
             </div>
+
+            <MudPaper Class="pa-4 mt-4" Outlined>
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" HtmlTag="h2">Single sign-on</MudText>
+                    <MudSpacer />
+                    @if (CanWrite)
+                    {
+                        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => EditConnectionAsync(null)" id="add-sso-connection">Add connection</MudButton>
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2" Class="mb-2">Members sign in through the organization's own identity provider, over OpenID Connect.</MudText>
+                <MudSimpleTable Dense id="sso-connections">
+                    <thead><tr><th>Name</th><th>Domains</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var connection in _connections)
+                        {
+                            <tr>
+                                <td>@connection.Name</td>
+                                <td>@string.Join(", ", connection.Domains)</td>
+                                <td>@(connection.Enabled ? "Enabled" : "Disabled")</td>
+                                <td>
+                                    @if (CanWrite)
+                                    {
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" aria-label="Change" OnClick="() => EditConnectionAsync(connection)" />
+                                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" aria-label="Delete" OnClick="() => DeleteConnectionAsync(connection)" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
         </MudItem>
 
         <MudItem xs="12" md="7">
@@ -116,6 +148,7 @@ else if (_organization is { } organization)
     private bool _requireMfa;
     private IReadOnlyList<MemberResponse> _members = [];
     private IReadOnlyList<InvitationResponse> _invitations = [];
+    private IReadOnlyList<SsoConnectionResponse> _connections = [];
     private readonly List<BreadcrumbItem> _breadcrumbs = [new("Organizations", "/admin/organizations")];
 
     [Parameter]
@@ -144,6 +177,36 @@ else if (_organization is { } organization)
         var invitations = await Operations.RunAsync<ListInvitationsHandler, Result<Page<InvitationResponse>>>(
             SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListInvitationsQuery(Id, null, 200), Aborted));
         _invitations = invitations.IsSuccess ? invitations.Value.Items : [];
+
+        var connections = await Operations.RunAsync<ListSsoConnectionsHandler, Result<Page<SsoConnectionResponse>>>(
+            SystemPermissions.OrganizationsRead, handler => handler.HandleAsync(new ListSsoConnectionsQuery(Id, null, 200), Aborted));
+        _connections = connections.IsSuccess ? connections.Value.Items : [];
+    }
+
+    private async Task EditConnectionAsync(SsoConnectionResponse? connection)
+    {
+        var parameters = new DialogParameters<SsoConnectionDialog>
+        {
+            { dialog => dialog.OrganizationId, Id },
+            { dialog => dialog.Connection, connection },
+        };
+
+        var dialog = await Dialogs.ShowAsync<SsoConnectionDialog>(
+            connection is null ? "New SSO connection" : connection.Name, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteConnectionAsync(SsoConnectionResponse connection)
+    {
+        if (await ConfirmAsync($"Delete {connection.Name}?", "Its people keep their accounts and sign in the other ways again.", "Delete")
+            && await ChangeAsync<DeleteSsoConnectionHandler>(
+                SystemPermissions.OrganizationsWrite, handler => handler.HandleAsync(connection.Id, Aborted), "The connection was deleted."))
+        {
+            await LoadAsync();
+        }
     }
 
     private void Show(OrganizationResponse organization)

@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<PersonalDataExporter>();
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();
+        services.AddScoped<SsoDirectory>();
         services.AddScoped<ApiKeyStore>();
         services.AddScoped<MyApiKeys>();
         services.AddScoped<OrganizationGuard>();

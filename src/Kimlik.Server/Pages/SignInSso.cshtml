@@ -1,0 +1,25 @@
+@page "/signin/sso/{connection:guid?}"
+@model SignInSsoModel
+@{
+    ViewData["Title"] = L["Sign in with SSO"];
+}
+
+<h1 id="page-title">@L["Sign in with SSO"]</h1>
+<p class="lead">@L["Sign in through your organization's identity provider."]</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post" asp-route-connection="" novalidate>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="field">
+        <label asp-for="Input.Email"></label>
+        <input asp-for="Input.Email" autocomplete="username" autofocus />
+        <span asp-validation-for="Input.Email" class="field-error"></span>
+    </div>
+    <button type="submit" class="button">@L["Continue"]</button>
+</form>
+
+<p class="switch"><a asp-page="/SignIn" asp-route-returnUrl="@Model.ReturnUrl">@L["Sign in another way"]</a></p>

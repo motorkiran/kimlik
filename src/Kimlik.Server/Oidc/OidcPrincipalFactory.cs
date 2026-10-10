@@ -199,8 +199,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
     /// <summary>
     /// How the user signed in, as method references (RFC 8176): a password (<c>pwd</c>), a code sent by email
     /// (<c>email</c>) or an account at another provider (<c>fed</c>, as Microsoft Entra ID uses it), and the second
-    /// factor when one was used: a one-time code (<c>otp</c>, also when the browser was trusted after one) or a passkey
-    /// (<c>pop</c>); or a passkey alone, which counts as two factors.
+    /// factor when one was used: a one-time code (<c>otp</c>, also when the browser was trusted after one), a passkey
+    /// (<c>pop</c>) or the provider's own (just <c>fed</c> and <c>mfa</c>); or a passkey alone, which counts as two factors.
     /// </summary>
     public static IReadOnlyList<string> AuthenticationMethodsOf(ClaimsPrincipal session)
     {
@@ -210,7 +210,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
             return [SignInFlow.PasskeyMethod, SignInFlow.MultiFactorMethod];
         }
 
-        return SignInFlow.SecondFactorOf(session) is { } secondFactor ? [firstFactor, secondFactor, SignInFlow.MultiFactorMethod] : [firstFactor];
+        return SignInFlow.SecondFactorOf(session) is { } secondFactor ? [.. new[] { firstFactor, secondFactor, SignInFlow.MultiFactorMethod }.Distinct()] : [firstFactor];
     }
 
     /// <summary>The authentication methods a previously issued token carries, one claim per value or one JSON array.</summary>

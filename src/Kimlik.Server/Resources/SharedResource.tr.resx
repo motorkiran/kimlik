@@ -850,4 +850,25 @@
   <data name="Confirm that you are not a robot." xml:space="preserve">
     <value>Robot olmadığınızı doğrulayın.</value>
   </data>
+  <data name="Sign in with SSO" xml:space="preserve">
+    <value>SSO ile giriş yap</value>
+  </data>
+  <data name="Sign in through your organization's identity provider." xml:space="preserve">
+    <value>Kurumunuzun kimlik sağlayıcısı üzerinden giriş yapın.</value>
+  </data>
+  <data name="Work email" xml:space="preserve">
+    <value>İş e-postası</value>
+  </data>
+  <data name="Single sign-on is not set up for that address. Sign in another way." xml:space="preserve">
+    <value>Bu adres için tek oturum açma (SSO) ayarlanmamış. Başka bir yolla giriş yapın.</value>
+  </data>
+  <data name="Signing in with your organization did not work. Try again." xml:space="preserve">
+    <value>Kurumunuzla giriş yapılamadı. Yeniden deneyin.</value>
+  </data>
+  <data name="Your organization's provider did not share an email address in its domains. Ask your administrator." xml:space="preserve">
+    <value>Kurumunuzun kimlik sağlayıcısı, kurumun alan adlarından birinde bir e-posta adresi paylaşmadı. Yöneticinize başvurun.</value>
+  </data>
+  <data name="Your account is linked to another account at your organization's provider. Ask an administrator." xml:space="preserve">
+    <value>Hesabınız, kurumunuzun kimlik sağlayıcısındaki başka bir hesaba bağlı. Bir yöneticiye başvurun.</value>
+  </data>
 </root>

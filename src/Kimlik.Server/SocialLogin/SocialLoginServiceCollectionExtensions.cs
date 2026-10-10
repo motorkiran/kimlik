@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Kimlik.Server.Hosting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Client;
@@ -13,7 +14,7 @@ internal static class SocialLoginServiceCollectionExtensions
 {
     /// <summary>
     /// Sign-in with Google, Microsoft, Apple and GitHub, through OpenIddict's client, for the providers that
-    /// <see cref="SocialLoginOptions"/> configures.
+    /// <see cref="SocialLoginOptions"/> configures, and with organizations' own providers (<see cref="SingleSignOn"/>).
     /// </summary>
     public static IServiceCollection AddSocialLogin(this IServiceCollection services, IConfiguration configuration)
     {
@@ -22,9 +23,9 @@ internal static class SocialLoginServiceCollectionExtensions
         services.AddOpenIddict().AddClient(options =>
         {
             // The callbacks of every supported provider exist even before one is configured, so the client always
-            // has the endpoint its flow needs.
+            // has the endpoint its flow needs; SSO connections share one.
             options.AllowAuthorizationCodeFlow()
-                .SetRedirectionEndpointUris([.. Supported.Select(CallbackPath)]);
+                .SetRedirectionEndpointUris([.. Supported.Select(CallbackPath), SingleSignOn.CallbackPath]);
 
             // State tokens are protected with ASP.NET Core Data Protection, whose keys every instance shares; the
             // client still needs keys of its own, which come from the token keys (see AddTokenKeysToClient).
@@ -92,6 +93,8 @@ internal static class SocialLoginServiceCollectionExtensions
             }
         });
 
+        // SSO connections come from the database rather than the options.
+        services.Replace(ServiceDescriptor.Singleton<OpenIddictClientService, SsoClientService>());
         services.AddTokenKeysToClient();
         services.AddSingleton<IConfigureOptions<OpenIddictClientAspNetCoreOptions>, ConfigureTransportSecurity>();
         services.AddSingleton<ExternalProviders>();

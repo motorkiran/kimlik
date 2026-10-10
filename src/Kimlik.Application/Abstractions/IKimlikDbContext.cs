@@ -36,6 +36,10 @@ public interface IKimlikDbContext
 
     DbSet<Invitation> Invitations { get; }
 
+    DbSet<SsoConnection> SsoConnections { get; }
+
+    DbSet<SsoDomain> SsoDomains { get; }
+
     DbSet<Feature> Features { get; }
 
     DbSet<Plan> Plans { get; }

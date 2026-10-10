@@ -43,6 +43,10 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 
     public DbSet<Invitation> Invitations => Set<Invitation>();
 
+    public DbSet<SsoConnection> SsoConnections => Set<SsoConnection>();
+
+    public DbSet<SsoDomain> SsoDomains => Set<SsoDomain>();
+
     public DbSet<Feature> Features => Set<Feature>();
 
     public DbSet<Plan> Plans => Set<Plan>();

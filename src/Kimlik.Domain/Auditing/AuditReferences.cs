@@ -29,6 +29,8 @@ public sealed record AuditSubject(string Type, string Id)
 
     public static AuditSubject Invitation(Guid invitationId) => new("invitation", invitationId.ToString());
 
+    public static AuditSubject SsoConnection(Guid connectionId) => new("sso_connection", connectionId.ToString());
+
     public static AuditSubject Feature(Guid featureId) => new("feature", featureId.ToString());
 
     public static AuditSubject Plan(Guid planId) => new("plan", planId.ToString());

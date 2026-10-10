@@ -6,20 +6,26 @@ using Kimlik.Domain.Users;
 using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
+using Kimlik.Server.SocialLogin;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
 
-/// <summary>Signing in with an address and a password, a code sent to the address, or a passkey.</summary>
+/// <summary>
+/// Signing in with an address and a password, a code sent to the address, or a passkey. Addresses in the domains of
+/// an organization that signs in through its own provider go there instead.
+/// </summary>
 [RunsScripts]
 [ShowsCaptcha]
 public sealed class SignInModel(
     SignInManager<User> signInManager,
     SignInFlow signInFlow,
+    SsoDirectory sso,
     PasskeyCeremonies passkeys,
     EmailSignIn emailSignIn,
     PhoneSignIn phoneSignIn,
@@ -56,8 +62,36 @@ public sealed class SignInModel(
 
     public bool CanSignUp => accounts.Value.Registration == RegistrationMode.Open;
 
+    /// <summary>Whether some organization signs in through its own provider, so the page offers to.</summary>
+    public bool OffersSso { get; private set; }
+
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    {
+        OffersSso = await sso.AnyEnabledAsync(HttpContext.RequestAborted);
+        await next();
+    }
+
     public void OnGet()
     {
+    }
+
+    /// <summary>Goes to the provider of the organization of the address in the form, or asks for the address.</summary>
+    public async Task<IActionResult> OnPostSsoAsync(CancellationToken cancellationToken)
+    {
+        // Only the address matters here, not the password field.
+        ModelState.Clear();
+        if (Input.Email is not { Length: > 0 } email || !new EmailAddressAttribute().IsValid(email))
+        {
+            return RedirectToPage("/SignInSso", new { ReturnUrl });
+        }
+
+        if (await SingleSignOnAsync(cancellationToken) is { } singleSignOn)
+        {
+            return singleSignOn;
+        }
+
+        ErrorMessage = localizer["Single sign-on is not set up for that address. Sign in another way."];
+        return Page();
     }
 
     /// <summary>Sends a sign-in code to the address, if an account can sign in with it, and asks for the code either way.</summary>
@@ -74,6 +108,11 @@ public sealed class SignInModel(
         {
             ModelState.AddModelError("Input.Email", localizer["Enter a valid email address."]);
             return Page();
+        }
+
+        if (await SingleSignOnAsync(cancellationToken) is { } singleSignOn)
+        {
+            return singleSignOn;
         }
 
         if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
@@ -129,12 +168,23 @@ public sealed class SignInModel(
         // The passkey's signature counter has moved on.
         await signInManager.UserManager.AddOrUpdatePasskeyAsync(user, assertion.Passkey);
         var returnUrl = AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/";
+        if (await signInFlow.SingleSignOnPathAsync(user, provider: null, returnUrl, cancellationToken) is { } organizationSignIn)
+        {
+            return LocalRedirect(organizationSignIn);
+        }
+
         await signInFlow.CompleteAsync(user, Input.RememberMe, SignInFlow.PasskeyMethod, provider: null, cancellationToken);
         return LocalRedirect(returnUrl);
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        // The organization's provider signs in its addresses, whatever was typed as the password.
+        if (await SingleSignOnAsync(cancellationToken) is { } singleSignOn)
+        {
+            return singleSignOn;
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -192,6 +242,9 @@ public sealed class SignInModel(
     }
 
     private string InvalidCredentials => localizer["Invalid email or password."];
+
+    private async Task<IActionResult?> SingleSignOnAsync(CancellationToken cancellationToken) =>
+        await sso.ForAddressAsync(Input.Email, cancellationToken) is { } connection ? SingleSignOn.Challenge(connection, Input.Email, ReturnUrl) : null;
 
     private async Task<IActionResult> RejectAsync(User? user, string reason, string message, CancellationToken cancellationToken)
     {

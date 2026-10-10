@@ -1,0 +1,90 @@
+@using Kimlik.Application.Organizations
+@inherits AdminPageBase
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Register Kimlik as a web app at the provider, with <code>@CallbackUrl</code> as its redirect URI.
+        </MudText>
+        <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" HelperText="Such as Acme Entra ID." id="sso-name" />
+        <MudTextField @bind-Value="_issuer" Label="Issuer" Required MaxLength="512" id="sso-issuer"
+                      HelperText="The provider's issuer URL, such as https://login.microsoftonline.com/{tenant}/v2.0 or https://acme.okta.com." />
+        <MudTextField @bind-Value="_clientId" Label="Client ID" Required MaxLength="256" id="sso-client-id" />
+        <MudTextField @bind-Value="_clientSecret" Label="Client secret" InputType="InputType.Password" MaxLength="1024" id="sso-client-secret"
+                      Required="Connection is null" HelperText="@(Connection is null ? null : "Leave empty to keep the current secret.")" />
+        <MudTextField @bind-Value="_domains" Label="Email domains" Required Lines="2" id="sso-domains"
+                      HelperText="One or more, separated by commas, such as acme.com. People with these addresses sign in only through the provider while the connection is enabled." />
+        <MudCheckBox @bind-Value="_enabled" Label="Enabled" id="sso-enabled" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" id="save-sso-connection">@(Connection is null ? "Create" : "Save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _name = string.Empty;
+    private string _issuer = string.Empty;
+    private string _clientId = string.Empty;
+    private string? _clientSecret;
+    private string _domains = string.Empty;
+    private bool _enabled = true;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid OrganizationId { get; set; }
+
+    /// <summary>The connection to change; a new one is created without it.</summary>
+    [Parameter]
+    public SsoConnectionResponse? Connection { get; set; }
+
+    private string CallbackUrl => new Uri(new Uri(Navigation.BaseUri), "signin/sso/callback").ToString();
+
+    protected override void OnParametersSet()
+    {
+        if (Connection is { } connection)
+        {
+            _name = connection.Name;
+            _issuer = connection.Issuer;
+            _clientId = connection.ClientId;
+            _domains = string.Join(", ", connection.Domains);
+            _enabled = connection.Enabled;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var domains = _domains.Split([',', ' ', '\n', '\r', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var secret = string.IsNullOrEmpty(_clientSecret) ? null : _clientSecret;
+        var saved = Connection is { } connection
+            ? await ChangeAsync<UpdateSsoConnectionHandler, SsoConnectionResponse>(
+                SystemPermissions.OrganizationsWrite,
+                handler => handler.HandleAsync(
+                    connection.Id,
+                    new UpdateSsoConnectionRequest { Name = _name, Issuer = _issuer.Trim(), ClientId = _clientId, ClientSecret = secret, Domains = domains, Enabled = _enabled },
+                    Aborted),
+                "The connection was saved.")
+            : await ChangeAsync<CreateSsoConnectionHandler, SsoConnectionResponse>(
+                SystemPermissions.OrganizationsWrite,
+                handler => handler.HandleAsync(
+                    new CreateSsoConnectionRequest
+                    {
+                        OrganizationId = OrganizationId,
+                        Name = _name,
+                        Issuer = _issuer.Trim(),
+                        ClientId = _clientId,
+                        ClientSecret = secret ?? string.Empty,
+                        Domains = domains,
+                        Enabled = _enabled,
+                    },
+                    Aborted),
+                "The connection was created.");
+
+        if (saved is not null)
+        {
+            Dialog.Close(DialogResult.Ok(saved));
+        }
+    }
+}

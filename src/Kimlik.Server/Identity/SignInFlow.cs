@@ -49,6 +49,7 @@ public sealed class SignInFlow(
     IKimlikDbContext context,
     IAuditLog auditLog,
     BackChannelLogout backChannelLogout,
+    SsoDirectory sso,
     TimeProvider timeProvider)
 {
     /// <summary>
@@ -84,7 +85,10 @@ public sealed class SignInFlow(
     /// </summary>
     public const string SessionIdClaim = "kimlik:session_id";
 
-    /// <summary>The second factor of a session that used a passkey for it; sessions without it used a one-time code.</summary>
+    /// <summary>
+    /// The second factor of a session that used a passkey for it, or that the provider it signed in at verified (<c>fed</c>);
+    /// sessions without it used a one-time code.
+    /// </summary>
     public const string SecondFactorClaim = "kimlik:second_factor";
 
     /// <summary>The administrator who signed in as the session's user, in a session that impersonates them.</summary>
@@ -121,12 +125,31 @@ public sealed class SignInFlow(
     /// <summary>
     /// Goes on after a correct first factor, a password, a code sent by email or text message
     /// (<paramref name="firstFactor"/> <see cref="EmailMethod"/> or <see cref="SmsMethod"/>) or an account at
-    /// <paramref name="provider"/>: starts the session, or holds it for the second factor. Returns where the browser goes next.
+    /// <paramref name="provider"/>: starts the session, or holds it for the second factor. A provider that verified
+    /// several factors itself (<paramref name="multiFactorAtProvider"/>), as an organization's may, completes both. Returns
+    /// where the browser goes next, which is the organization's provider instead when the user must sign in there.
     /// </summary>
     public async Task<string> ContinueAsync(
-        User user, bool persistent, string? provider, string returnUrl, CancellationToken cancellationToken, string? firstFactor = null)
+        User user,
+        bool persistent,
+        string? provider,
+        string returnUrl,
+        CancellationToken cancellationToken,
+        string? firstFactor = null,
+        bool multiFactorAtProvider = false)
     {
+        if (await SingleSignOnPathAsync(user, provider, returnUrl, cancellationToken) is { } singleSignOn)
+        {
+            return singleSignOn;
+        }
+
         var first = firstFactor ?? (provider is null ? PasswordMethod : FederatedMethod);
+        if (multiFactorAtProvider)
+        {
+            await CompleteAsync(user, persistent, MultiFactorMethod, provider, cancellationToken, first, secondFactor: FederatedMethod);
+            return returnUrl;
+        }
+
         var step = await NextStepAsync(user, cancellationToken);
         switch (step)
         {
@@ -146,6 +169,15 @@ public sealed class SignInFlow(
     }
 
     /// <summary>
+    /// Where the browser goes instead of a session when the user's address is in the domains of an enabled SSO connection
+    /// they did not sign in through: to the connection's provider. <see langword="null"/> when no connection stands in the way.
+    /// </summary>
+    public async Task<string?> SingleSignOnPathAsync(User user, string? provider, string returnUrl, CancellationToken cancellationToken) =>
+        await sso.ForAddressAsync(user.Email, cancellationToken) is { } connection && connection.LoginProvider != provider
+            ? links.GetPathByPage(signInManager.Context, "/SignInSso", values: new { connection = connection.Id, returnUrl })
+            : null;
+
+    /// <summary>
     /// Where to go after a password sign-in: once per account, to the offer to add a passkey, for people who have none;
     /// otherwise to <paramref name="returnUrl"/>.
     /// </summary>
@@ -157,7 +189,8 @@ public sealed class SignInFlow(
     /// <summary>
     /// Starts the session and records the sign-in. After a second factor (<paramref name="method"/>
     /// <see cref="MultiFactorMethod"/>), <paramref name="firstFactor"/> says how the user signed in first, and
-    /// <paramref name="secondFactor"/> is <see cref="PasskeyMethod"/> when a passkey verified the second step.
+    /// <paramref name="secondFactor"/> is <see cref="PasskeyMethod"/> when a passkey verified the second step, or
+    /// <see cref="FederatedMethod"/> when the provider the user signed in at did.
     /// </summary>
     public async Task CompleteAsync(
         User user,
@@ -175,9 +208,9 @@ public sealed class SignInFlow(
             _ => [new(MethodClaim, method)],
         };
 
-        if (method == MultiFactorMethod && secondFactor == PasskeyMethod)
+        if (method == MultiFactorMethod && secondFactor is PasskeyMethod or FederatedMethod)
         {
-            claims.Add(new Claim(SecondFactorClaim, PasskeyMethod));
+            claims.Add(new Claim(SecondFactorClaim, secondFactor));
         }
 
         // A step-up, or signing in again, continues the browser session the user already has, with its ID.
@@ -289,11 +322,13 @@ public sealed class SignInFlow(
         .Where(claim => claim.Type is MethodClaim or ProviderClaim or SignedInAtClaim or SecondFactorClaim or ActorClaim or SessionIdClaim)
         .Select(claim => new Claim(claim.Type, claim.Value, claim.ValueType));
 
-    /// <summary>How the session's user verified the second step, if they did: with a passkey (<c>pop</c>) or a one-time code.</summary>
+    /// <summary>
+    /// How the session's user verified the second step, if they did: with a passkey (<c>pop</c>), at the provider they
+    /// signed in at (<c>fed</c>) or with a one-time code (<c>otp</c>).
+    /// </summary>
     public static string? SecondFactorOf(ClaimsPrincipal session) =>
         !session.HasClaim(MethodClaim, MultiFactorMethod) || session.HasClaim(MethodClaim, PasskeyMethod) ? null
-        : session.HasClaim(SecondFactorClaim, PasskeyMethod) ? PasskeyMethod
-        : "otp";
+        : session.FindFirstValue(SecondFactorClaim) ?? "otp";
 
     /// <summary>
     /// How recent a sign-in must be for what a stolen session must not do, such as adding a passkey or exporting the

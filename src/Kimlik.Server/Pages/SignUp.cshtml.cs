@@ -6,6 +6,7 @@ using Kimlik.Domain.Users;
 using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
+using Kimlik.Server.SocialLogin;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
@@ -20,6 +21,7 @@ public sealed class SignUpModel(
     EmailSignIn emailSignIn,
     PendingSignInCode pendingSignInCode,
     SignInFlow signInFlow,
+    SsoDirectory sso,
     AccountErrorMessages errorMessages,
     CaptchaVerifier captcha,
     RequestThrottle throttle,
@@ -61,6 +63,13 @@ public sealed class SignUpModel(
     {
         await LoadInvitationAsync(cancellationToken);
         Input.Email = InvitedEmail ?? Input.Email;
+
+        // Addresses of an organization that signs in through its own provider get their account there, open or not.
+        if (await sso.ForAddressAsync(Input.Email, cancellationToken) is { } connection)
+        {
+            return SingleSignOn.Challenge(connection, Input.Email, ReturnUrl);
+        }
+
         if (string.IsNullOrEmpty(Input.Password) && !PasswordOptional)
         {
             ModelState.AddModelError("Input.Password", localizer["Choose a password."]);

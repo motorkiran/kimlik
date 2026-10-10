@@ -93,6 +93,27 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task Organization_GetsAnSsoConnection()
+    {
+        var organization = await server.CreateOrganizationAsync();
+        var domain = $"acme-{Guid.NewGuid():N}.test";
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+        var page = admin.Render<OrganizationDetail>(parameters => parameters.Add(detail => detail.Id, organization.Id));
+
+        page.WaitForElement("#add-sso-connection").Click();
+        admin.Dialogs.WaitForElement("input#sso-name").Change("Acme Okta");
+        admin.Dialogs.Find("input#sso-issuer").Change("https://acme.okta.com");
+        admin.Dialogs.Find("input#sso-client-id").Change("kimlik");
+        admin.Dialogs.Find("input#sso-client-secret").Change("a secret");
+        admin.Dialogs.Find("textarea#sso-domains").Change(domain.ToUpperInvariant());
+        admin.Confirm("Create");
+
+        admin.WaitForNotification("The connection was created.");
+        page.WaitForAssertion(() => page.Find("#sso-connections").TextContent.ShouldContain(domain));
+        (await server.QueryDatabaseAsync(context => context.SsoDomains.AnyAsync(candidate => candidate.Domain == domain))).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task NewServiceClient_ShowsItsSecretOnce()
     {
         await using var admin = new AdminComponents(server, Guid.NewGuid());

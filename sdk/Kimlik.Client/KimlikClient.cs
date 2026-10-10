@@ -18,6 +18,7 @@ public sealed class KimlikClient
         ApiResources = new ApiResourcesClient(http);
         Clients = new ClientsClient(http);
         Organizations = new OrganizationsClient(http);
+        SsoConnections = new SsoConnectionsClient(http);
         Plans = new PlansClient(http);
         Subscriptions = new SubscriptionsClient(http);
         Usage = new UsageClient(http);
@@ -38,6 +39,8 @@ public sealed class KimlikClient
     public ClientsClient Clients { get; }
 
     public OrganizationsClient Organizations { get; }
+
+    public SsoConnectionsClient SsoConnections { get; }
 
     public PlansClient Plans { get; }
 

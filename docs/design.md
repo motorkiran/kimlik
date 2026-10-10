@@ -227,7 +227,7 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
+1. SAML 2.0 for enterprise SSO connections, beside OpenID Connect.
 2. Developer-hosted sign-in UI through an interaction API.
 3. Hosted or embeddable components for organization management.
 4. DPoP (RFC 9449), which OpenIddict does not support yet.
@@ -235,7 +235,7 @@ The backlog, roughly in priority order:
 6. A JavaScript/TypeScript SDK and a Helm chart.
 7. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect (M24, [§10.11](#1011-enterprise-single-sign-on)).
 
 ### 4.3 Out of scope
 
@@ -542,6 +542,8 @@ erDiagram
 | | `memberships` | Unique on (`organization_id`, `user_id`) |
 | | `membership_roles` | Organization roles only |
 | | `invitations` | `email`, `token_hash`, `status`, `expires_at`, `invited_by_user_id`, roles to grant |
+| | `sso_connections` | `organization_id`, `name`, `issuer`, `client_id`, encrypted client secret, `enabled` |
+| | `sso_domains` | `domain` (unique), `connection_id` |
 | Plans | `features` | `key`, `name`, `type` (boolean/limit) |
 | | `plans` | `key`, `name`, `description`, `is_archived`, `kind` (`base` or `add_on`) |
 | | `plan_features` | `is_enabled` for boolean features, `limit_value` for limits (null means unlimited) |
@@ -714,6 +716,7 @@ When a session falls short of a requested policy, Kimlik asks for more: a second
 | `/users/{id}/roles`, `/users/{id}/sessions`, `/users/{id}/logins` | Assign and remove roles, list and revoke sessions, list and unlink logins |
 | `/organizations` | List, create, get, update, delete |
 | `/organizations/{id}/members`, `/organizations/{id}/invitations` | Add and remove members, change member roles, invite, resend, revoke |
+| `/sso-connections` | List, create, get, update and delete enterprise SSO connections |
 | `/permissions`, `/roles` | Manage the catalog, assign permissions to roles |
 | `/features`, `/plans`, `/subscriptions` | Manage the feature catalog and plans; subscribe, change plan, cancel |
 | `/entitlements/{subscriberType}/{id}` | Effective features and limits |
@@ -874,6 +877,19 @@ Kimlik can put a CAPTCHA on the forms bots go for, through Cloudflare Turnstile,
 - **Forms.** Sign-up, password reset and asking for a sign-in code by email or text message by default; the sign-in form too when `Kimlik:Captcha:Forms` lists it. Lockouts and rate limits keep guarding sign-in either way.
 - **Pages.** The provider's widget renders with the provider's own script, without Kimlik's, and only the pages that can show it allow the provider's origins in their content security policy.
 - **Checks.** Kimlik verifies the widget's answer with the provider's `siteverify` endpoint before handling the form. A missing or refused answer refuses the form; when the provider cannot be reached, the form goes through, with a warning in the log, so an outage does not lock people out.
+
+### 10.11 Enterprise single sign-on
+
+Organizations can have their people sign in through their own identity provider, such as Microsoft Entra ID, Okta or Google Workspace, over OpenID Connect.
+
+- **Connections.** An SSO connection belongs to one organization. It holds the provider's issuer URL, a client ID and secret registered there, and the email domains it covers; a domain belongs to one connection at most. Kimlik discovers the provider's endpoints and keys from the issuer (`/.well-known/openid-configuration`) and signs in with the authorization code flow and PKCE through OpenIddict's client, as for social login. Connections are read from the database when a sign-in starts or returns, so they change without a restart, on every instance. The client secret is encrypted with the master key, and providers send people back to one address for every connection, `{PublicUrl}/signin/sso/callback`.
+- **Who manages them.** A connection lets its provider sign in anyone with an address in its domains, administrators included. Managing connections therefore takes `kimlik.organizations:write` and every installation-wide system permission, like registering an app that signs users in to Kimlik's own API. Administrators claim domains on behalf of organizations, and Kimlik does not check DNS records, so they should claim only domains the organization owns. Connections are managed through the Management API, `Kimlik.Client` and the admin panel. New connections start disabled, so they can be tested before they take over sign-in.
+- **Routing.** When an enabled connection exists, the sign-in page offers "Sign in with SSO", which uses the address typed in the form. An address in a connection's domains also goes to the provider when it is entered with a password, when it asks for an email code, and on the sign-up page. The provider receives the address as `login_hint`.
+- **Enforcement.** While a connection is enabled, accounts with addresses in its domains sign in only through it. A password, a code, a passkey or another provider still proves the first factor, but leads to the organization's provider instead of a session. Sessions that started earlier last until they end. Disabling the connection restores the other ways, which is also the way back in when the provider fails.
+- **Accounts.** The first sign-in links the provider's subject to the account with the same address, or creates a verified account, whatever the registration mode, since the provider vouches for addresses in the organization's domains. Later sign-ins find the account by the link. Signing in for the first time requires the provider to share an address in one of the connection's domains. When the existing account's address was not verified yet, the link is the first proof that the person owns it, as a password reset is ([§10.3](#103-social-login-and-account-linking)): accounts at other providers linked before are unlinked and its sessions end. Google signs in personal accounts too, so connections to Google (`https://accounts.google.com`) accept only sign-ins whose Workspace domain (`hd`) is one of theirs. The account joins the organization without organization roles if it is not a member yet, and the organization's administrators give roles as usual.
+- **Factors.** Sessions report `fed` and name the connection as their provider. When the provider's ID token lists `mfa` in `amr`, as Okta does, the session counts as multi-factor. Otherwise Kimlik's MFA policies apply as after any other first factor.
+- **Audit.** Creating, changing and deleting connections is audited, and sign-ins record the connection as their provider.
+- **Later.** SAML 2.0 connections, which need a SAML library. Organizations' own administrators setting up connections after proving their domains through DNS. Signing out at the provider.
 
 ---
 
@@ -1097,6 +1113,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M21: CAPTCHA and authentication context** | Turnstile, hCaptcha and reCAPTCHA on the forms bots go for, and `acr_values` step-up to a second factor or a passkey ([§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)) | Forms refuse missing CAPTCHA answers, and requested policies lead to the second step, with `acr` in tokens, in end-to-end tests ✅ |
 | **M22: Usage metering** | Metered limits, recorded and enforced per subscriber and month, in the API, the SDK and the admin panel ([§5.8](#58-usage-metering)) | A backend consumes a subscriber's monthly allowance until it runs out, through the SDK, in end-to-end tests ✅ |
 | **M23: Secret rotation** | A new client secret can leave the previous one working for up to 30 days ([§8.2](#82-grants-and-client-authentication)) | Both secrets work until the previous one expires, in end-to-end tests ✅ |
+| **M24: Enterprise SSO** | OpenID Connect connections per organization, routed and enforced by email domain, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People with an address in an organization's domain sign in through its provider, join the organization, and cannot sign in another way, in end-to-end tests with a fake provider |
 
 ---
 

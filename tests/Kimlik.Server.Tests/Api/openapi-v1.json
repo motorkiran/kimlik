@@ -3505,6 +3505,354 @@
         ]
       }
     },
+    "/api/v1/sso-connections": {
+      "get": {
+        "tags": [
+          "SSO connections"
+        ],
+        "summary": "List SSO connections",
+        "description": "Requires the `kimlik.organizations:read` permission.",
+        "operationId": "ListSsoConnections",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "description": "Only the connections of this organization.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfSsoConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "SSO connections"
+        ],
+        "summary": "Set up an organization's identity provider",
+        "description": "Kimlik discovers the provider's endpoints from its issuer and signs in over OpenID Connect; register `{PublicUrl}/signin/sso/callback` as the redirect URI there. While the connection is enabled, people with an address in its domains sign in only through it. A connection can sign in anyone with an address in its domains, administrators included, so changing connections also takes every installation-wide system permission.\n\nRequires the `kimlik.organizations:write` permission.",
+        "operationId": "CreateSsoConnection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSsoConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/sso-connections/{id}": {
+      "get": {
+        "tags": [
+          "SSO connections"
+        ],
+        "summary": "Get an SSO connection",
+        "description": "Requires the `kimlik.organizations:read` permission.",
+        "operationId": "GetSsoConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnectionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.organizations:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "SSO connections"
+        ],
+        "summary": "Change an SSO connection",
+        "description": "Changes the name, provider, client, domains or whether it is enabled; disabling it lets its people sign in the other ways again. A connection can sign in anyone with an address in its domains, administrators included, so changing connections also takes every installation-wide system permission.\n\nRequires the `kimlik.organizations:write` permission.",
+        "operationId": "UpdateSsoConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSsoConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "SSO connections"
+        ],
+        "summary": "Delete an SSO connection",
+        "description": "Its people keep their accounts and memberships, and sign in the other ways again. A connection can sign in anyone with an address in its domains, administrators included, so changing connections also takes every installation-wide system permission.\n\nRequires the `kimlik.organizations:write` permission.",
+        "operationId": "DeleteSsoConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/features": {
       "get": {
         "tags": [
@@ -8731,6 +9079,56 @@
           }
         }
       },
+      "CreateSsoConnectionRequest": {
+        "required": [
+          "organizationId",
+          "name",
+          "issuer",
+          "clientId",
+          "clientSecret",
+          "domains"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "A name for people, such as `Acme Entra ID`."
+          },
+          "issuer": {
+            "maxLength": 512,
+            "minLength": 0,
+            "type": "string",
+            "description": "The provider's issuer URL, from which Kimlik discovers its endpoints and keys, such as\n`https://login.microsoftonline.com/{tenant}/v2.0` or `https://acme.okta.com`."
+          },
+          "clientId": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "Kimlik's client ID at the provider, where `{PublicUrl}/signin/sso/callback` is its redirect URI."
+          },
+          "clientSecret": {
+            "maxLength": 1024,
+            "minLength": 0,
+            "type": "string"
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The email domains whose addresses the provider signs in, such as `acme.com`; each in one connection at most."
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateSubscriptionRequest": {
         "required": [
           "subscriberType",
@@ -9538,6 +9936,28 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RoleResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One page of a list. Pass `nextCursor` as the `cursor` parameter to get the next page; it is\n`null` on the last page. Cursors are opaque."
+      },
+      "PageOfSsoConnectionResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SsoConnectionResponse"
             }
           },
           "nextCursor": {
@@ -10572,6 +10992,57 @@
         },
         "description": "Replaces the global roles of a user or a client."
       },
+      "SsoConnectionResponse": {
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "issuer",
+          "clientId",
+          "domains",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An organization's own identity provider, which signs in the people whose addresses are in its `Domains`, over\nOpenID Connect. While it is enabled, those people sign in only through it. Its client secret is never returned."
+      },
       "SubscriberType": {
         "enum": [
           "user",
@@ -11030,6 +11501,60 @@
           }
         },
         "description": "Changes a role with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
+      },
+      "UpdateSsoConnectionRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issuer": {
+            "maxLength": 512,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientId": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientSecret": {
+            "maxLength": 1024,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new client secret; the current one stays when omitted."
+          },
+          "domains": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Changes a connection with JSON Merge Patch semantics: omitted properties keep their value."
       },
       "UpdateSubscriptionRequest": {
         "type": "object",
@@ -11595,6 +12120,9 @@
     },
     {
       "name": "Organizations"
+    },
+    {
+      "name": "SSO connections"
     },
     {
       "name": "Features"

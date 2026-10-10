@@ -9,6 +9,7 @@ using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
+using Kimlik.Server.Tests.Organizations;
 using Microsoft.Extensions.DependencyInjection;
 using RoleScope = Kimlik.Contracts.Management.RoleScope;
 
@@ -94,6 +95,36 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
         await kimlik.Webhooks.DeleteEndpointAsync(created.Endpoint.Id, CancellationToken);
         var gone = await Should.ThrowAsync<KimlikApiException>(() => kimlik.Webhooks.GetEndpointAsync(created.Endpoint.Id, CancellationToken));
         gone.Code.ShouldBe("webhook.endpoint_not_found");
+    }
+
+    [Fact]
+    public async Task SsoConnections_CanBeManaged_ThroughTheClient()
+    {
+        await using var services = await CreateServicesAsync();
+        var kimlik = services.GetRequiredService<KimlikClient>();
+        var organization = await server.CreateOrganizationAsync();
+        var domain = $"acme-{Guid.NewGuid():N}.test";
+
+        var created = await kimlik.SsoConnections.CreateAsync(
+            new CreateSsoConnectionRequest
+            {
+                OrganizationId = organization.Id,
+                Name = "Acme Entra ID",
+                Issuer = "https://login.microsoftonline.com/acme/v2.0",
+                ClientId = "kimlik",
+                ClientSecret = "a secret",
+                Domains = [domain],
+                Enabled = false,
+            },
+            CancellationToken);
+        var updated = await kimlik.SsoConnections.UpdateAsync(created.Id, new UpdateSsoConnectionRequest { Enabled = true }, CancellationToken);
+        updated.Enabled.ShouldBeTrue();
+        updated.Domains.ShouldBe([domain]);
+        (await kimlik.SsoConnections.ListAsync(organization.Id, cancellationToken: CancellationToken)).Items.ShouldHaveSingleItem().Id.ShouldBe(created.Id);
+
+        await kimlik.SsoConnections.DeleteAsync(created.Id, CancellationToken);
+        var gone = await Should.ThrowAsync<KimlikApiException>(() => kimlik.SsoConnections.GetAsync(created.Id, CancellationToken));
+        gone.Code.ShouldBe("sso.not_found");
     }
 
     [Fact]

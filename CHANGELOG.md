@@ -14,6 +14,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Authentication context: apps ask for a multi-factor or phishing-resistant sign-in with `acr_values` (the OpenID PAPE policies), Kimlik asks for a second factor or a passkey when the session falls short, and ID and access tokens carry `acr`.
 - Usage metering: limit features can be metered, counting use a calendar month; backends record use through `POST /api/v1/usage`, optionally enforcing the limit atomically and with idempotency keys, read it back, and use `IKimlikUsage` in `Kimlik.AspNetCore`; the admin panel shows the month's use (`kimlik.usage:read`, `kimlik.usage:write`).
 - Secret rotation without downtime: a new client secret can leave the previous one working for up to 30 days (`keepPreviousSecretForDays`), through the Management API, `Kimlik.Client` and the admin panel.
+- Enterprise single sign-on: SSO connections let an organization's own OpenID Connect provider, such as Entra ID, Okta or Google Workspace, sign in the people with addresses in its email domains, who then sign in only that way while the connection is enabled. Their first sign-in links or creates their account and makes them members of the organization; when the provider reports `mfa` in `amr`, the session counts as multi-factor (`amr` `["fed", "mfa"]`). Connections are managed through `/api/v1/sso-connections`, `Kimlik.Client` and the organization's page in the admin panel, and take every installation-wide system permission to change.
 
 ### Changed
 

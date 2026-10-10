@@ -45,6 +45,10 @@
     {
         <button type="submit" class="button button-secondary" id="email-code" formaction="@Url.Page("/SignIn", "EmailCode")" formnovalidate>@L["Email me a sign-in code"]</button>
     }
+    @if (Model.OffersSso)
+    {
+        <button type="submit" class="button button-secondary" id="sso-sign-in" formaction="@Url.Page("/SignIn", "Sso")" formnovalidate>@L["Sign in with SSO"]</button>
+    }
     <p class="field-error" data-passkey-error hidden>@L["The passkey could not be used. Try again."]</p>
 </form>
 

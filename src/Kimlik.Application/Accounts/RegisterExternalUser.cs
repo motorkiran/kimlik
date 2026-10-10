@@ -15,7 +15,14 @@ namespace Kimlik.Application.Accounts;
 /// verified the address; otherwise the person verifies it with Kimlik, as after a sign-up with a password.
 /// </summary>
 public sealed record RegisterExternalUserCommand(
-    ExternalLogin Login, string Email, bool EmailVerified, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null);
+    ExternalLogin Login, string Email, bool EmailVerified, string? GivenName, string? FamilyName, string? Locale, string? ReturnUrl = null)
+{
+    /// <summary>
+    /// Whether an organization's own identity provider vouches for the person, as for enterprise single sign-on, which
+    /// creates accounts whatever the registration mode.
+    /// </summary>
+    public bool VouchedByOrganization { get; init; }
+}
 
 /// <summary>
 /// Creates an account, without a password, that signs in with an account at another provider. When registration is
@@ -35,8 +42,8 @@ public sealed class RegisterExternalUserHandler(
     {
         var now = timeProvider.GetUtcNow();
         var registration = options.Value.Registration;
-        if (registration == RegistrationMode.Disabled
-            || (registration == RegistrationMode.InviteOnly && !(command.EmailVerified && await IsInvitedAsync(command.Email, now, cancellationToken))))
+        if (!command.VouchedByOrganization && (registration == RegistrationMode.Disabled
+            || (registration == RegistrationMode.InviteOnly && !(command.EmailVerified && await IsInvitedAsync(command.Email, now, cancellationToken)))))
         {
             return AccountErrors.RegistrationClosed;
         }

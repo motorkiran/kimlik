@@ -37,6 +37,10 @@ public static class AccountErrors
 
     public static readonly Error LoginNotFound = Error.NotFound("account.login_not_found", "No account at this provider is linked.");
 
+    /// <summary>An organization's provider signed someone in for the first time without an address in the connection's domains.</summary>
+    public static readonly Error AddressOutsideConnection = Error.Validation(
+        "account.address_outside_connection", "The provider did not share an email address in the organization's domains.");
+
     /// <summary>The code is wrong, has expired or was replaced by a newer one, or no account can sign in with it.</summary>
     public static readonly Error WrongCode = Error.Validation("account.wrong_code", "The code is not right, or it has expired.");
 

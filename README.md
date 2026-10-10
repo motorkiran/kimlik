@@ -2,7 +2,7 @@
 
 Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), API keys and webhooks (M6), and an admin panel (M7). Version 0.1.0 (M8) was the first release, and 0.2.0 adds passkeys, email sign-in codes and links, accounts without a password, personal data export, the device authorization grant, breached-password checks, admin impersonation, `private_key_jwt` and pushed authorization requests (M9 to M16). Not ready for production use yet.
+> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), API keys and webhooks (M6), and an admin panel (M7). Version 0.1.0 (M8) was the first release, and 0.2.0 adds passkeys, email sign-in codes and links, accounts without a password, personal data export, the device authorization grant, breached-password checks, admin impersonation, `private_key_jwt` and pushed authorization requests (M9 to M16). Unreleased since then: phone numbers and SMS codes, token exchange, back-channel logout, add-ons and overrides, CAPTCHA and `acr_values` step-up, usage metering, secret rotation and enterprise single sign-on (M17 to M24). Not ready for production use yet.
 
 The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
 
@@ -139,6 +139,15 @@ People can sign up and sign in with an account at Google, Microsoft, Apple or Gi
 Register `{PublicUrl}/signin/external/callback/{provider}` as the redirect URI with the provider, such as `https://id.example.com/signin/external/callback/google`.
 
 Kimlik never links accounts because their email addresses match: when someone signs in with a provider account whose address belongs to an existing account, they sign in to that account first and confirm the link. A new account counts its address as verified only if the provider verified it and is trusted to (`__TrustEmail`: on for Google, Apple and GitHub; off for Microsoft, which does not verify every address). Two-factor authentication applies after a provider sign-in too, and tokens report it in `amr` (`fed`, plus `otp` and `mfa`).
+
+### Enterprise single sign-on
+
+An organization can have its people sign in through its own identity provider over OpenID Connect, such as Microsoft Entra ID, Okta or Google Workspace. Set up an SSO connection on the organization's page in the admin panel, or through `POST /api/v1/sso-connections`:
+
+1. Register Kimlik as a web app at the provider, with `{PublicUrl}/signin/sso/callback` as its redirect URI and the `openid`, `email` and `profile` scopes.
+2. Enter the provider's issuer URL, such as `https://login.microsoftonline.com/{tenant}/v2.0`, `https://acme.okta.com` or `https://accounts.google.com`, the client ID and secret, and the organization's email domains.
+
+While the connection is enabled, people with addresses in those domains sign in only through the provider: the sign-in page sends them there as soon as they enter their address, and other ways of signing in lead there too. Their first sign-in links the account with the same address, or creates one whatever the registration mode, and makes them a member of the organization. Disabling the connection restores the other ways of signing in. Because a connection can sign in anyone in its domains, administrators included, managing connections takes every installation-wide system permission; claim only domains the organization owns.
 
 ### Provisioning
 

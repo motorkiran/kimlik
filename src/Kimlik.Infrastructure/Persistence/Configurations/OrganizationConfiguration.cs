@@ -73,3 +73,32 @@ internal sealed class InvitationRoleConfiguration : IEntityTypeConfiguration<Inv
         builder.HasOne<Role>().WithMany().HasForeignKey(link => link.RoleId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class SsoConnectionConfiguration : IEntityTypeConfiguration<SsoConnection>
+{
+    public void Configure(EntityTypeBuilder<SsoConnection> builder)
+    {
+        builder.Property(connection => connection.Id).ValueGeneratedNever();
+        builder.Property(connection => connection.Name).HasMaxLength(SsoConnection.NameMaxLength);
+        builder.Property(connection => connection.Issuer).HasMaxLength(SsoConnection.IssuerMaxLength);
+        builder.Property(connection => connection.ClientId).HasMaxLength(SsoConnection.ClientIdMaxLength);
+        builder.Ignore(connection => connection.LoginProvider);
+
+        builder.HasOne<Organization>().WithMany().HasForeignKey(connection => connection.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(connection => connection.OrganizationId);
+
+        builder.HasMany(connection => connection.Domains).WithOne().HasForeignKey(domain => domain.ConnectionId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(connection => connection.Domains).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
+    }
+}
+
+internal sealed class SsoDomainConfiguration : IEntityTypeConfiguration<SsoDomain>
+{
+    public void Configure(EntityTypeBuilder<SsoDomain> builder)
+    {
+        // A domain belongs to one connection at most.
+        builder.HasKey(domain => domain.Domain);
+        builder.Property(domain => domain.Domain).HasMaxLength(SsoConnection.DomainMaxLength);
+        builder.HasIndex(domain => domain.ConnectionId);
+    }
+}
