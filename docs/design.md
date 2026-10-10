@@ -1018,7 +1018,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M13: Admin impersonation** | Administrators sign in as a user for support, with `act` in tokens ([§10.6](#106-administrative-security)) | An administrator acts as a user in the hosted pages and apps, changes nothing on the account, and stops, in end-to-end tests ✅ |
 | **M14: Keys and pushed authorization requests** | `private_key_jwt` client authentication and PAR, in the Management API, the provisioning file and the admin panel ([§8.2](#82-grants-and-client-authentication)) | A client signs in users through PAR and gets tokens with a signed assertion instead of a secret, in end-to-end tests ✅ |
 | **M15: Passkeys as the second step** | Passkeys verify the second step after a password, an email code or another provider ([§10.4](#104-passkeys)) | A password sign-in that needs a second factor completes with a passkey, in end-to-end tests with a software authenticator ✅ |
-| **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ |
+| **M16: Sign-in links** | A "Sign in" link next to the code in sign-in emails, bound to the browser that asked ([§10.5](#105-email-sign-in-codes)) | The link signs in only the browser that asked for the code, in end-to-end tests ✅ (M9 to M16 released as v0.2.0, 2026-10-10) |
 
 ---
 

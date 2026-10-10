@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-10
+
+Passwordless and phishing-resistant sign-in, stronger client authentication, and support tools for administrators.
+
 ### Added
 
 - Passkeys (WebAuthn): sign in with a passkey, from a button or the browser's suggestions in the address field, as two factors that meet MFA requirements (`amr` `["pop", "mfa"]`); add, rename and remove passkeys on the account pages, with a one-time offer after a password sign-in; manage them through the Account and Management APIs, `Kimlik.Client` and the admin panel.
@@ -16,6 +20,12 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Pushed authorization requests (PAR, RFC 9126) at `/connect/par`, which a client can be set to require (`requirePushedAuthorization`).
 - Passkeys as the second step: after a password, an email code or another provider, a passkey verifies the second step instead of an authenticator code, and accounts that must use a second factor and have a passkey are no longer made to set up an app (`amr` `[first factor, "pop", "mfa"]`).
 - Sign-in links: sign-in code emails also carry a "Sign in" link that fills the code in, in the browser that asked for it and nowhere else; opening it never signs anyone in by itself, so mail scanners cannot use the code.
+
+### Changed
+
+- `ClientResponse` gained `RequirePushedAuthorization` and `JsonWebKeySet`; code that constructs it positionally, such as test doubles, must pass them.
+- After the sign-in that `prompt=login` asks for, the authorization request comes back with a protected `kimlik_login_prompted` parameter instead of without the prompt.
+- The `kimlik-admin` role also holds the new `kimlik.users:impersonate` permission.
 
 ### Fixed
 

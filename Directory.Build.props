@@ -22,7 +22,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/motorkiran/kimlik</PackageProjectUrl>
     <RepositoryUrl>https://github.com/motorkiran/kimlik</RepositoryUrl>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
     <!-- Fixed: Data Protection stores assembly-qualified type names in the key ring (its decryptor), and those
          must keep resolving across releases. Package and file versions carry the real version. -->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
