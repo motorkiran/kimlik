@@ -95,6 +95,7 @@ internal static class SocialLoginServiceCollectionExtensions
 
         // SSO connections come from the database rather than the options.
         services.Replace(ServiceDescriptor.Singleton<OpenIddictClientService, SsoClientService>());
+        services.AddSingleton<SamlServiceProvider>();
         services.AddTokenKeysToClient();
         services.AddSingleton<IConfigureOptions<OpenIddictClientAspNetCoreOptions>, ConfigureTransportSecurity>();
         services.AddSingleton<ExternalProviders>();

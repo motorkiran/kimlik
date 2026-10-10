@@ -3,15 +3,39 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-2">
-            Register Kimlik as a web app at the provider, with <code>@CallbackUrl</code> as its redirect URI.
-        </MudText>
-        <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" HelperText="Such as Acme Entra ID." id="sso-name" />
-        <MudTextField @bind-Value="_issuer" Label="Issuer" Required MaxLength="512" id="sso-issuer"
-                      HelperText="The provider's issuer URL, such as https://login.microsoftonline.com/{tenant}/v2.0 or https://acme.okta.com." />
-        <MudTextField @bind-Value="_clientId" Label="Client ID" Required MaxLength="256" id="sso-client-id" />
-        <MudTextField @bind-Value="_clientSecret" Label="Client secret" InputType="InputType.Password" MaxLength="1024" id="sso-client-secret"
-                      Required="Connection is null" HelperText="@(Connection is null ? null : "Leave empty to keep the current secret.")" />
+        @if (Connection is null)
+        {
+            <MudSelect T="SsoProtocol" @bind-Value="_protocol" Label="Protocol" id="sso-protocol">
+                <MudSelectItem T="SsoProtocol" Value="SsoProtocol.OpenIdConnect">OpenID Connect</MudSelectItem>
+                <MudSelectItem T="SsoProtocol" Value="SsoProtocol.Saml">SAML 2.0</MudSelectItem>
+            </MudSelect>
+        }
+        @if (_protocol == SsoProtocol.OpenIdConnect)
+        {
+            <MudText Typo="Typo.body2" Class="my-2">
+                Register Kimlik as a web app at the provider, with <code>@Url("signin/sso/callback")</code> as its redirect URI.
+            </MudText>
+            <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" HelperText="Such as Acme Entra ID." id="sso-name" />
+            <MudTextField @bind-Value="_issuer" Label="Issuer" Required MaxLength="512" id="sso-issuer"
+                          HelperText="The provider's issuer URL, such as https://login.microsoftonline.com/{tenant}/v2.0 or https://acme.okta.com." />
+            <MudTextField @bind-Value="_clientId" Label="Client ID" Required MaxLength="256" id="sso-client-id" />
+            <MudTextField @bind-Value="_clientSecret" Label="Client secret" InputType="InputType.Password" MaxLength="1024" id="sso-client-secret"
+                          Required="Connection is null" HelperText="@(Connection is null ? null : "Leave empty to keep the current secret.")" />
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="my-2">
+                Add Kimlik to the provider as a SAML app with <code>@Url("signin/sso/saml")</code> as its entity ID and
+                <code>@Url("signin/sso/saml/acs")</code> as its assertion consumer service URL, or import <code>@Url("signin/sso/saml/metadata")</code>.
+                Have it send the email address as the name ID or an <code>email</code> attribute.
+            </MudText>
+            <MudTextField @bind-Value="_name" Label="Name" Required MaxLength="100" HelperText="Such as Acme AD FS." id="sso-name" />
+            <MudTextField @bind-Value="_issuer" Label="Provider entity ID" Required MaxLength="512" id="sso-issuer" />
+            <MudTextField @bind-Value="_signOnUrl" Label="Sign-on URL" Required MaxLength="2048" id="sso-sign-on-url"
+                          HelperText="Where the provider takes authentication requests." />
+            <MudTextField @bind-Value="_certificate" Label="Signing certificate" Required Lines="4" id="sso-certificate"
+                          HelperText="@(Connection?.CertificateExpiresAt is { } expires ? $"PEM or base64. The current one expires {expires:d MMM yyyy}." : "PEM or base64.")" />
+        }
         <MudTextField @bind-Value="_domains" Label="Email domains" Required Lines="2" id="sso-domains"
                       HelperText="One or more, separated by commas, such as acme.com. People with these addresses sign in only through the provider while the connection is enabled." />
         <MudCheckBox @bind-Value="_enabled" Label="Enabled" id="sso-enabled" />
@@ -23,10 +47,13 @@
 </MudDialog>
 
 @code {
+    private SsoProtocol _protocol = SsoProtocol.OpenIdConnect;
     private string _name = string.Empty;
     private string _issuer = string.Empty;
     private string _clientId = string.Empty;
     private string? _clientSecret;
+    private string _signOnUrl = string.Empty;
+    private string _certificate = string.Empty;
     private string _domains = string.Empty;
     private bool _enabled = true;
 
@@ -40,15 +67,18 @@
     [Parameter]
     public SsoConnectionResponse? Connection { get; set; }
 
-    private string CallbackUrl => new Uri(new Uri(Navigation.BaseUri), "signin/sso/callback").ToString();
+    private string Url(string path) => new Uri(new Uri(Navigation.BaseUri), path).ToString();
 
     protected override void OnParametersSet()
     {
         if (Connection is { } connection)
         {
+            _protocol = connection.Protocol;
             _name = connection.Name;
             _issuer = connection.Issuer;
-            _clientId = connection.ClientId;
+            _clientId = connection.ClientId ?? string.Empty;
+            _signOnUrl = connection.SignOnUrl ?? string.Empty;
+            _certificate = connection.Certificate ?? string.Empty;
             _domains = string.Join(", ", connection.Domains);
             _enabled = connection.Enabled;
         }
@@ -58,12 +88,23 @@
     {
         var domains = _domains.Split([',', ' ', '\n', '\r', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var secret = string.IsNullOrEmpty(_clientSecret) ? null : _clientSecret;
+        var oidc = _protocol == SsoProtocol.OpenIdConnect;
         var saved = Connection is { } connection
             ? await ChangeAsync<UpdateSsoConnectionHandler, SsoConnectionResponse>(
                 SystemPermissions.OrganizationsWrite,
                 handler => handler.HandleAsync(
                     connection.Id,
-                    new UpdateSsoConnectionRequest { Name = _name, Issuer = _issuer.Trim(), ClientId = _clientId, ClientSecret = secret, Domains = domains, Enabled = _enabled },
+                    new UpdateSsoConnectionRequest
+                    {
+                        Name = _name,
+                        Issuer = _issuer.Trim(),
+                        ClientId = oidc ? _clientId : null,
+                        ClientSecret = oidc ? secret : null,
+                        SignOnUrl = oidc ? null : _signOnUrl.Trim(),
+                        Certificate = oidc ? null : _certificate,
+                        Domains = domains,
+                        Enabled = _enabled,
+                    },
                     Aborted),
                 "The connection was saved.")
             : await ChangeAsync<CreateSsoConnectionHandler, SsoConnectionResponse>(
@@ -73,9 +114,12 @@
                     {
                         OrganizationId = OrganizationId,
                         Name = _name,
+                        Protocol = _protocol,
                         Issuer = _issuer.Trim(),
-                        ClientId = _clientId,
-                        ClientSecret = secret ?? string.Empty,
+                        ClientId = oidc ? _clientId : null,
+                        ClientSecret = oidc ? secret : null,
+                        SignOnUrl = oidc ? null : _signOnUrl.Trim(),
+                        Certificate = oidc ? null : _certificate,
                         Domains = domains,
                         Enabled = _enabled,
                     },

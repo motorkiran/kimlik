@@ -23,7 +23,7 @@ public sealed class SignInSsoModel(SsoDirectory directory, IStringLocalizer<Shar
 
     public async Task<IActionResult> OnGetAsync(Guid? connection, CancellationToken cancellationToken) =>
         connection is { } id && await directory.FindAsync(id, cancellationToken) is { Enabled: true } found
-            ? SingleSignOn.Challenge(found, email: null, ReturnUrl)
+            ? SingleSignOn.Challenge(HttpContext, found, email: null, ReturnUrl)
             : Page();
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ public sealed class SignInSsoModel(SsoDirectory directory, IStringLocalizer<Shar
             return Page();
         }
 
-        return SingleSignOn.Challenge(connection, Input.Email, ReturnUrl);
+        return SingleSignOn.Challenge(HttpContext, connection, Input.Email, ReturnUrl);
     }
 }
 

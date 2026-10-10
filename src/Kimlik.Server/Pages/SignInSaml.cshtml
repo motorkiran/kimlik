@@ -1,0 +1,11 @@
+@page "/signin/sso/saml/acs"
+@model SignInSamlModel
+@{
+    ViewData["Title"] = L["Sign in"];
+}
+
+<h1 id="page-title">@L["Sign in"]</h1>
+<div class="alert alert-error" role="alert">@Model.ErrorMessage</div>
+<div class="actions">
+    <a class="button button-secondary" asp-page="/SignIn">@L["Back to sign in"]</a>
+</div>

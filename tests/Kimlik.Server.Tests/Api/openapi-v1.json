@@ -9084,8 +9084,6 @@
           "organizationId",
           "name",
           "issuer",
-          "clientId",
-          "clientSecret",
           "domains"
         ],
         "type": "object",
@@ -9100,22 +9098,51 @@
             "type": "string",
             "description": "A name for people, such as `Acme Entra ID`."
           },
+          "protocol": {
+            "description": "OpenID Connect, by default, or SAML; it cannot change later.",
+            "$ref": "#/components/schemas/SsoProtocol"
+          },
           "issuer": {
             "maxLength": 512,
             "minLength": 0,
             "type": "string",
-            "description": "The provider's issuer URL, from which Kimlik discovers its endpoints and keys, such as\n`https://login.microsoftonline.com/{tenant}/v2.0` or `https://acme.okta.com`."
+            "description": "For OpenID Connect, the provider's issuer URL, from which Kimlik discovers its endpoints and keys, such as\n`https://login.microsoftonline.com/{tenant}/v2.0` or `https://acme.okta.com`. For SAML, the provider's\nentity ID."
           },
           "clientId": {
             "maxLength": 256,
             "minLength": 0,
-            "type": "string",
-            "description": "Kimlik's client ID at the provider, where `{PublicUrl}/signin/sso/callback` is its redirect URI."
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "OpenID Connect only: Kimlik's client ID at the provider, where `{PublicUrl}/signin/sso/callback` is its\nredirect URI."
           },
           "clientSecret": {
             "maxLength": 1024,
             "minLength": 0,
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "OpenID Connect only."
+          },
+          "signOnUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "SAML only: where the provider takes authentication requests, with the HTTP-Redirect binding."
+          },
+          "certificate": {
+            "maxLength": 16384,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "SAML only: the certificate the provider signs with, in PEM or base64."
           },
           "domains": {
             "type": "array",
@@ -10997,8 +11024,12 @@
           "id",
           "organizationId",
           "name",
+          "protocol",
           "issuer",
           "clientId",
+          "signOnUrl",
+          "certificate",
+          "certificateExpiresAt",
           "domains",
           "enabled",
           "createdAt",
@@ -11017,11 +11048,36 @@
           "name": {
             "type": "string"
           },
+          "protocol": {
+            "$ref": "#/components/schemas/SsoProtocol"
+          },
           "issuer": {
             "type": "string"
           },
           "clientId": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "signOnUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "certificate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "certificateExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           },
           "domains": {
             "type": "array",
@@ -11041,7 +11097,13 @@
             "format": "date-time"
           }
         },
-        "description": "An organization's own identity provider, which signs in the people whose addresses are in its `Domains`, over\nOpenID Connect. While it is enabled, those people sign in only through it. Its client secret is never returned."
+        "description": "An organization's own identity provider, which signs in the people whose addresses are in its `Domains`, over\nOpenID Connect or SAML. While it is enabled, those people sign in only through it. An OpenID Connect connection has a\n`ClientId`, whose secret is never returned; a SAML one has the provider's `SignOnUrl` and signing\n`Certificate`, and its `Issuer` is the provider's entity ID."
+      },
+      "SsoProtocol": {
+        "enum": [
+          "openIdConnect",
+          "saml"
+        ]
       },
       "SubscriberType": {
         "enum": [
@@ -11537,6 +11599,22 @@
               "string"
             ],
             "description": "A new client secret; the current one stays when omitted."
+          },
+          "signOnUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "certificate": {
+            "maxLength": 16384,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "domains": {
             "type": [

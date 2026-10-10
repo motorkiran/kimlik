@@ -1,11 +1,33 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Kimlik.Domain.Common;
 
 namespace Kimlik.Domain.Organizations;
 
+/// <summary>How a connection signs people in.</summary>
+public enum SsoProtocol
+{
+    OpenIdConnect,
+    Saml,
+}
+
+/// <summary>
+/// What a connection is set to. <c>ClientId</c> is for OpenID Connect; <c>SignOnUrl</c> and <c>Certificate</c> are for
+/// SAML, whose <c>Issuer</c> is the provider's entity ID.
+/// </summary>
+public sealed record SsoConnectionSettings(string Name, string Issuer, IEnumerable<string> Domains, bool Enabled)
+{
+    public string? ClientId { get; init; }
+
+    public string? SignOnUrl { get; init; }
+
+    public string? Certificate { get; init; }
+}
+
 /// <summary>
 /// An organization's own identity provider, which signs in the people whose addresses are in its domains, over OpenID
-/// Connect. While it is enabled, those people sign in only through it.
+/// Connect or SAML. While it is enabled, those people sign in only through it.
 /// </summary>
 public sealed class SsoConnection
 {
@@ -13,6 +35,8 @@ public sealed class SsoConnection
     public const int IssuerMaxLength = 512;
     public const int ClientIdMaxLength = 256;
     public const int ClientSecretMaxLength = 1024;
+    public const int SignOnUrlMaxLength = 2048;
+    public const int CertificateMaxLength = 16384;
     public const int DomainMaxLength = 253;
     public const int MaxDomains = 20;
 
@@ -31,14 +55,25 @@ public sealed class SsoConnection
 
     public string Name { get; private set; } = string.Empty;
 
-    /// <summary>The provider's issuer URL, from which its endpoints and keys are discovered.</summary>
+    public SsoProtocol Protocol { get; private init; }
+
+    /// <summary>
+    /// The provider: for OpenID Connect its issuer URL, from which its endpoints and keys are discovered; for SAML its
+    /// entity ID.
+    /// </summary>
     public string Issuer { get; private set; } = string.Empty;
 
-    /// <summary>Kimlik's client ID at the provider.</summary>
-    public string ClientId { get; private set; } = string.Empty;
+    /// <summary>Kimlik's client ID at an OpenID Connect provider.</summary>
+    public string? ClientId { get; private set; }
 
-    /// <summary>Kimlik's client secret at the provider, encrypted with the master key.</summary>
-    public string EncryptedClientSecret { get; private set; } = string.Empty;
+    /// <summary>Kimlik's client secret at an OpenID Connect provider, encrypted with the master key.</summary>
+    public string? EncryptedClientSecret { get; private set; }
+
+    /// <summary>Where a SAML provider takes authentication requests.</summary>
+    public string? SignOnUrl { get; private set; }
+
+    /// <summary>The certificate a SAML provider signs its responses with, in PEM.</summary>
+    public string? Certificate { get; private set; }
 
     public bool Enabled { get; private set; }
 
@@ -64,42 +99,65 @@ public sealed class SsoConnection
             ? id
             : null;
 
-    /// <summary>A new connection; the caller sets its secret.</summary>
-    public static Result<SsoConnection> Create(
-        Guid organizationId, string name, string issuer, string clientId, IEnumerable<string> domains, bool enabled, DateTimeOffset now)
+    /// <summary>A new connection; the caller sets the secret of an OpenID Connect one.</summary>
+    public static Result<SsoConnection> Create(Guid organizationId, SsoProtocol protocol, SsoConnectionSettings settings, DateTimeOffset now)
     {
-        var connection = new SsoConnection { Id = Guid.CreateVersion7(now), OrganizationId = organizationId, CreatedAt = now };
-        var updated = connection.Update(name, issuer, clientId, domains, enabled, now);
+        var connection = new SsoConnection { Id = Guid.CreateVersion7(now), OrganizationId = organizationId, Protocol = protocol, CreatedAt = now };
+        var updated = connection.Update(settings, now);
         return updated.IsSuccess ? connection : updated.Error;
     }
 
-    public Result Update(string name, string issuer, string clientId, IEnumerable<string> domains, bool enabled, DateTimeOffset now)
+    /// <summary>Changes the connection; its protocol stays.</summary>
+    public Result Update(SsoConnectionSettings settings, DateTimeOffset now)
     {
-        if (name is null || name.Trim().Length is 0 or > NameMaxLength)
+        if (settings.Name is null || settings.Name.Trim().Length is 0 or > NameMaxLength)
         {
             return SsoErrors.InvalidName;
         }
 
-        if (!IsValidIssuer(issuer))
+        string? certificate = null;
+        if (Protocol == SsoProtocol.OpenIdConnect)
         {
-            return SsoErrors.InvalidIssuer;
+            if (!IsValidIssuer(settings.Issuer))
+            {
+                return SsoErrors.InvalidIssuer;
+            }
+
+            if (settings.ClientId is null || settings.ClientId.Trim().Length is 0 or > ClientIdMaxLength)
+            {
+                return SsoErrors.InvalidClientId;
+            }
+        }
+        else
+        {
+            if (settings.Issuer is null || settings.Issuer.Trim().Length is 0 or > IssuerMaxLength)
+            {
+                return SsoErrors.InvalidEntityId;
+            }
+
+            if (!IsValidSignOnUrl(settings.SignOnUrl))
+            {
+                return SsoErrors.InvalidSignOnUrl;
+            }
+
+            if ((certificate = NormalizeCertificate(settings.Certificate)) is null)
+            {
+                return SsoErrors.InvalidCertificate;
+            }
         }
 
-        if (clientId is null || clientId.Trim().Length is 0 or > ClientIdMaxLength)
-        {
-            return SsoErrors.InvalidClientId;
-        }
-
-        var normalized = domains.Select(NormalizeDomain).ToList();
+        var normalized = settings.Domains.Select(NormalizeDomain).ToList();
         if (normalized.Count is 0 or > MaxDomains || normalized.Any(domain => domain is null))
         {
             return SsoErrors.InvalidDomains;
         }
 
-        Name = name.Trim();
-        Issuer = issuer;
-        ClientId = clientId.Trim();
-        Enabled = enabled;
+        Name = settings.Name.Trim();
+        Issuer = settings.Issuer.Trim();
+        ClientId = Protocol == SsoProtocol.OpenIdConnect ? settings.ClientId!.Trim() : null;
+        SignOnUrl = Protocol == SsoProtocol.Saml ? settings.SignOnUrl : null;
+        Certificate = certificate;
+        Enabled = settings.Enabled;
         SetDomains(normalized.OfType<string>().Distinct(StringComparer.Ordinal));
         UpdatedAt = now;
         return Result.Success();
@@ -157,6 +215,41 @@ public sealed class SsoConnection
         && string.IsNullOrEmpty(uri.Query)
         && string.IsNullOrEmpty(uri.Fragment)
         && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && IsLocal(uri)));
+
+    /// <summary>
+    /// An absolute HTTPS URL without credentials or fragment, which may carry a query, as Google's does. Plain HTTP is
+    /// accepted for the local machine only, for development.
+    /// </summary>
+    public static bool IsValidSignOnUrl(string? url) =>
+        url is { Length: <= SignOnUrlMaxLength }
+        && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && string.IsNullOrEmpty(uri.UserInfo)
+        && string.IsNullOrEmpty(uri.Fragment)
+        && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && IsLocal(uri)));
+
+    /// <summary>
+    /// A certificate as connections keep it, in PEM. It may come in PEM or as the base64 that providers show;
+    /// <see langword="null"/> when it is not a certificate.
+    /// </summary>
+    public static string? NormalizeCertificate(string? certificate)
+    {
+        if (string.IsNullOrWhiteSpace(certificate) || certificate.Length > CertificateMaxLength)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var parsed = certificate.Contains("-----BEGIN", StringComparison.Ordinal)
+                ? X509Certificate2.CreateFromPem(certificate)
+                : X509CertificateLoader.LoadCertificate(Convert.FromBase64String(string.Concat(certificate.Where(character => !char.IsWhiteSpace(character)))));
+            return parsed.ExportCertificatePem();
+        }
+        catch (Exception exception) when (exception is CryptographicException or FormatException or ArgumentException)
+        {
+            return null;
+        }
+    }
 
     private static bool IsLocal(Uri uri) =>
         uri.IsLoopback || (IPAddress.TryParse(uri.Host, out var address) && IPAddress.IsLoopback(address));

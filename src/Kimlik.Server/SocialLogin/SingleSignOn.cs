@@ -18,9 +18,17 @@ internal static class SingleSignOn
     /// <summary>Where every connection's provider sends people back, relative to the installation's URL.</summary>
     public const string CallbackPath = "signin/sso/callback";
 
-    /// <summary>Sends the browser to the connection's provider, with the address as a hint, and back to <paramref name="returnUrl"/>.</summary>
-    public static ChallengeResult Challenge(SsoProvider connection, string? email, string? returnUrl)
+    /// <summary>
+    /// Sends the browser to the connection's provider and back to <paramref name="returnUrl"/>; an OpenID Connect provider
+    /// gets the address as a hint.
+    /// </summary>
+    public static IActionResult Challenge(HttpContext http, SsoProvider connection, string? email, string? returnUrl)
     {
+        if (connection.Protocol == SsoProtocol.Saml)
+        {
+            return http.RequestServices.GetRequiredService<SamlServiceProvider>().Challenge(http, connection, returnUrl);
+        }
+
         var properties = new AuthenticationProperties { RedirectUri = AccountLinks.IsLocalUrl(returnUrl) ? returnUrl : "/" };
         properties.Items[OpenIddictClientAspNetCoreConstants.Properties.RegistrationId] = connection.LoginProvider;
         if (!string.IsNullOrWhiteSpace(email))
@@ -51,8 +59,9 @@ internal sealed class SsoClientService(IServiceProvider provider, IServiceScopeF
         }
 
         await using var scope = scopes.CreateAsyncScope();
-        var connection = await scope.ServiceProvider.GetRequiredService<SsoDirectory>().FindAsync(id, cancellationToken)
-            ?? throw new InvalidOperationException("The SSO connection was deleted during the sign-in.");
+        var connection = await scope.ServiceProvider.GetRequiredService<SsoDirectory>().FindAsync(id, cancellationToken) is { Protocol: SsoProtocol.OpenIdConnect } found
+            ? found
+            : throw new InvalidOperationException("The OpenID Connect SSO connection was deleted during the sign-in.");
 
         if (_registrations.TryGetValue(id, out var cached) && cached.Properties[UpdatedAtProperty] is DateTimeOffset updatedAt && updatedAt == connection.UpdatedAt)
         {

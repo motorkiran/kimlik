@@ -43,6 +43,7 @@ internal static class IdentityServiceCollectionExtensions
         services.AddScoped<PasskeyCeremonies>();
         services.AddSingleton<PendingSignInCode>();
         services.AddScoped<AccountErrorMessages>();
+        services.AddScoped<OrganizationSignIn>();
         services.AddSingleton<IAccountLinks, AccountLinks>();
 
         return services;

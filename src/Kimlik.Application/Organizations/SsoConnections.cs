@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
 using Kimlik.Application.Common;
@@ -6,6 +7,7 @@ using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
+using SsoProtocol = Kimlik.Domain.Organizations.SsoProtocol;
 
 namespace Kimlik.Application.Organizations;
 
@@ -60,7 +62,8 @@ public sealed class CreateSsoConnectionHandler(
             return allowed.Error;
         }
 
-        if (!SsoClientSecrets.IsValid(request.ClientSecret))
+        var protocol = request.Protocol == Contracts.Management.SsoProtocol.Saml ? SsoProtocol.Saml : SsoProtocol.OpenIdConnect;
+        if (protocol == SsoProtocol.OpenIdConnect && !SsoClientSecrets.IsValid(request.ClientSecret))
         {
             return SsoErrors.InvalidClientSecret;
         }
@@ -71,14 +74,24 @@ public sealed class CreateSsoConnectionHandler(
         }
 
         var now = timeProvider.GetUtcNow();
-        var created = SsoConnection.Create(request.OrganizationId, request.Name, request.Issuer, request.ClientId, request.Domains ?? [], request.Enabled, now);
+        var settings = new SsoConnectionSettings(request.Name, request.Issuer, request.Domains ?? [], request.Enabled)
+        {
+            ClientId = request.ClientId,
+            SignOnUrl = request.SignOnUrl,
+            Certificate = request.Certificate,
+        };
+        var created = SsoConnection.Create(request.OrganizationId, protocol, settings, now);
         if (created.IsFailure)
         {
             return created.Error;
         }
 
         var connection = created.Value;
-        connection.SetClientSecret(SsoClientSecrets.Encrypt(encryption, connection.Id, request.ClientSecret), now);
+        if (protocol == SsoProtocol.OpenIdConnect)
+        {
+            connection.SetClientSecret(SsoClientSecrets.Encrypt(encryption, connection.Id, request.ClientSecret!), now);
+        }
+
         context.SsoConnections.Add(connection);
         auditLog.Record(AuditActions.SsoConnectionCreated, AuditSubject.SsoConnection(connection.Id), connection.AuditData(), organizationId: connection.OrganizationId);
         return await SsoConnectionStore.SaveAsync(context, connection, cancellationToken);
@@ -107,25 +120,30 @@ public sealed class UpdateSsoConnectionHandler(
         }
 
         var now = timeProvider.GetUtcNow();
-        var updated = connection.Update(
+        var settings = new SsoConnectionSettings(
             request.Name ?? connection.Name,
             request.Issuer ?? connection.Issuer,
-            request.ClientId ?? connection.ClientId,
             request.Domains ?? [.. connection.Domains.Select(domain => domain.Domain)],
-            request.Enabled ?? connection.Enabled,
-            now);
+            request.Enabled ?? connection.Enabled)
+        {
+            ClientId = request.ClientId ?? connection.ClientId,
+            SignOnUrl = request.SignOnUrl ?? connection.SignOnUrl,
+            Certificate = request.Certificate ?? connection.Certificate,
+        };
+        var updated = connection.Update(settings, now);
         if (updated.IsFailure)
         {
             return updated.Error;
         }
 
-        if (request.ClientSecret is not null)
+        var secretChanged = request.ClientSecret is not null && connection.Protocol == SsoProtocol.OpenIdConnect;
+        if (secretChanged)
         {
-            connection.SetClientSecret(SsoClientSecrets.Encrypt(encryption, connection.Id, request.ClientSecret), now);
+            connection.SetClientSecret(SsoClientSecrets.Encrypt(encryption, connection.Id, request.ClientSecret!), now);
         }
 
         var data = connection.AuditData();
-        data["client_secret_changed"] = request.ClientSecret is not null;
+        data["client_secret_changed"] = secretChanged;
         auditLog.Record(AuditActions.SsoConnectionUpdated, AuditSubject.SsoConnection(id), data, organizationId: connection.OrganizationId);
         return await SsoConnectionStore.SaveAsync(context, connection, cancellationToken);
     }
@@ -164,8 +182,9 @@ public static class SsoClientSecrets
 
     public static string Encrypt(ISecretEncryption encryption, Guid connectionId, string secret) => encryption.Encrypt(secret, Purpose, connectionId);
 
-    public static string Decrypt(ISecretEncryption encryption, SsoConnection connection) =>
-        encryption.Decrypt(connection.EncryptedClientSecret, Purpose, connection.Id);
+    /// <summary>The client secret of an OpenID Connect connection; SAML ones have none.</summary>
+    public static string? Decrypt(ISecretEncryption encryption, SsoConnection connection) =>
+        connection.EncryptedClientSecret is { } secret ? encryption.Decrypt(secret, Purpose, connection.Id) : null;
 }
 
 internal static class SsoConnectionStore
@@ -194,6 +213,7 @@ internal static class SsoConnectionStore
     public static Dictionary<string, object?> AuditData(this SsoConnection connection) => new()
     {
         ["name"] = connection.Name,
+        ["protocol"] = connection.Protocol.ToString(),
         ["issuer"] = connection.Issuer,
         ["domains"] = connection.Domains.Select(domain => domain.Domain).Order(StringComparer.Ordinal).ToArray(),
         ["enabled"] = connection.Enabled,
@@ -203,10 +223,20 @@ internal static class SsoConnectionStore
         connection.Id,
         connection.OrganizationId,
         connection.Name,
+        connection.Protocol == SsoProtocol.Saml ? Contracts.Management.SsoProtocol.Saml : Contracts.Management.SsoProtocol.OpenIdConnect,
         connection.Issuer,
         connection.ClientId,
+        connection.SignOnUrl,
+        connection.Certificate,
+        connection.Certificate is { } certificate ? ExpiryOf(certificate) : null,
         [.. connection.Domains.Select(domain => domain.Domain).Order(StringComparer.Ordinal)],
         connection.Enabled,
         connection.CreatedAt,
         connection.UpdatedAt);
+
+    private static DateTimeOffset ExpiryOf(string certificate)
+    {
+        using var parsed = X509Certificate2.CreateFromPem(certificate);
+        return new DateTimeOffset(parsed.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+    }
 }

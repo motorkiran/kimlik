@@ -16,9 +16,11 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Secret rotation without downtime: a new client secret can leave the previous one working for up to 30 days (`keepPreviousSecretForDays`), through the Management API, `Kimlik.Client` and the admin panel.
 - Enterprise single sign-on: SSO connections let an organization's own OpenID Connect provider, such as Entra ID, Okta or Google Workspace, sign in the people with addresses in its email domains, who then sign in only that way while the connection is enabled. Their first sign-in links or creates their account and makes them members of the organization; when the provider reports `mfa` in `amr`, the session counts as multi-factor (`amr` `["fed", "mfa"]`). Connections are managed through `/api/v1/sso-connections`, `Kimlik.Client` and the organization's page in the admin panel, and take every installation-wide system permission to change.
 - Organizations on the account pages: people see their organizations and the invitations to their address, which they accept or decline, create and leave organizations, and, as their organization roles allow, rename or delete them, invite people, send invitations again or revoke them, and change members' roles or remove them, at `/account/organizations`.
+- SAML 2.0 for SSO connections (`"protocol": "saml"`), for providers such as AD FS: Kimlik is one service provider at `{PublicUrl}/signin/sso/saml`, with its metadata at `…/metadata`, and accepts only signed responses that answer a request the same browser started.
 
 ### Changed
 
+- Kimlik depends on ITfoxtec.Identity.Saml2 (BSD-3-Clause) for SAML, and pins every Microsoft.IdentityModel package to one version, 8.22.0.
 - `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange`, `BackChannelLogoutUri` and `PreviousSecretExpiresAt`, `PlanResponse` gained `Kind`, `FeatureResponse` gained `Metered`, and `SubscriptionResponse` gained `AddOns` and `FeatureOverrides`; code that constructs them positionally must pass them.
 - The Account API refuses changes from any token in which someone else acts for the user, a client that exchanged it as well as an impersonating administrator.
 - Sign-in codes are kept per purpose, so codes asked for before the upgrade stop working.

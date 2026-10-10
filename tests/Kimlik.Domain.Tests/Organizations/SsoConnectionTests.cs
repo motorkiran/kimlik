@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Kimlik.Domain.Organizations;
 
 namespace Kimlik.Domain.Tests.Organizations;
@@ -5,6 +7,8 @@ namespace Kimlik.Domain.Tests.Organizations;
 public sealed class SsoConnectionTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 10, 10, 0, 0, TimeSpan.Zero);
+
+    private static SsoConnectionSettings Oidc(IEnumerable<string> domains) => new("Acme", "https://acme.okta.com", domains, Enabled: true) { ClientId = "kimlik" };
 
     [Theory]
     [InlineData("Acme.COM.", "acme.com")]
@@ -45,10 +49,10 @@ public sealed class SsoConnectionTests
     [Fact]
     public void Update_KeepsTheDomainsThatStay()
     {
-        var connection = SsoConnection.Create(Guid.NewGuid(), "Acme", "https://acme.okta.com", "kimlik", ["acme.com", "ACME.com", "acme.org"], enabled: true, Now).Value;
+        var connection = SsoConnection.Create(Guid.NewGuid(), SsoProtocol.OpenIdConnect, Oidc(["acme.com", "ACME.com", "acme.org"]), Now).Value;
         var kept = connection.Domains.Single(domain => domain.Domain == "acme.com");
 
-        connection.Update("Acme", "https://acme.okta.com", "kimlik", ["acme.com", "acme.io"], enabled: true, Now).IsSuccess.ShouldBeTrue();
+        connection.Update(Oidc(["acme.com", "acme.io"]), Now).IsSuccess.ShouldBeTrue();
 
         connection.Domains.Select(domain => domain.Domain).Order().ShouldBe(["acme.com", "acme.io"]);
         connection.Domains.ShouldContain(kept);
@@ -59,11 +63,34 @@ public sealed class SsoConnectionTests
     [Fact]
     public void Update_RequiresDomains()
     {
-        var connection = SsoConnection.Create(Guid.NewGuid(), "Acme", "https://acme.okta.com", "kimlik", ["acme.com"], enabled: true, Now).Value;
+        var connection = SsoConnection.Create(Guid.NewGuid(), SsoProtocol.OpenIdConnect, Oidc(["acme.com"]), Now).Value;
 
-        connection.Update("Acme", "https://acme.okta.com", "kimlik", [], enabled: true, Now).Error.ShouldBe(SsoErrors.InvalidDomains);
-        connection.Update("Acme", "https://acme.okta.com", "kimlik", ["acme.com", "not a domain"], enabled: true, Now).Error.ShouldBe(SsoErrors.InvalidDomains);
+        connection.Update(Oidc([]), Now).Error.ShouldBe(SsoErrors.InvalidDomains);
+        connection.Update(Oidc(["acme.com", "not a domain"]), Now).Error.ShouldBe(SsoErrors.InvalidDomains);
         connection.Domains.ShouldHaveSingleItem().Domain.ShouldBe("acme.com");
+    }
+
+    [Fact]
+    public void SamlConnections_NeedASignOnUrlAndACertificate_InPemOrBase64()
+    {
+        using var key = RSA.Create(2048);
+        using var certificate = new CertificateRequest("CN=idp", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+            .CreateSelfSigned(Now.AddDays(-1), Now.AddYears(1));
+        var settings = new SsoConnectionSettings("Acme AD FS", "http://adfs.acme.com/adfs/services/trust", ["acme.com"], Enabled: true)
+        {
+            SignOnUrl = "https://adfs.acme.com/adfs/ls/",
+            Certificate = Convert.ToBase64String(certificate.RawData),
+        };
+
+        var connection = SsoConnection.Create(Guid.NewGuid(), SsoProtocol.Saml, settings, Now).Value;
+
+        connection.Certificate.ShouldBe(certificate.ExportCertificatePem());
+        connection.ClientId.ShouldBeNull();
+        connection.Update(settings with { Certificate = certificate.ExportCertificatePem() }, Now).IsSuccess.ShouldBeTrue();
+        connection.Update(settings with { Certificate = "not a certificate" }, Now).Error.ShouldBe(SsoErrors.InvalidCertificate);
+        connection.Update(settings with { SignOnUrl = "http://adfs.acme.com/adfs/ls/" }, Now).Error.ShouldBe(SsoErrors.InvalidSignOnUrl);
+        connection.Update(settings with { SignOnUrl = "https://accounts.google.com/o/saml2/idp?idpid=C01" }, Now).IsSuccess.ShouldBeTrue();
+        connection.Update(settings with { Issuer = " " }, Now).Error.ShouldBe(SsoErrors.InvalidEntityId);
     }
 
     [Fact]

@@ -227,15 +227,14 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. SAML 2.0 for enterprise SSO connections, beside OpenID Connect.
-2. Developer-hosted sign-in UI through an interaction API.
-3. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
-4. DPoP (RFC 9449), which OpenIddict does not support yet.
-5. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-6. A JavaScript/TypeScript SDK and a Helm chart.
-7. OpenID Foundation certification.
+1. Developer-hosted sign-in UI through an interaction API.
+2. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
+3. DPoP (RFC 9449), which OpenIddict does not support yet.
+4. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+5. A JavaScript/TypeScript SDK and a Helm chart.
+6. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect (M24, [§10.11](#1011-enterprise-single-sign-on)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)).
 
 ### 4.3 Out of scope
 
@@ -890,7 +889,8 @@ Organizations can have their people sign in through their own identity provider,
 - **Accounts.** The first sign-in links the provider's subject to the account with the same address, or creates a verified account, whatever the registration mode, since the provider vouches for addresses in the organization's domains. Later sign-ins find the account by the link. Signing in for the first time requires the provider to share an address in one of the connection's domains. When the existing account's address was not verified yet, the link is the first proof that the person owns it, as a password reset is ([§10.3](#103-social-login-and-account-linking)): accounts at other providers linked before are unlinked and its sessions end. Google signs in personal accounts too, so connections to Google (`https://accounts.google.com`) accept only sign-ins whose Workspace domain (`hd`) is one of theirs. The account joins the organization without organization roles if it is not a member yet, and the organization's administrators give roles as usual.
 - **Factors.** Sessions report `fed` and name the connection as their provider. When the provider's ID token lists `mfa` in `amr`, as Okta does, the session counts as multi-factor. Otherwise Kimlik's MFA policies apply as after any other first factor.
 - **Audit.** Creating, changing and deleting connections is audited, and sign-ins record the connection as their provider.
-- **Later.** SAML 2.0 connections, which need a SAML library. Organizations' own administrators setting up connections after proving their domains through DNS. Signing out at the provider.
+- **SAML 2.0.** Connections can use SAML instead, for providers such as AD FS or apps set up that way, through the ITfoxtec.Identity.Saml2 library (BSD-3-Clause). A SAML connection holds the provider's entity ID, its sign-on URL and the certificate it signs with, which are what providers show for a new app. Kimlik is one service provider for every connection, so its values are known before a connection exists: `{PublicUrl}/signin/sso/saml` is its entity ID, `…/acs` its assertion consumer service and `…/metadata` its metadata. The request the browser started names the connection. It sends unsigned authentication requests with the HTTP-Redirect binding and takes responses with the HTTP-POST binding. A response must be signed by the certificate, come from the entity ID, be meant for Kimlik's entity ID and assertion consumer service, and answer a request that the same browser started, which a short-lived cookie binds, so responses the provider starts on its own are refused. The subject is the name ID, and the address comes from the `email` or `emailaddress` attribute, or from a name ID in the email format. SAML sign-ins are a first factor only.
+- **Later.** Organizations' own administrators setting up connections after proving their domains through DNS. Signing out at the provider.
 
 ---
 
@@ -1072,6 +1072,7 @@ The EF Core in-memory provider is not used. Data access is always tested against
 | Web | ASP.NET Core 10: Minimal APIs, Razor Pages, Blazor | MIT |
 | OpenID Connect / OAuth | OpenIddict 7.x: server, validation, client, EF Core stores | Apache-2.0 |
 | Credentials | ASP.NET Core Identity | MIT |
+| SAML 2.0 | ITfoxtec.Identity.Saml2, for SAML SSO connections | BSD-3-Clause |
 | Data access | EF Core 10, Npgsql provider, EFCore.NamingConventions | MIT, PostgreSQL, Apache-2.0 |
 | Database | PostgreSQL 16+ | PostgreSQL |
 | Caching | HybridCache, optional Redis-compatible server | MIT |
@@ -1116,6 +1117,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M23: Secret rotation** | A new client secret can leave the previous one working for up to 30 days ([§8.2](#82-grants-and-client-authentication)) | Both secrets work until the previous one expires, in end-to-end tests ✅ |
 | **M24: Enterprise SSO** | OpenID Connect connections per organization, routed and enforced by email domain, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People with an address in an organization's domain sign in through its provider, join the organization, and cannot sign in another way, in end-to-end tests with a fake provider |
 | **M25: Organization pages** | Organizations on the hosted account pages: memberships, invitations, creating and leaving organizations, and managing settings, members and invitations as organization roles allow ([§6.4](#64-hosted-ui)) | A member creates an organization, invites someone who accepts, changes their roles and removes them, and members without the permissions cannot, in end-to-end tests |
+| **M26: SAML connections** | SSO connections over SAML 2.0, with service provider metadata, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People sign in through a SAML provider whose signed responses answer their own requests, and forged, unsigned, misdirected or unsolicited responses are refused, in end-to-end tests |
 
 ---
 

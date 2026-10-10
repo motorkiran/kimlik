@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kimlik.Application.Accounts;
 
-/// <summary>An SSO connection as sign-in uses it, with its client secret.</summary>
+/// <summary>An SSO connection as sign-in uses it, with the client secret of an OpenID Connect one.</summary>
 public sealed class SsoProvider
 {
     public required Guid Id { get; init; }
@@ -18,11 +18,19 @@ public sealed class SsoProvider
 
     public required string Name { get; init; }
 
+    public required SsoProtocol Protocol { get; init; }
+
+    /// <summary>The issuer URL of an OpenID Connect provider, or the entity ID of a SAML one.</summary>
     public required string Issuer { get; init; }
 
-    public required string ClientId { get; init; }
+    public string? ClientId { get; init; }
 
-    public required string ClientSecret { get; init; }
+    public string? ClientSecret { get; init; }
+
+    public string? SignOnUrl { get; init; }
+
+    /// <summary>The certificate a SAML provider signs with, in PEM.</summary>
+    public string? Certificate { get; init; }
 
     public required IReadOnlyList<string> Domains { get; init; }
 
@@ -70,9 +78,12 @@ public sealed class SsoDirectory(IKimlikDbContext context, ISecretEncryption enc
         Id = connection.Id,
         OrganizationId = connection.OrganizationId,
         Name = connection.Name,
+        Protocol = connection.Protocol,
         Issuer = connection.Issuer,
         ClientId = connection.ClientId,
         ClientSecret = SsoClientSecrets.Decrypt(encryption, connection),
+        SignOnUrl = connection.SignOnUrl,
+        Certificate = connection.Certificate,
         Domains = [.. connection.Domains.Select(domain => domain.Domain)],
         Enabled = connection.Enabled,
         UpdatedAt = connection.UpdatedAt,

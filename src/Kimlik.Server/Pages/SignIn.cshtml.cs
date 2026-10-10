@@ -244,7 +244,7 @@ public sealed class SignInModel(
     private string InvalidCredentials => localizer["Invalid email or password."];
 
     private async Task<IActionResult?> SingleSignOnAsync(CancellationToken cancellationToken) =>
-        await sso.ForAddressAsync(Input.Email, cancellationToken) is { } connection ? SingleSignOn.Challenge(connection, Input.Email, ReturnUrl) : null;
+        await sso.ForAddressAsync(Input.Email, cancellationToken) is { } connection ? SingleSignOn.Challenge(HttpContext, connection, Input.Email, ReturnUrl) : null;
 
     private async Task<IActionResult> RejectAsync(User? user, string reason, string message, CancellationToken cancellationToken)
     {

@@ -67,7 +67,7 @@ public sealed class SignUpModel(
         // Addresses of an organization that signs in through its own provider get their account there, open or not.
         if (await sso.ForAddressAsync(Input.Email, cancellationToken) is { } connection)
         {
-            return SingleSignOn.Challenge(connection, Input.Email, ReturnUrl);
+            return SingleSignOn.Challenge(HttpContext, connection, Input.Email, ReturnUrl);
         }
 
         if (string.IsNullOrEmpty(Input.Password) && !PasswordOptional)

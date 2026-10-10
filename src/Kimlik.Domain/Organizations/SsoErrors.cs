@@ -15,6 +15,15 @@ public static class SsoErrors
 
     public static readonly Error InvalidClientSecret = Error.Validation("sso.invalid_client_secret", "A client secret is required and is at most 1024 characters.");
 
+    public static readonly Error InvalidEntityId = Error.Validation(
+        "sso.invalid_entity_id", "The provider's entity ID is required and is at most 512 characters.");
+
+    public static readonly Error InvalidSignOnUrl = Error.Validation(
+        "sso.invalid_sign_on_url", "The sign-on URL is the provider's HTTPS URL that takes authentication requests.");
+
+    public static readonly Error InvalidCertificate = Error.Validation(
+        "sso.invalid_certificate", "The certificate is the one the provider signs with, in PEM or base64.");
+
     public static readonly Error InvalidDomains = Error.Validation(
         "sso.invalid_domains", "Between 1 and 20 email domains are required, such as 'acme.com'.");
 

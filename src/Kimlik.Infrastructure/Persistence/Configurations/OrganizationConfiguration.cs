@@ -81,7 +81,9 @@ internal sealed class SsoConnectionConfiguration : IEntityTypeConfiguration<SsoC
         builder.Property(connection => connection.Id).ValueGeneratedNever();
         builder.Property(connection => connection.Name).HasMaxLength(SsoConnection.NameMaxLength);
         builder.Property(connection => connection.Issuer).HasMaxLength(SsoConnection.IssuerMaxLength);
+        builder.Property(connection => connection.Protocol).HasConversion<string>().HasMaxLength(16);
         builder.Property(connection => connection.ClientId).HasMaxLength(SsoConnection.ClientIdMaxLength);
+        builder.Property(connection => connection.SignOnUrl).HasMaxLength(SsoConnection.SignOnUrlMaxLength);
         builder.Ignore(connection => connection.LoginProvider);
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(connection => connection.OrganizationId).OnDelete(DeleteBehavior.Cascade);
