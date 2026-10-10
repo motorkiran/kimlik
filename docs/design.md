@@ -231,13 +231,12 @@ The backlog, roughly in priority order:
 2. Developer-hosted sign-in UI through an interaction API.
 3. Hosted or embeddable components for organization management.
 4. Usage metering.
-5. CAPTCHA and bot-protection hooks, and step-up authentication (`acr_values`).
-6. Multiple client secrets and DPoP.
-7. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-8. A JavaScript/TypeScript SDK and a Helm chart.
-9. OpenID Foundation certification.
+5. Multiple client secrets and DPoP.
+6. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+7. A JavaScript/TypeScript SDK and a Helm chart.
+8. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)).
 
 ### 4.3 Out of scope
 
@@ -672,6 +671,15 @@ When someone signs out of Kimlik, the web apps they signed in to through that se
 - **Delivery** is from the outbox, retried until the client answers with a 2xx status. Discovery says `backchannel_logout_supported` and `backchannel_logout_session_supported`.
 - **Records** of which clients a session signed in to go when the session ends, and after 90 days otherwise.
 
+### 8.11 Authentication context
+
+Apps can ask how strongly the user must have signed in (`acr_values`, OpenID Connect Core 1.0, section 3.1.2.1), with the policies of the OpenID Provider Authentication Policy Extension:
+
+- `http://schemas.openid.net/pape/policies/2007/06/multi-factor`: a second factor, or a passkey.
+- `http://schemas.openid.net/pape/policies/2007/06/phishing-resistant`: a passkey, as the sign-in or as the second step.
+
+When a session falls short of a requested policy, Kimlik asks for more: a second factor, as for the MFA policy, or a passkey, on the second-step page offering only passkeys. A user without a passkey cannot meet the phishing-resistant policy, and gets tokens that say what they did meet. ID and access tokens carry `acr`, the strongest policy the sign-in met, and discovery lists both in `acr_values_supported`.
+
 ---
 
 ## 9. API design
@@ -846,6 +854,14 @@ People can add a phone number to their account and sign in with a code sent to i
 - **Sign-in codes.** When texts are configured, the sign-in page offers to sign in with a phone number. Codes go only to verified numbers and follow the rules of email codes: six digits, ten minutes, once, the latest only, counted toward the lockout, one a minute per account, and the same answer whether an account has the number or not. A code is a first factor (`amr` `["sms"]`), followed by a second factor when the account has or needs one.
 - **Not a second factor.** Texts are not offered as the second step: SIM swaps and interception make them weaker than authenticator apps and passkeys, and NIST SP 800-63B restricts them.
 - **Audit.** Adding, verifying and removing numbers is audited, and sign-ins record `sms` as their method.
+
+### 10.10 Bot protection
+
+Kimlik can put a CAPTCHA on the forms bots go for, through Cloudflare Turnstile, hCaptcha or reCAPTCHA v2 (`Kimlik:Captcha`).
+
+- **Forms.** Sign-up, password reset and asking for a sign-in code by email or text message by default; the sign-in form too when `Kimlik:Captcha:Forms` lists it. Lockouts and rate limits keep guarding sign-in either way.
+- **Pages.** The provider's widget renders with the provider's own script, without Kimlik's, and only the pages that can show it allow the provider's origins in their content security policy.
+- **Checks.** Kimlik verifies the widget's answer with the provider's `siteverify` endpoint before handling the form. A missing or refused answer refuses the form; when the provider cannot be reached, the form goes through, with a warning in the log, so an outage does not lock people out.
 
 ---
 
@@ -1066,6 +1082,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M18: Token exchange** | Delegation to other APIs with RFC 8693 token exchange ([§8.9](#89-token-exchange)) | A service exchanges a user's access token for one to another API, with `act`, in end-to-end tests ✅ |
 | **M19: Back-channel logout** | Logout tokens to web clients when a session or all of a user's sessions end ([§8.10](#810-back-channel-logout)) | Signing out sends the apps of that session a signed logout token, and signing out everywhere those of every session, in end-to-end tests ✅ |
 | **M20: Add-ons and overrides** | Add-on plans with quantities and per-subscription feature overrides, in the API, SDK, provisioning and admin panel ([§5.7](#57-add-ons-and-custom-deals)) | A subscriber's entitlements combine its plan, add-ons and overrides, in the API and the SDK, in end-to-end tests ✅ |
+| **M21: CAPTCHA and authentication context** | Turnstile, hCaptcha and reCAPTCHA on the forms bots go for, and `acr_values` step-up to a second factor or a passkey ([§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)) | Forms refuse missing CAPTCHA answers, and requested policies lead to the second step, with `acr` in tokens, in end-to-end tests ✅ |
 
 ---
 

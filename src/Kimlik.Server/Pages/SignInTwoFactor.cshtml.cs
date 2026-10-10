@@ -14,7 +14,7 @@ namespace Kimlik.Server.Pages;
 
 /// <summary>
 /// The second step of signing in: a code from the authenticator app or a recovery code, for people who set up an app,
-/// or a passkey, for people who have one.
+/// or a passkey, for people who have one; only a passkey when an app asked for a phishing-resistant sign-in.
 /// </summary>
 [RunsScripts]
 public sealed class SignInTwoFactorModel(
@@ -60,19 +60,20 @@ public sealed class SignInTwoFactorModel(
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
 
-        await DescribeAsync(pending.User, cancellationToken);
+        await DescribeAsync(pending, cancellationToken);
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent, var provider, var firstFactor))
+        if (await signInFlow.PendingAsync(SignInStep.Verify) is not { } pending)
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
 
-        await DescribeAsync(user, cancellationToken);
-        if (!ModelState.IsValid)
+        var (user, persistent, provider, firstFactor) = pending;
+        await DescribeAsync(pending, cancellationToken);
+        if (!HasAuthenticator || !ModelState.IsValid)
         {
             return Page();
         }
@@ -123,12 +124,13 @@ public sealed class SignInTwoFactorModel(
         // The code field of the form is not part of this step.
         ModelState.Clear();
 
-        if (await signInFlow.PendingAsync(SignInStep.Verify) is not ({ } user, var persistent, var provider, var firstFactor))
+        if (await signInFlow.PendingAsync(SignInStep.Verify) is not { } pending)
         {
             return RedirectToPage("/SignIn", new { ReturnUrl });
         }
 
-        await DescribeAsync(user, cancellationToken);
+        var (user, persistent, provider, firstFactor) = pending;
+        await DescribeAsync(pending, cancellationToken);
         if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
         {
             return TooManyAttempts();
@@ -155,9 +157,10 @@ public sealed class SignInTwoFactorModel(
         return LocalRedirect(AccountLinks.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
     }
 
-    private async Task DescribeAsync(User user, CancellationToken cancellationToken)
+    private async Task DescribeAsync(PendingSignIn pending, CancellationToken cancellationToken)
     {
-        HasAuthenticator = user.TwoFactorEnabled;
+        var user = pending.User;
+        HasAuthenticator = user.TwoFactorEnabled && !pending.PasskeyOnly;
         HasPasskey = await signInFlow.HasPasskeyAsync(user);
         CanTrustBrowser = await policy.MayRememberBrowserAsync(user.Id, cancellationToken);
     }

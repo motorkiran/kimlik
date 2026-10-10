@@ -67,6 +67,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         }
 
         AddArrayClaim(identity, Claims.AuthenticationMethodReference, authenticationMethods);
+        identity.SetClaim(Claims.AuthenticationContextReference, AuthenticationContexts.Of(authenticationMethods));
 
         // The browser session the tokens came from, which logout tokens name (OpenID Connect Back-Channel Logout).
         identity.SetClaim(JwtRegisteredClaimNames.Sid, sessionId);
@@ -233,7 +234,8 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
 
         return claim.Type switch
         {
-            Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference or ActorClaim => [Destinations.AccessToken, Destinations.IdentityToken],
+            Claims.Subject or Claims.AuthenticationTime or Claims.AuthenticationMethodReference or Claims.AuthenticationContextReference or ActorClaim
+                => [Destinations.AccessToken, Destinations.IdentityToken],
 
             Claims.Name or Claims.GivenName or Claims.FamilyName or Claims.Locale or Claims.Picture or Claims.Zoneinfo or Claims.UpdatedAt
                 when identity.HasScope(Scopes.Profile)

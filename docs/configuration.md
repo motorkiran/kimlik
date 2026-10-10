@@ -107,6 +107,16 @@ Phone numbers on accounts and sign-in with texted codes ([design §10.9](design.
 
 Netgsm and İleti Merkezi send the codes as informational messages (İYS `0`), which need no marketing consent.
 
+## Bot protection
+
+A CAPTCHA on the forms bots go for ([design §10.10](design.md#1010-bot-protection)). When the provider cannot be reached, forms go through, with a warning in the log.
+
+| Setting | Default | Description |
+|---|---|---|
+| `Kimlik:Captcha:Provider` | `None` | `Turnstile` (Cloudflare), `HCaptcha` or `Recaptcha` (v2, the checkbox). |
+| `Kimlik:Captcha:SiteKey`, `Kimlik:Captcha:SecretKey` | | From the provider's dashboard; required with a provider. |
+| `Kimlik:Captcha:Forms` | `SignUp`, `PasswordReset`, `SignInCode` | The forms to guard; add `SignIn` to guard the password sign-in too. |
+
 ## Branding
 
 | Setting | Default | Description |

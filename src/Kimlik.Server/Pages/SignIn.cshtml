@@ -37,6 +37,7 @@
         <label class="checkbox"><input asp-for="Input.RememberMe" /> @L["Keep me signed in"]</label>
         <a asp-page="/ForgotPassword">@L["Forgot password?"]</a>
     </div>
+    <partial name="_Captcha" model="new[] { Kimlik.Server.Captcha.CaptchaForm.SignIn, Kimlik.Server.Captcha.CaptchaForm.SignInCode }" />
     <button type="submit" class="button">@L["Sign in"]</button>
     <button type="submit" class="button button-secondary" id="passkey-sign-in" formaction="@Url.Page("/SignIn", "Passkey")"
             data-passkey-sign-in data-autofill data-options="@Url.Page("/SignIn", "PasskeyOptions")" hidden>@L["Sign in with a passkey"]</button>

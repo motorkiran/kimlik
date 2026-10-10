@@ -847,4 +847,7 @@
   <data name="Your phone number has been saved." xml:space="preserve">
     <value>Telefon numaranız kaydedildi.</value>
   </data>
+  <data name="Confirm that you are not a robot." xml:space="preserve">
+    <value>Robot olmadığınızı doğrulayın.</value>
+  </data>
 </root>

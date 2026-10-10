@@ -3,6 +3,7 @@ using System.Globalization;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Organizations;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
 
+[ShowsCaptcha]
 public sealed class SignUpModel(
     RegisterUserHandler registerUser,
     FindInvitationHandler findInvitation,
@@ -19,6 +21,7 @@ public sealed class SignUpModel(
     PendingSignInCode pendingSignInCode,
     SignInFlow signInFlow,
     AccountErrorMessages errorMessages,
+    CaptchaVerifier captcha,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer,
     IOptions<AccountOptions> accounts) : PageModel
@@ -65,6 +68,12 @@ public sealed class SignUpModel(
 
         if (!CanSignUp || !ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignUp, HttpContext, cancellationToken))
+        {
+            ModelState.AddModelError(string.Empty, localizer["Confirm that you are not a robot."]);
             return Page();
         }
 

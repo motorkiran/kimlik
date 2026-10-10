@@ -22,6 +22,7 @@
     <div class="row">
         <label class="checkbox"><input asp-for="Input.RememberMe" /> @L["Keep me signed in"]</label>
     </div>
+    <partial name="_Captcha" model="new[] { Kimlik.Server.Captcha.CaptchaForm.SignInCode }" />
     <button type="submit" class="button">@L["Text me a code"]</button>
 </form>
 

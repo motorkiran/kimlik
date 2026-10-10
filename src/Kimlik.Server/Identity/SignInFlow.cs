@@ -31,7 +31,11 @@ public enum SignInStep
 /// A sign-in waiting for its second factor. <c>Provider</c> names the provider of the account the user signed in
 /// with, and is <see langword="null"/> otherwise; <c>FirstFactor</c> is how they signed in first, such as <c>pwd</c>.
 /// </summary>
-public sealed record PendingSignIn(User User, bool Persistent, string? Provider, string FirstFactor);
+public sealed record PendingSignIn(User User, bool Persistent, string? Provider, string FirstFactor)
+{
+    /// <summary>Whether only a passkey verifies the step, as an app that asked for a phishing-resistant sign-in needs.</summary>
+    public bool PasskeyOnly { get; init; }
+}
 
 /// <summary>
 /// Signs users in once their first factor is right (a password, or an account at another provider), with the second
@@ -92,6 +96,7 @@ public sealed class SignInFlow(
     private const string PersistentClaim = "kimlik:persistent";
     private const string StepClaim = "kimlik:step";
     private const string FirstFactorClaim = "kimlik:first_factor";
+    private const string PasskeyOnlyClaim = "kimlik:passkey_only";
 
     /// <summary>
     /// What follows a correct first factor. An authenticator app always asks for its code; a passkey verifies the second
@@ -306,13 +311,18 @@ public sealed class SignInFlow(
             : session.Properties?.IssuedUtc;
 
     /// <summary>Holds the sign-in until the second factor is verified or set up.</summary>
-    public Task DeferAsync(User user, bool persistent, SignInStep step, string? provider, string firstFactor)
+    public Task DeferAsync(User user, bool persistent, SignInStep step, string? provider, string firstFactor, bool passkeyOnly = false)
     {
         var identity = new ClaimsIdentity(IdentityConstants.TwoFactorUserIdScheme);
         identity.AddClaim(new Claim(ClaimTypes.Name, user.Id.ToString()));
         identity.AddClaim(new Claim(PersistentClaim, persistent ? "true" : "false"));
         identity.AddClaim(new Claim(StepClaim, step.ToString()));
         identity.AddClaim(new Claim(FirstFactorClaim, firstFactor));
+        if (passkeyOnly)
+        {
+            identity.AddClaim(new Claim(PasskeyOnlyClaim, "true"));
+        }
+
         if (provider is not null)
         {
             identity.AddClaim(new Claim(ProviderClaim, provider));
@@ -334,7 +344,10 @@ public sealed class SignInFlow(
 
         var provider = pending.Principal.FindFirstValue(ProviderClaim);
         var firstFactor = pending.Principal.FindFirstValue(FirstFactorClaim) ?? (provider is null ? PasswordMethod : FederatedMethod);
-        return new PendingSignIn(user, pending.Principal.FindFirstValue(PersistentClaim) == "true", provider, firstFactor);
+        return new PendingSignIn(user, pending.Principal.FindFirstValue(PersistentClaim) == "true", provider, firstFactor)
+        {
+            PasskeyOnly = pending.Principal.HasClaim(PasskeyOnlyClaim, "true"),
+        };
     }
 
     /// <summary>Records a sign-in, with the first factor when a second one followed it.</summary>

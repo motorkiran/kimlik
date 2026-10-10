@@ -4,6 +4,7 @@ using Kimlik.Infrastructure.Security.TokenKeys;
 using Kimlik.Server.Diagnostics;
 using Kimlik.Server.Hosting;
 using Microsoft.Extensions.Options;
+using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -61,11 +62,13 @@ internal static class OidcServiceCollectionExtensions
                 // Access tokens are plain signed JWTs (RFC 9068) so any resource server can validate them.
                 options.DisableAccessTokenEncryption();
 
-                // Web apps hear when sessions end, server to server, with the session's ID (OpenID Connect Back-Channel Logout).
+                // Web apps hear when sessions end, server to server, with the session's ID (OpenID Connect Back-Channel Logout), and
+                // can ask for a multi-factor or phishing-resistant sign-in.
                 options.AddEventHandler<OpenIddictServerEvents.HandleConfigurationRequestContext>(handler => handler.UseInlineHandler(context =>
                 {
                     context.Metadata["backchannel_logout_supported"] = true;
                     context.Metadata["backchannel_logout_session_supported"] = true;
+                    context.Metadata["acr_values_supported"] = new OpenIddictParameter(System.Text.Json.JsonSerializer.SerializeToElement(AuthenticationContexts.Supported));
                     return default;
                 }));
 

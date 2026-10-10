@@ -18,6 +18,9 @@ internal sealed class AuthorizationRequest(string clientId)
 
     public string? Prompt { get; init; }
 
+    /// <summary>The authentication context classes the app asks for, space-separated.</summary>
+    public string? AcrValues { get; init; }
+
     /// <summary>The organization to sign in to, by ID or slug.</summary>
     public string? Organization { get; init; }
 
@@ -50,6 +53,11 @@ internal sealed class AuthorizationRequest(string clientId)
             if (Prompt is not null)
             {
                 parameters["prompt"] = Prompt;
+            }
+
+            if (AcrValues is not null)
+            {
+                parameters["acr_values"] = AcrValues;
             }
 
             return parameters;

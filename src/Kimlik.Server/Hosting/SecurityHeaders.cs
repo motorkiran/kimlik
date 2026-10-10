@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
+using Kimlik.Server.Captcha;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Hosting;
 
@@ -34,7 +36,8 @@ internal static class SecurityHeaders
     /// <summary>
     /// Adds a strict content security policy to pages Kimlik renders. It is not applied to protocol responses:
     /// OpenIddict's <c>form_post</c> response relies on an inline script to return to the client. Pages run no script,
-    /// except those marked with <see cref="RunsScriptsAttribute"/>, which run Kimlik's own scripts with the request's nonce.
+    /// except those marked with <see cref="RunsScriptsAttribute"/>, which run Kimlik's own scripts with the request's nonce,
+    /// and those marked with <see cref="ShowsCaptchaAttribute"/>, which load the CAPTCHA widget from its provider.
     /// </summary>
     internal sealed class ContentSecurityPolicyFilter : IAsyncResultFilter
     {
@@ -43,9 +46,21 @@ internal static class SecurityHeaders
             if (context.Result is PageResult)
             {
                 var nonce = context.HttpContext.GetCspNonce();
-                var scripts = context.ActionDescriptor.EndpointMetadata.OfType<RunsScriptsAttribute>().Any() ? $"'nonce-{nonce}'" : "'none'";
+                var metadata = context.ActionDescriptor.EndpointMetadata;
+                var captcha = metadata.OfType<ShowsCaptchaAttribute>().Any()
+                    && context.HttpContext.RequestServices.GetRequiredService<IOptions<CaptchaOptions>>().Value is { Enabled: true } options
+                    ? CaptchaService.For(options.Provider)
+                    : null;
+
+                var scripts = captcha is not null ? $"'nonce-{nonce}' {captcha.Sources}"
+                    : metadata.OfType<RunsScriptsAttribute>().Any() ? $"'nonce-{nonce}'"
+                    : "'none'";
+                var styles = captcha is { StylesAndConnections: true } ? $"'self' 'nonce-{nonce}' {captcha.Sources}" : $"'self' 'nonce-{nonce}'";
+                var widget = captcha is null ? string.Empty
+                    : captcha.StylesAndConnections ? $"frame-src {captcha.Sources}; connect-src 'self' {captcha.Sources}; "
+                    : $"frame-src {captcha.Sources}; ";
                 context.HttpContext.Response.Headers.ContentSecurityPolicy =
-                    $"default-src 'self'; script-src {scripts}; style-src 'self' 'nonce-{nonce}'; img-src 'self' data: https:; "
+                    $"default-src 'self'; script-src {scripts}; style-src {styles}; img-src 'self' data: https:; {widget}"
                     + "object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
             }
 

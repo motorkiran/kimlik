@@ -49,6 +49,7 @@ else
             </span>
             <span asp-validation-for="Input.Password" class="field-error"></span>
         </div>
+        <partial name="_Captcha" model="new[] { Kimlik.Server.Captcha.CaptchaForm.SignUp }" />
         <button type="submit" class="button">@L["Create account"]</button>
     </form>
 

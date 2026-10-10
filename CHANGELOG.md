@@ -10,6 +10,8 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Token exchange (RFC 8693): web and service clients allowed to (`allowTokenExchange`) exchange a user's access token meant for them for one to other APIs, acting for the user (`act` names the client, with any earlier actor nested inside); an API registers as a service client whose client ID is its audience.
 - Back-channel logout (OpenID Connect Back-Channel Logout 1.0): web clients with a `backChannelLogoutUri` get a signed logout token when the browser session they signed a user in through ends, with its `sid`, which ID tokens now carry, and one without `sid` when all of the user's sessions end, as after signing out everywhere, a password change, a suspension or a deletion.
 - Add-ons and overrides: plans of the new `addOn` kind go with a subscription in any quantity, turning features on and raising limits, and a subscription can override any feature's value; entitlements are the plan's, then the add-ons', then the overrides. Tokens and API key principals say `custom_entitlements: true` for such subscribers, and `Kimlik.AspNetCore` then reads their entitlements from the API, which takes `kimlik.subscriptions:read` next to `kimlik.plans:read`.
+- Bot protection: Cloudflare Turnstile, hCaptcha or reCAPTCHA v2 on sign-up, password reset and sign-in code requests, and optionally on sign-in (`Kimlik:Captcha`), with the provider's origins allowed only on the pages that show the widget.
+- Authentication context: apps ask for a multi-factor or phishing-resistant sign-in with `acr_values` (the OpenID PAPE policies), Kimlik asks for a second factor or a passkey when the session falls short, and ID and access tokens carry `acr`.
 
 ### Changed
 

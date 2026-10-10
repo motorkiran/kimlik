@@ -298,6 +298,10 @@ form > .button + .button {
     border-radius: var(--control-radius);
 }
 
+.captcha {
+    margin: 0 0 1rem;
+}
+
 .one-time-code {
     margin: 1.5rem 0;
     font-family: ui-monospace, Menlo, Consolas, monospace;

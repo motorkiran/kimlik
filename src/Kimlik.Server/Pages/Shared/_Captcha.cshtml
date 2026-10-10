@@ -1,0 +1,19 @@
+@using Kimlik.Server.Captcha
+@using Kimlik.Server.Hosting
+@using Microsoft.Extensions.Options
+@model CaptchaForm[]
+@inject IOptions<CaptchaOptions> Captcha
+@* The CAPTCHA widget, when one of the forms is guarded; it puts its answer in a hidden field of the form around it. *@
+@{
+    var options = Captcha.Value;
+    if (!Model.Any(options.Guards))
+    {
+        return;
+    }
+
+    var service = CaptchaService.For(options.Provider);
+    var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var script = options.Provider == CaptchaProvider.Turnstile ? service.ScriptUrl : $"{service.ScriptUrl}?hl={language}";
+}
+<div class="captcha @service.WidgetClass" data-sitekey="@options.SiteKey" data-language="@language" id="captcha"></div>
+<script src="@script" nonce="@Context.GetCspNonce()" async defer></script>

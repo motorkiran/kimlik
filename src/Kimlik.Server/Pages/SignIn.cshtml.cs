@@ -3,6 +3,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -15,12 +16,14 @@ namespace Kimlik.Server.Pages;
 
 /// <summary>Signing in with an address and a password, a code sent to the address, or a passkey.</summary>
 [RunsScripts]
+[ShowsCaptcha]
 public sealed class SignInModel(
     SignInManager<User> signInManager,
     SignInFlow signInFlow,
     PasskeyCeremonies passkeys,
     EmailSignIn emailSignIn,
     PhoneSignIn phoneSignIn,
+    CaptchaVerifier captcha,
     PendingSignInCode pendingSignInCode,
     PasswordHashTiming passwordHashTiming,
     RequestThrottle throttle,
@@ -70,6 +73,12 @@ public sealed class SignInModel(
         if (Input.Email is not { Length: > 0 } email || !new EmailAddressAttribute().IsValid(email))
         {
             ModelState.AddModelError("Input.Email", localizer["Enter a valid email address."]);
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
+        {
+            ErrorMessage = localizer["Confirm that you are not a robot."];
             return Page();
         }
 
@@ -128,6 +137,12 @@ public sealed class SignInModel(
     {
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignIn, HttpContext, cancellationToken))
+        {
+            ErrorMessage = localizer["Confirm that you are not a robot."];
             return Page();
         }
 

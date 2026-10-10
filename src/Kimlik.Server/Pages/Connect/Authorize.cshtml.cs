@@ -239,36 +239,54 @@ public sealed class AuthorizeModel(
     }
 
     /// <summary>
-    /// Adds the second factor to a session that started with a password alone, when the account needs one (it became
-    /// an administrator, say) or the organization does. The user verifies a code, or sets up an authenticator, and
-    /// comes back; a trusted browser counts as verified.
+    /// Adds what the session lacks: a second factor, when the account needs one (it became an administrator, say), the
+    /// organization does or the app asked for one (<c>acr_values</c>); or a passkey, when the app asked for a
+    /// phishing-resistant sign-in and the user has one. The user verifies a code or a passkey, or sets up an
+    /// authenticator, and comes back; a trusted browser counts as a second factor.
     /// </summary>
     private async Task<IActionResult?> StepUpAsync(
         OpenIddictRequest request, User user, AuthenticateResult session, OrganizationResponse? organization, CancellationToken cancellationToken)
     {
-        if (session.Principal!.HasClaim(SignInFlow.MethodClaim, SignInFlow.MultiFactorMethod)
-            || (organization?.RequireMfa != true && !await mfaPolicy.IsRequiredAsync(user.Id, cancellationToken)))
+        var principal = session.Principal!;
+        var requested = (request.AcrValues ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var methods = OidcPrincipalFactory.AuthenticationMethodsOf(principal);
+        var phishingResistant = requested.Contains(AuthenticationContexts.PhishingResistant, StringComparer.Ordinal);
+        var needsPasskey = phishingResistant
+            && !methods.Contains(SignInFlow.PasskeyMethod, StringComparer.Ordinal)
+            && await signInFlow.HasPasskeyAsync(user);
+        var needsSecondFactor = !methods.Contains(SignInFlow.MultiFactorMethod, StringComparer.Ordinal)
+            && (phishingResistant
+                || requested.Contains(AuthenticationContexts.MultiFactor, StringComparer.Ordinal)
+                || organization?.RequireMfa == true
+                || await mfaPolicy.IsRequiredAsync(user.Id, cancellationToken));
+        if (!needsPasskey && !needsSecondFactor)
         {
             return null;
         }
 
         if (request.HasPromptValue(PromptValues.None))
         {
-            return ForbidWith(Errors.InteractionRequired, "The user has to verify a second factor.");
+            return ForbidWith(Errors.InteractionRequired, needsPasskey ? "The user has to verify a passkey." : "The user has to verify a second factor.");
         }
 
         var persistent = session.Properties?.IsPersistent == true;
-        var provider = session.Principal.FindFirstValue(SignInFlow.ProviderClaim);
+        var provider = principal.FindFirstValue(SignInFlow.ProviderClaim);
         var retry = Request.PathBase + Request.Path + QueryString.Create(RequestParameters);
+        if (needsPasskey)
+        {
+            await signInFlow.DeferAsync(user, persistent, SignInStep.Verify, provider, SignInFlow.FirstFactorOf(principal), passkeyOnly: true);
+            return LocalRedirect($"{Request.PathBase}/signin/two-factor?returnUrl={Uri.EscapeDataString(retry)}");
+        }
+
         var step = await signInFlow.NextStepAsync(user, cancellationToken, secondStepRequired: true);
 
         if (step == SignInStep.TrustedBrowser)
         {
-            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, SignInFlow.FirstFactorOf(session.Principal));
+            await signInFlow.CompleteAsync(user, persistent, SignInFlow.MultiFactorMethod, provider, cancellationToken, SignInFlow.FirstFactorOf(principal));
             return LocalRedirect(retry);
         }
 
-        await signInFlow.DeferAsync(user, persistent, step, provider, SignInFlow.FirstFactorOf(session.Principal));
+        await signInFlow.DeferAsync(user, persistent, step, provider, SignInFlow.FirstFactorOf(principal));
         var page = step == SignInStep.Verify ? "two-factor" : "set-up-two-factor";
         return LocalRedirect($"{Request.PathBase}/signin/{page}?returnUrl={Uri.EscapeDataString(retry)}");
     }

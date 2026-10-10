@@ -1,4 +1,5 @@
 using Kimlik.Application.Accounts;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -6,8 +7,10 @@ using Microsoft.Extensions.Localization;
 
 namespace Kimlik.Server.Pages;
 
+[ShowsCaptcha]
 public sealed class ForgotPasswordModel(
     RequestPasswordResetHandler requestPasswordReset,
+    CaptchaVerifier captcha,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -24,6 +27,12 @@ public sealed class ForgotPasswordModel(
     {
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.PasswordReset, HttpContext, cancellationToken))
+        {
+            ModelState.AddModelError(string.Empty, localizer["Confirm that you are not a robot."]);
             return Page();
         }
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.WebEncoders;
@@ -17,6 +18,15 @@ internal static class HostedUiServiceCollectionExtensions
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
         services.AddSingleton<BrandingStylesheet>();
+
+        services.AddOptions<CaptchaOptions>()
+            .BindConfiguration(CaptchaOptions.SectionName)
+            .Validate(
+                options => !options.Enabled || (!string.IsNullOrWhiteSpace(options.SiteKey) && !string.IsNullOrWhiteSpace(options.SecretKey)),
+                $"{CaptchaOptions.SectionName} needs SiteKey and SecretKey for its provider.")
+            .ValidateOnStart();
+        services.AddHttpClient(CaptchaVerifier.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
+        services.AddSingleton<CaptchaVerifier>();
 
         // Write Turkish and other non-Latin text as UTF-8 instead of numeric entities; characters that are
         // special in HTML are still encoded.

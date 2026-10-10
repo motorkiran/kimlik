@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +13,11 @@ namespace Kimlik.Server.Pages;
 /// Signing in with a code texted to the account's verified phone number, when text messages are set up. Like the
 /// email code, it asks for the code whether an account has the number or not.
 /// </summary>
+[ShowsCaptcha]
 public sealed class SignInPhoneModel(
     PhoneSignIn phoneSignIn,
     PendingSignInCode pendingSignInCode,
+    CaptchaVerifier captcha,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -43,6 +46,12 @@ public sealed class SignInPhoneModel(
         if (phoneSignIn.Normalize(Input.PhoneNumber) is not { } phoneNumber)
         {
             ModelState.AddModelError("Input.PhoneNumber", localizer["Enter a phone number with its country code, such as +90 532 123 45 67."]);
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
+        {
+            ErrorMessage = localizer["Confirm that you are not a robot."];
             return Page();
         }
 
