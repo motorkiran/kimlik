@@ -74,6 +74,9 @@ public sealed record ProvisionedFeature
 
     /// <summary>It cannot be changed once the feature exists.</summary>
     public required FeatureType Type { get; init; }
+
+    /// <summary>Whether a limit counts use a month; it cannot be changed once the feature exists.</summary>
+    public bool Metered { get; init; }
 }
 
 public sealed record ProvisionedPlan

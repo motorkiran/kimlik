@@ -41,7 +41,8 @@ public sealed class CreateFeatureHandler(IKimlikDbContext context, IAuditLog aud
 {
     public async Task<Result<FeatureResponse>> HandleAsync(CreateFeatureRequest request, CancellationToken cancellationToken)
     {
-        var created = Feature.Create(request.Key, request.Name, request.Description, Enum.Parse<DomainFeatureType>(request.Type.ToString()), timeProvider.GetUtcNow());
+        var created = Feature.Create(
+            request.Key, request.Name, request.Description, Enum.Parse<DomainFeatureType>(request.Type.ToString()), timeProvider.GetUtcNow(), request.Metered);
         if (created.IsFailure)
         {
             return created.Error;

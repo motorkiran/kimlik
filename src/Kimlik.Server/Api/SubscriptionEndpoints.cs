@@ -47,6 +47,23 @@ internal static class SubscriptionEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .RequirePermission(SystemPermissions.SubscriptionsRead);
 
+        var usage = api.MapGroup("usage").WithTags("Usage");
+        usage.MapPost(string.Empty, RecordUsageAsync).WithName("RecordUsage")
+            .WithSummary("Record use of a metered limit")
+            .WithDescription("Use counts by calendar month, in UTC. With `enforce`, use that would go past the month's limit is refused "
+                + "(`usage.limit_reached`) and not recorded; an `idempotencyKey` makes a retry within a day count once.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequirePermission(SystemPermissions.UsageWrite);
+
+        usage.MapGet("{subscriberType}/{id:guid}", GetUsageAsync).WithName("GetUsage")
+            .WithSummary("Get a user's or an organization's use of metered limits this month")
+            .WithDescription("`subscriberType` is `user` or `organization`.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequirePermission(SystemPermissions.UsageRead);
+
         return api;
     }
 
@@ -81,6 +98,16 @@ internal static class SubscriptionEndpoints
     private static async Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> CancelAsync(
         Guid id, CancelSubscriptionHandler handler, CancellationToken cancellationToken) =>
         (await handler.HandleAsync(id, cancellationToken)).ToOk();
+
+    private static async Task<Results<Ok<UsageResponse>, ProblemHttpResult>> RecordUsageAsync(
+        RecordUsageRequest request, RecordUsageHandler handler, CancellationToken cancellationToken) =>
+        (await handler.HandleAsync(request, cancellationToken)).ToOk();
+
+    private static async Task<Results<Ok<IReadOnlyList<UsageResponse>>, ProblemHttpResult>> GetUsageAsync(
+        string subscriberType, Guid id, GetUsageHandler handler, CancellationToken cancellationToken) =>
+        QueryValues.TryParseEnum<SubscriberType>(subscriberType, out var type) && type is { } subscriber
+            ? (await handler.HandleAsync(subscriber, id, cancellationToken)).ToOk()
+            : ApiResults.Problem(CommonErrors.InvalidParameter(nameof(subscriberType)));
 
     private static async Task<Results<Ok<EntitlementsResponse>, ProblemHttpResult>> GetEntitlementsAsync(
         string subscriberType, Guid id, Entitlements entitlements, CancellationToken cancellationToken)

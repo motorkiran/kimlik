@@ -10,6 +10,10 @@
                 <MudSelectItem T="FeatureType" Value="FeatureType.Boolean">On or off</MudSelectItem>
                 <MudSelectItem T="FeatureType" Value="FeatureType.Limit">Limit</MudSelectItem>
             </MudSelect>
+            @if (_type == FeatureType.Limit)
+            {
+                <MudCheckBox @bind-Value="_metered" Label="Counts use a month, such as API calls" />
+            }
         }
         @if (AskKind)
         {
@@ -22,7 +26,7 @@
     <DialogActions>
         <MudButton OnClick="() => Dialog.Cancel()">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="string.IsNullOrWhiteSpace(_key) || string.IsNullOrWhiteSpace(_name)"
-                   OnClick="() => Dialog.Close(DialogResult.Ok(new Entry(_key.Trim(), _name.Trim(), _description, _type, _kind)))">Create</MudButton>
+                   OnClick="() => Dialog.Close(DialogResult.Ok(new Entry(_key.Trim(), _name.Trim(), _description, _type, _kind, _type == FeatureType.Limit && _metered)))">Create</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -32,6 +36,7 @@
     private string? _description;
     private FeatureType _type = FeatureType.Boolean;
     private PlanKind _kind = PlanKind.Base;
+    private bool _metered;
 
     [CascadingParameter]
     private IMudDialogInstance Dialog { get; set; } = null!;
@@ -42,5 +47,5 @@
     [Parameter]
     public bool AskKind { get; set; }
 
-    public sealed record Entry(string Key, string Name, string? Description, FeatureType Type, PlanKind Kind);
+    public sealed record Entry(string Key, string Name, string? Description, FeatureType Type, PlanKind Kind, bool Metered);
 }

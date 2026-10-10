@@ -1,0 +1,49 @@
+@using System.Globalization
+@using Kimlik.Application.Plans
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+@* A user's or an organization's use of metered limits this month, as a grid item; nothing when there are none. *@
+@if (_usage is { Count: > 0 })
+{
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Outlined id="usage">
+            <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>Usage this month</MudText>
+            <MudSimpleTable Dense>
+                <thead><tr><th>Feature</th><th>Used</th><th>Limit</th></tr></thead>
+                <tbody>
+                    @foreach (var usage in _usage)
+                    {
+                        <tr>
+                            <td><code>@usage.Feature</code></td>
+                            <td>@usage.Used.ToString("N0", CultureInfo.CurrentCulture)</td>
+                            <td>@(usage.Limit?.ToString("N0", CultureInfo.CurrentCulture) ?? "Unlimited")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+}
+
+@code {
+    private IReadOnlyList<UsageResponse>? _usage;
+
+    [Parameter]
+    public SubscriberType SubscriberType { get; set; }
+
+    [Parameter]
+    public Guid SubscriberId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.Has(SystemPermissions.UsageRead))
+        {
+            return;
+        }
+
+        var usage = await Operations.RunAsync<GetUsageHandler, Result<IReadOnlyList<UsageResponse>>>(
+            SystemPermissions.UsageRead, handler => handler.HandleAsync(SubscriberType, SubscriberId, Aborted));
+        _usage = usage.IsSuccess ? usage.Value : null;
+    }
+}

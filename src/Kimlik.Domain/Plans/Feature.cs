@@ -34,12 +34,20 @@ public sealed partial class Feature
 
     public FeatureType Type { get; private init; }
 
+    /// <summary>Whether a limit counts use a month, such as API calls, rather than things, such as projects.</summary>
+    public bool IsMetered { get; private init; }
+
     public DateTimeOffset CreatedAt { get; private init; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    public static Result<Feature> Create(string key, string name, string? description, FeatureType type, DateTimeOffset now)
+    public static Result<Feature> Create(string key, string name, string? description, FeatureType type, DateTimeOffset now, bool metered = false)
     {
+        if (metered && type != FeatureType.Limit)
+        {
+            return PlanErrors.MeteredLimitsOnly;
+        }
+
         if (!IsValidKey(key))
         {
             return PlanErrors.InvalidFeatureKey;
@@ -58,6 +66,7 @@ public sealed partial class Feature
             Name = name.Trim(),
             Description = Normalize(description),
             Type = type,
+            IsMetered = metered,
             CreatedAt = now,
             UpdatedAt = now,
         };

@@ -10,7 +10,14 @@ namespace Kimlik.Application.Plans;
 internal static class PlanMapping
 {
     public static FeatureResponse ToResponse(this Feature feature) => new(
-        feature.Id, feature.Key, feature.Name, feature.Description, Enum.Parse<FeatureType>(feature.Type.ToString()), feature.CreatedAt, feature.UpdatedAt);
+        feature.Id,
+        feature.Key,
+        feature.Name,
+        feature.Description,
+        Enum.Parse<FeatureType>(feature.Type.ToString()),
+        feature.CreatedAt,
+        feature.UpdatedAt,
+        feature.IsMetered);
 
     public static PlanResponse ToResponse(this Plan plan, IEnumerable<Feature> features) => new(
         plan.Id,

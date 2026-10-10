@@ -23,6 +23,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
 
     public DbSet<SessionClient> SessionClients => Set<SessionClient>();
 
+    public DbSet<UsageCounter> UsageCounters => Set<UsageCounter>();
+
     public DbSet<Permission> Permissions => Set<Permission>();
 
     public DbSet<Role> Roles => Set<Role>();

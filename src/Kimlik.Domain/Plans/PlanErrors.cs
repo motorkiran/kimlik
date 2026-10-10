@@ -51,4 +51,13 @@ public static class PlanErrors
     public static readonly Error NotAnAddOn = Error.Validation("plan.not_an_add_on", "Only add-ons go with a subscription, next to its one base plan.");
 
     public static readonly Error InvalidQuantity = Error.Validation("subscription.invalid_quantity", "An add-on's quantity is from 1 to 10,000.");
+
+    public static readonly Error MeteredLimitsOnly = Error.Validation("feature.metered_limits_only", "Only limits are metered.");
+
+    public static readonly Error NotMetered = Error.Validation("usage.not_metered", "The feature is not a metered limit.");
+
+    public static readonly Error LimitReached = Error.Conflict("usage.limit_reached", "The use would go past this month's limit.");
+
+    public static readonly Error InvalidUsage = Error.Validation(
+        "usage.invalid", "A quantity is from 1 to 1,000,000,000, and an idempotency key is at most 100 characters.");
 }

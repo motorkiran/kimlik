@@ -15,6 +15,7 @@ internal sealed class FeatureConfiguration : IEntityTypeConfiguration<Feature>
         builder.Property(feature => feature.Name).HasMaxLength(Feature.NameMaxLength);
         builder.Property(feature => feature.Description).HasMaxLength(Feature.DescriptionMaxLength);
         builder.Property(feature => feature.Type).HasConversion<string>().HasMaxLength(16);
+        builder.Property(feature => feature.IsMetered).HasDefaultValue(false);
         builder.HasIndex(feature => feature.Key).IsUnique();
     }
 }
@@ -99,5 +100,39 @@ internal sealed class SubscriptionFeatureOverrideConfiguration : IEntityTypeConf
         builder.HasKey(value => new { value.SubscriptionId, value.FeatureId });
         builder.HasOne<Feature>().WithMany().HasForeignKey(value => value.FeatureId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(value => value.FeatureId);
+    }
+}
+
+internal sealed class UsageCounterConfiguration : IEntityTypeConfiguration<UsageCounter>
+{
+    public void Configure(EntityTypeBuilder<UsageCounter> builder)
+    {
+        builder.ToTable("usage_counters", table => table.HasCheckConstraint("ck_usage_counters_one_subscriber", "(user_id IS NULL) <> (organization_id IS NULL)"));
+        builder.Property(counter => counter.Id).ValueGeneratedNever();
+        builder.HasOne<User>().WithMany().HasForeignKey(counter => counter.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Organization>().WithMany().HasForeignKey(counter => counter.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Feature>().WithMany().HasForeignKey(counter => counter.FeatureId).OnDelete(DeleteBehavior.Cascade);
+
+        // One counter per subscriber, feature and month; the counting upserts against these.
+        builder.HasIndex(counter => new { counter.UserId, counter.FeatureId, counter.Period }, "ix_usage_counters_user").IsUnique().HasFilter("user_id IS NOT NULL");
+        builder.HasIndex(counter => new { counter.OrganizationId, counter.FeatureId, counter.Period }, "ix_usage_counters_organization")
+            .IsUnique().HasFilter("organization_id IS NOT NULL");
+        builder.HasIndex(counter => counter.FeatureId);
+        builder.HasIndex(counter => counter.Period);
+    }
+}
+
+internal sealed class UsageRecordConfiguration : IEntityTypeConfiguration<UsageRecord>
+{
+    public void Configure(EntityTypeBuilder<UsageRecord> builder)
+    {
+        builder.ToTable("usage_records", table => table.HasCheckConstraint("ck_usage_records_one_subscriber", "(user_id IS NULL) <> (organization_id IS NULL)"));
+        builder.Property(record => record.Id).ValueGeneratedNever();
+        builder.Property(record => record.Key).HasMaxLength(UsageRecord.KeyMaxLength);
+        builder.HasOne<User>().WithMany().HasForeignKey(record => record.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Organization>().WithMany().HasForeignKey(record => record.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(record => new { record.UserId, record.Key }, "ix_usage_records_user").IsUnique().HasFilter("user_id IS NOT NULL");
+        builder.HasIndex(record => new { record.OrganizationId, record.Key }, "ix_usage_records_organization").IsUnique().HasFilter("organization_id IS NOT NULL");
+        builder.HasIndex(record => record.CreatedAt);
     }
 }

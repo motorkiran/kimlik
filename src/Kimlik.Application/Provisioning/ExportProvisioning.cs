@@ -42,6 +42,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
             Name = feature.Name,
             Description = feature.Description,
             Type = Enum.Parse<FeatureType>(feature.Type.ToString()),
+            Metered = feature.IsMetered,
         }).ToList();
 
         var plans = (await context.Plans.AsNoTracking().Include(plan => plan.Features).OrderBy(plan => plan.Key).ToListAsync(cancellationToken))

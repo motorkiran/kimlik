@@ -230,13 +230,12 @@ The backlog, roughly in priority order:
 1. Enterprise SSO per organization: OIDC or SAML federation with Entra ID, Okta or Google Workspace, routed by email domain.
 2. Developer-hosted sign-in UI through an interaction API.
 3. Hosted or embeddable components for organization management.
-4. Usage metering.
-5. Multiple client secrets and DPoP.
-6. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
-7. A JavaScript/TypeScript SDK and a Helm chart.
-8. OpenID Foundation certification.
+4. Multiple client secrets and DPoP.
+5. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+6. A JavaScript/TypeScript SDK and a Helm chart.
+7. OpenID Foundation certification.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)).
 
 ### 4.3 Out of scope
 
@@ -327,6 +326,17 @@ Some subscribers get more than their plan: they buy add-ons, such as extra seats
 - **Effective entitlements** are the plan's values, then the add-ons, then the overrides. The entitlements API returns them, and webhooks report changes as `subscription.updated`.
 - **Tokens** still carry only the `plan` key. A subscription with add-ons or overrides adds `custom_entitlements: true`, and the SDK then reads that subscriber's entitlements from the API, cached, instead of the plan definition. API key principals carry the same flag.
 - **Billing** stays outside Kimlik: the billing system sets the add-ons and overrides as it sets the plan, through the Management API.
+
+### 5.8 Usage metering
+
+Some limits count use rather than things: API calls or messages a month.
+
+- **Metered limits.** A limit feature can be metered: plans then set how much a subscriber may use each calendar month, in UTC, with `null` for unlimited, and add-ons and overrides apply as to other limits.
+- **Recording.** Backends report use to `POST /api/v1/usage`: the subscriber, the feature and a quantity. With `enforce`, Kimlik records it only if the month's use stays within the limit, atomically, and answers `usage.limit_reached` otherwise; without it, use is recorded as it happened. An `idempotencyKey` makes a retry within a day count once. The answer gives the month's use, its limit and what remains.
+- **Reading.** `GET /api/v1/usage/{subscriberType}/{id}` gives the month's use and limit of every metered feature, and the admin panel shows it on users and organizations.
+- **SDK.** `IKimlikUsage` in `Kimlik.AspNetCore` consumes or records use for the caller's subscriber, through `Kimlik.Client`.
+- **Permissions.** `kimlik.usage:write` records use and `kimlik.usage:read` reads it.
+- **Storage.** One counter per subscriber, feature and month, kept for 13 months; idempotency keys for a day.
 
 ---
 
@@ -718,6 +728,7 @@ Every operation requires a system permission, for example:
 - `kimlik.users:read`, `kimlik.users:write` and `kimlik.users:impersonate`
 - `kimlik.roles:write`, `kimlik.clients:write` and `kimlik.plans:write`
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
+- `kimlik.usage:read` and `kimlik.usage:write`
 - `kimlik.webhooks:read`, `kimlik.webhooks:write` and `kimlik.audit:read`
 - `kimlik.api_keys:read` and `kimlik.api_keys:write`
 - `kimlik.api_keys:verify`
@@ -1083,6 +1094,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M19: Back-channel logout** | Logout tokens to web clients when a session or all of a user's sessions end ([§8.10](#810-back-channel-logout)) | Signing out sends the apps of that session a signed logout token, and signing out everywhere those of every session, in end-to-end tests ✅ |
 | **M20: Add-ons and overrides** | Add-on plans with quantities and per-subscription feature overrides, in the API, SDK, provisioning and admin panel ([§5.7](#57-add-ons-and-custom-deals)) | A subscriber's entitlements combine its plan, add-ons and overrides, in the API and the SDK, in end-to-end tests ✅ |
 | **M21: CAPTCHA and authentication context** | Turnstile, hCaptcha and reCAPTCHA on the forms bots go for, and `acr_values` step-up to a second factor or a passkey ([§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)) | Forms refuse missing CAPTCHA answers, and requested policies lead to the second step, with `acr` in tokens, in end-to-end tests ✅ |
+| **M22: Usage metering** | Metered limits, recorded and enforced per subscriber and month, in the API, the SDK and the admin panel ([§5.8](#58-usage-metering)) | A backend consumes a subscriber's monthly allowance until it runs out, through the SDK, in end-to-end tests ✅ |
 
 ---
 

@@ -43,10 +43,11 @@ public static class KimlikServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Enables <see cref="IKimlikEntitlements"/> and <see cref="FeatureEndpointExtensions.RequireFeature{TBuilder}"/>.
-    /// Plan definitions, and the entitlements of subscribers with add-ons or overrides, come through Kimlik.Client, so
-    /// register it with <c>AddKimlikClient</c> as a service client holding <c>kimlik.plans:read</c> and
-    /// <c>kimlik.subscriptions:read</c>.
+    /// Enables <see cref="IKimlikEntitlements"/>, <see cref="IKimlikUsage"/> and
+    /// <see cref="FeatureEndpointExtensions.RequireFeature{TBuilder}"/>. Plan definitions, the entitlements of subscribers
+    /// with add-ons or overrides, and use come through Kimlik.Client, so register it with <c>AddKimlikClient</c> as a
+    /// service client holding <c>kimlik.plans:read</c> and <c>kimlik.subscriptions:read</c>, and <c>kimlik.usage:write</c>
+    /// to record use.
     /// </summary>
     public static IServiceCollection AddKimlikEntitlements(this IServiceCollection services, Action<KimlikEntitlementsOptions>? configure = null)
     {
@@ -58,6 +59,7 @@ public static class KimlikServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IKimlikEntitlements, KimlikEntitlements>();
+        services.TryAddSingleton<IKimlikUsage, KimlikUsage>();
         return services;
     }
 

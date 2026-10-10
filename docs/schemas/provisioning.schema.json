@@ -101,6 +101,9 @@
               "boolean",
               "limit"
             ]
+          },
+          "metered": {
+            "type": "boolean"
           }
         },
         "required": [

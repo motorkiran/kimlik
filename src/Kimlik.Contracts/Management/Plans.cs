@@ -27,7 +27,9 @@ public enum PlanKind
 }
 
 /// <summary>An entitlement the application defines; plans set a value for it.</summary>
-public sealed record FeatureResponse(Guid Id, string Key, string Name, string? Description, FeatureType Type, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <remarks><c>metered</c> limits count use a calendar month, in UTC, such as API calls; others count things, such as projects.</remarks>
+public sealed record FeatureResponse(
+    Guid Id, string Key, string Name, string? Description, FeatureType Type, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, bool Metered);
 
 public sealed record CreateFeatureRequest
 {
@@ -45,6 +47,12 @@ public sealed record CreateFeatureRequest
 
     /// <summary>It cannot be changed later.</summary>
     public required FeatureType Type { get; init; }
+
+    /// <summary>
+    /// Whether a limit counts use a month, such as API calls, which backends report through the usage API; it cannot be
+    /// changed later.
+    /// </summary>
+    public bool Metered { get; init; }
 }
 
 /// <summary>Changes a feature with JSON Merge Patch semantics: an omitted property keeps its value and <c>null</c> clears it.</summary>

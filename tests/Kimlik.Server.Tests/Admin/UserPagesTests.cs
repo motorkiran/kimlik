@@ -4,6 +4,7 @@ using Kimlik.Domain.Access;
 using Kimlik.Domain.Auditing;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,6 +88,33 @@ public sealed class UserPagesTests(KimlikServerFixture server)
         page.WaitForAssertion(() => page.FindAll("#phone-number").ShouldBeEmpty());
         (await server.QueryDatabaseAsync(context => context.Users.Where(candidate => candidate.Id == user.Id).Select(candidate => candidate.PhoneNumber).SingleAsync()))
             .ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task UserPage_ShowsTheMonthsUseOfMeteredLimits()
+    {
+        using var api = await server.CreateApiClientAsync();
+        var catalog = await Plans.MeteredCatalog.CreateAsync(api, limit: 100);
+        var user = await server.CreateUserAsync();
+        using var subscribed = await api.Http.PostJsonAsync("/api/v1/subscriptions", new Kimlik.Contracts.Management.CreateSubscriptionRequest
+        {
+            SubscriberType = Kimlik.Contracts.Management.SubscriberType.User,
+            SubscriberId = user.Id,
+            Plan = catalog.Plan,
+        });
+        using var recorded = await api.Http.PostJsonAsync("/api/v1/usage", new Kimlik.Contracts.Management.RecordUsageRequest
+        {
+            SubscriberType = Kimlik.Contracts.Management.SubscriberType.User,
+            SubscriberId = user.Id,
+            Feature = catalog.ApiCalls,
+            Quantity = 42,
+        });
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+
+        var page = admin.Render<UserDetail>(parameters => parameters.Add(detail => detail.Id, user.Id));
+
+        page.WaitForAssertion(() => page.Find("#usage").TextContent.ShouldContain(catalog.ApiCalls));
+        page.Find("#usage").TextContent.ShouldContain("42");
     }
 
     [Fact]

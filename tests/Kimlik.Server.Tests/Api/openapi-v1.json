@@ -4642,6 +4642,154 @@
         ]
       }
     },
+    "/api/v1/usage": {
+      "post": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Record use of a metered limit",
+        "description": "Use counts by calendar month, in UTC. With `enforce`, use that would go past the month's limit is refused (`usage.limit_reached`) and not recorded; an `idempotencyKey` makes a retry within a day count once.\n\nRequires the `kimlik.usage:write` permission.",
+        "operationId": "RecordUsage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordUsageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.usage:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/usage/{subscriberType}/{id}": {
+      "get": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Get a user's or an organization's use of metered limits this month",
+        "description": "`subscriberType` is `user` or `organization`.\n\nRequires the `kimlik.usage:read` permission.",
+        "operationId": "GetUsage",
+        "parameters": [
+          {
+            "name": "subscriberType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UsageResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.usage:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/api-keys": {
       "get": {
         "tags": [
@@ -8339,6 +8487,10 @@
           "type": {
             "description": "It cannot be changed later.",
             "$ref": "#/components/schemas/FeatureType"
+          },
+          "metered": {
+            "type": "boolean",
+            "description": "Whether a limit counts use a month, such as API calls, which backends report through the usage API; it cannot be\nchanged later."
           }
         }
       },
@@ -8780,7 +8932,8 @@
           "description",
           "type",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "metered"
         ],
         "type": "object",
         "properties": {
@@ -8810,6 +8963,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "metered": {
+            "type": "boolean"
           }
         },
         "description": "An entitlement the application defines; plans set a value for it."
@@ -9949,6 +10105,10 @@
           "type": {
             "description": "It cannot be changed once the feature exists.",
             "$ref": "#/components/schemas/FeatureType"
+          },
+          "metered": {
+            "type": "boolean",
+            "description": "Whether a limit counts use a month; it cannot be changed once the feature exists."
           }
         }
       },
@@ -10156,6 +10316,53 @@
           }
         },
         "description": "What applying a provisioning document changed."
+      },
+      "RecordUsageRequest": {
+        "required": [
+          "subscriberType",
+          "subscriberId",
+          "feature"
+        ],
+        "type": "object",
+        "properties": {
+          "subscriberType": {
+            "$ref": "#/components/schemas/SubscriberType"
+          },
+          "subscriberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "feature": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "The key of a metered limit feature."
+          },
+          "quantity": {
+            "maximum": 1000000000,
+            "minimum": 1,
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "enforce": {
+            "type": "boolean",
+            "description": "Record the use only if the month's use stays within the limit; otherwise `usage.limit_reached`."
+          },
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A key of the backend's choosing that makes a retry within a day count once, such as a request ID."
+          }
+        },
+        "description": "Use of a metered limit, as a backend reports it."
       },
       "RecoveryCodesResponse": {
         "required": [
@@ -10953,6 +11160,57 @@
         },
         "description": "Changes an endpoint with JSON Merge Patch semantics: omitted properties keep their value."
       },
+      "UsageResponse": {
+        "required": [
+          "feature",
+          "used",
+          "limit",
+          "remaining",
+          "periodStart",
+          "periodEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "feature": {
+            "type": "string"
+          },
+          "used": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "remaining": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A subscriber's use of a metered limit in a calendar month, in UTC: `limit` and `remaining` are\n`null` when it is unlimited."
+      },
       "UserLoginResponse": {
         "required": [
           "provider",
@@ -11301,6 +11559,9 @@
     },
     {
       "name": "Audit events"
+    },
+    {
+      "name": "Usage"
     },
     {
       "name": "API keys"

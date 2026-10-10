@@ -48,7 +48,7 @@ internal sealed class KimlikEntitlements(IServiceProvider services, IOptions<Kim
 
     private async Task<JsonElement?> ValueAsync(KimlikUser caller, string feature, CancellationToken cancellationToken)
     {
-        if (caller.HasCustomEntitlements && SubscriberOf(caller) is { } subscriber)
+        if (caller.HasCustomEntitlements && KimlikSubscribers.Of(caller) is { } subscriber)
         {
             var features = await SubscriberFeaturesAsync(subscriber, cancellationToken);
             return features.TryGetValue(feature, out var own) ? own : null;
@@ -62,12 +62,6 @@ internal sealed class KimlikEntitlements(IServiceProvider services, IOptions<Kim
         var plans = await PlansAsync(cancellationToken);
         return plans.TryGetValue(planKey, out var plan) && plan.Features.TryGetValue(feature, out var value) ? value : null;
     }
-
-    /// <summary>Whose entitlements the caller has: its organization's in an organization context, otherwise its own.</summary>
-    private static (SubscriberType Type, Guid Id)? SubscriberOf(KimlikUser caller) =>
-        caller.OrganizationId is { } organizationId ? (SubscriberType.Organization, organizationId)
-        : caller.UserId is { } userId ? (SubscriberType.User, userId)
-        : null;
 
     private async Task<IReadOnlyDictionary<string, JsonElement>> SubscriberFeaturesAsync((SubscriberType Type, Guid Id) subscriber, CancellationToken cancellationToken)
     {

@@ -12,10 +12,11 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Add-ons and overrides: plans of the new `addOn` kind go with a subscription in any quantity, turning features on and raising limits, and a subscription can override any feature's value; entitlements are the plan's, then the add-ons', then the overrides. Tokens and API key principals say `custom_entitlements: true` for such subscribers, and `Kimlik.AspNetCore` then reads their entitlements from the API, which takes `kimlik.subscriptions:read` next to `kimlik.plans:read`.
 - Bot protection: Cloudflare Turnstile, hCaptcha or reCAPTCHA v2 on sign-up, password reset and sign-in code requests, and optionally on sign-in (`Kimlik:Captcha`), with the provider's origins allowed only on the pages that show the widget.
 - Authentication context: apps ask for a multi-factor or phishing-resistant sign-in with `acr_values` (the OpenID PAPE policies), Kimlik asks for a second factor or a passkey when the session falls short, and ID and access tokens carry `acr`.
+- Usage metering: limit features can be metered, counting use a calendar month; backends record use through `POST /api/v1/usage`, optionally enforcing the limit atomically and with idempotency keys, read it back, and use `IKimlikUsage` in `Kimlik.AspNetCore`; the admin panel shows the month's use (`kimlik.usage:read`, `kimlik.usage:write`).
 
 ### Changed
 
-- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange` and `BackChannelLogoutUri`, `PlanResponse` gained `Kind`, and `SubscriptionResponse` gained `AddOns` and `FeatureOverrides`; code that constructs them positionally must pass them.
+- `UserResponse` and `ProfileResponse` gained `PhoneNumber`, and `ClientResponse` gained `AllowTokenExchange` and `BackChannelLogoutUri`, `PlanResponse` gained `Kind`, `FeatureResponse` gained `Metered`, and `SubscriptionResponse` gained `AddOns` and `FeatureOverrides`; code that constructs them positionally must pass them.
 - The Account API refuses changes from any token in which someone else acts for the user, a client that exchanged it as well as an impersonating administrator.
 - Sign-in codes are kept per purpose, so codes asked for before the upgrade stop working.
 

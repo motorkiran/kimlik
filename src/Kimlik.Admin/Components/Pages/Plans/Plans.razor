@@ -56,7 +56,7 @@
                         <tr>
                             <td>@feature.Name</td>
                             <td><code>@feature.Key</code></td>
-                            <td>@(feature.Type == FeatureType.Boolean ? "On or off" : "Limit")</td>
+                            <td>@(feature.Type == FeatureType.Boolean ? "On or off" : feature.Metered ? "Use a month" : "Limit")</td>
                             <td>
                                 @if (CanWrite)
                                 {
@@ -109,7 +109,7 @@
         if (await dialog.Result is { Canceled: false, Data: CatalogEntryDialog.Entry entry }
             && await ChangeAsync<CreateFeatureHandler, FeatureResponse>(
                 SystemPermissions.PlansWrite,
-                handler => handler.HandleAsync(new CreateFeatureRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description, Type = entry.Type }, Aborted),
+                handler => handler.HandleAsync(new CreateFeatureRequest { Key = entry.Key, Name = entry.Name, Description = entry.Description, Type = entry.Type, Metered = entry.Metered }, Aborted),
                 "The feature was created.") is not null)
         {
             await LoadAsync();

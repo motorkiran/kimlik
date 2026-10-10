@@ -14,7 +14,7 @@ public sealed class FeatureProvisioner(IKimlikDbContext context, CreateFeatureHa
         if (existing is null)
         {
             var created = await create.HandleAsync(
-                new CreateFeatureRequest { Key = declared.Key, Name = declared.Name, Description = declared.Description, Type = declared.Type },
+                new CreateFeatureRequest { Key = declared.Key, Name = declared.Name, Description = declared.Description, Type = declared.Type, Metered = declared.Metered },
                 cancellationToken);
             return created.IsSuccess ? ProvisioningChange.Created : created.Error;
         }
@@ -22,6 +22,11 @@ public sealed class FeatureProvisioner(IKimlikDbContext context, CreateFeatureHa
         if (existing.Type.ToString() != declared.Type.ToString())
         {
             return ProvisioningErrors.FixedProperty("type");
+        }
+
+        if (existing.IsMetered != declared.Metered)
+        {
+            return ProvisioningErrors.FixedProperty("metered");
         }
 
         if (existing.Name == declared.Name.Trim() && existing.Description == Declared.Text(declared.Description))

@@ -42,6 +42,8 @@ public interface IKimlikDbContext
 
     DbSet<Subscription> Subscriptions { get; }
 
+    DbSet<UsageCounter> UsageCounters { get; }
+
     DbSet<ApiKey> ApiKeys { get; }
 
     DbSet<ApiKeyPermission> ApiKeyPermissions { get; }

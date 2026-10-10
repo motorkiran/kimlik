@@ -1,5 +1,6 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Plans;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Auditing;
 using Kimlik.Infrastructure.Clients;
@@ -125,6 +126,7 @@ public static class DependencyInjection
         services.AddSingleton<IConfigureOptions<DataProtectionTokenProviderOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
 
         services.AddScoped<IUserSessions, UserSessions>();
+        services.AddScoped<IUsageCounters, UsageCounters>();
     }
 
     private static void AddOutbox(IServiceCollection services)
