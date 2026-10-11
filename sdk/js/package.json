@@ -1,6 +1,6 @@
 {
   "name": "@kimlik/node",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Protects Node.js APIs with Kimlik, an open-source, self-hosted identity and access management server, and calls its Management API.",
   "license": "Apache-2.0",
   "repository": {

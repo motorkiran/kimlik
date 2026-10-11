@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-11
+
+A JavaScript SDK for Node.js backends, and the fixes of a security review of the features since 0.2.0.
+
 ### Added
 
 - `@kimlik/node`, a JavaScript and TypeScript SDK for Node.js backends: access token and API key validation as `KimlikUser`, `kimlikMiddleware` and `requirePermission` for Express and similar frameworks, entitlements, a Management API client typed from the OpenAPI document, and webhook verification. Releases carry it as a tarball until it is on npm.
