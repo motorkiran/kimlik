@@ -73,7 +73,7 @@ public sealed class OidcPrincipalFactory(IOpenIddictScopeManager scopes, AccessR
         identity.SetClaim(JwtRegisteredClaimNames.Sid, sessionId);
 
         identity.SetScopes(grantedScopes);
-        identity.SetResources(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)]);
+        identity.SetResources(KimlikAudience.Filter(resources ?? [.. await scopes.ListResourcesAsync(grantedScopes, cancellationToken).ToListAsync(cancellationToken)], grantedScopes));
         AddAccess(identity, await access.ForUserAsync(user.Id, organizationId, cancellationToken));
 
         var subscriber = organizationId is { } organization ? Subscriber.Organization(organization) : Subscriber.User(user.Id);

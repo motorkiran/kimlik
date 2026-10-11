@@ -17,6 +17,12 @@ internal static partial class ApiResourceNames
 
     public static bool IsReservedScope(string scope) => ReservedScopes.Contains(scope);
 
+    /// <summary>
+    /// Kimlik's own API, whose tokens carry the user's system permissions: only its own scope may name it, or a scope
+    /// that anyone allowed to register APIs creates would lead to those permissions.
+    /// </summary>
+    public static bool IsReservedAudience(string audience) => string.Equals(audience, KimlikScopes.Api, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The characters OAuth allows in a scope token (RFC 6749, section 3.3), which audiences share here.</summary>
     public static bool IsValidAudience(string audience) => AudiencePattern().IsMatch(audience);
 

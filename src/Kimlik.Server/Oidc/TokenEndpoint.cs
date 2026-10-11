@@ -63,7 +63,7 @@ internal static class TokenEndpoint
         identity.SetClaim(Claims.Name, await applications.GetDisplayNameAsync(application, cancellationToken));
 
         identity.SetScopes(request.GetScopes());
-        identity.SetResources(await scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken).ToListAsync(cancellationToken));
+        identity.SetResources(KimlikAudience.Filter(await scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken).ToListAsync(cancellationToken), identity.GetScopes()));
 
         var applicationId = Guid.Parse((await applications.GetIdAsync(application, cancellationToken))!);
         OidcPrincipalFactory.AddAccess(identity, await services.GetRequiredService<AccessResolver>().ForClientAsync(applicationId, cancellationToken));

@@ -33,6 +33,11 @@ public sealed class CreateApiResourceHandler(IKimlikDbContext context, IOpenIddi
             return ApiResourceErrors.InvalidAudience;
         }
 
+        if (ApiResourceNames.IsReservedAudience(audience))
+        {
+            return ApiResourceErrors.ReservedAudience;
+        }
+
         if (await scopes.FindByNameAsync(name, cancellationToken) is not null)
         {
             return ApiResourceErrors.AlreadyExists;

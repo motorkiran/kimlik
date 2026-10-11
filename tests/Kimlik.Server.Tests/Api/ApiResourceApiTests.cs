@@ -1,7 +1,9 @@
 using System.Net;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
+using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Oidc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Kimlik.Server.Tests.Api;
@@ -87,6 +89,28 @@ public sealed class ApiResourceApiTests(KimlikServerFixture server)
 
         second.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await second.ReadProblemCodeAsync()).ShouldBe("api_resource.already_exists");
+    }
+
+    [Fact]
+    public async Task KimlikApisAudience_BelongsToItsOwnScopeAlone()
+    {
+        using var api = await server.CreateApiClientAsync();
+
+        using var refused = await api.Http.PostJsonAsync(ApiResources, new CreateApiResourceRequest { Scope = NewScope(), Audience = KimlikScopes.Api });
+        (await refused.ReadProblemCodeAsync()).ShouldBe("api_resource.reserved_audience");
+
+        // A scope that names the audience anyway, as one registered before it was refused could, does not lead to Kimlik's API.
+        var alias = NewScope();
+        await server.WithServicesAsync(services => services.GetRequiredService<OpenIddict.Abstractions.IOpenIddictScopeManager>()
+            .CreateAsync(new OpenIddict.Abstractions.OpenIddictScopeDescriptor { Name = alias, Resources = { KimlikScopes.Api } }).AsTask());
+        var client = await server.CreateServiceClientAsync(alias);
+        await server.AssignToClientAsync(client.ClientId, Kimlik.Domain.Access.SystemRoles.Admin);
+        using var http = server.CreateClient();
+        var token = await http.RequestClientCredentialsTokenAsync(client, alias);
+
+        new JsonWebToken(token).Audiences.ShouldNotContain(KimlikScopes.Api);
+        using var withAlias = server.WithToken(token);
+        (await withAlias.GetAsync("/api/v1/users", CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

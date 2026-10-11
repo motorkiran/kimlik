@@ -14,6 +14,9 @@ public static class ApiResourceErrors
     public static readonly Error ReservedScope = Error.Validation(
         "api_resource.reserved_scope", "OpenID Connect scopes and 'kimlik' are defined by Kimlik.");
 
+    public static readonly Error ReservedAudience = Error.Validation(
+        "api_resource.reserved_audience", "'kimlik' is the audience of Kimlik's own API, which no other scope can name.");
+
     public static readonly Error InvalidAudience = Error.Validation(
         "api_resource.invalid_audience", "An audience is printable ASCII without spaces, quotes or backslashes.");
 
