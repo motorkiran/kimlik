@@ -850,6 +850,9 @@
   <data name="Confirm that you are not a robot." xml:space="preserve">
     <value>Robot olmadığınızı doğrulayın.</value>
   </data>
+  <data name="Confirm that you are not a robot, then send a new code." xml:space="preserve">
+    <value>Robot olmadığınızı doğrulayın, ardından yeni kod gönderin.</value>
+  </data>
   <data name="Sign in with SSO" xml:space="preserve">
     <value>SSO ile giriş yap</value>
   </data>

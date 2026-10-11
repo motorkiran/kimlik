@@ -44,7 +44,17 @@ public static class PhoneNumbers
         return number is { Length: >= 9 and <= 16 } && number[1] != '0' && number.Skip(1).All(char.IsAsciiDigit) ? number : null;
     }
 
-    /// <summary>Whether texts may go to the number, an E.164 one, under <see cref="SmsOptions.AllowedCountryCodes"/>.</summary>
-    public static bool IsAllowed(string number, SmsOptions options) =>
-        options.AllowedCountryCodes.Count == 0 || options.AllowedCountryCodes.Exists(code => number.StartsWith("+" + code, StringComparison.Ordinal));
+    /// <summary>
+    /// Whether texts may go to the number, an E.164 one: to the <see cref="SmsOptions.AllowedCountryCodes"/>, or when there
+    /// are none to the <see cref="SmsOptions.DefaultCountryCode"/>, or anywhere when neither is set.
+    /// </summary>
+    public static bool IsAllowed(string number, SmsOptions options)
+    {
+        if (options.AllowedCountryCodes.Count > 0)
+        {
+            return options.AllowedCountryCodes.Exists(code => number.StartsWith("+" + code, StringComparison.Ordinal));
+        }
+
+        return string.IsNullOrEmpty(options.DefaultCountryCode) || number.StartsWith("+" + options.DefaultCountryCode, StringComparison.Ordinal);
+    }
 }

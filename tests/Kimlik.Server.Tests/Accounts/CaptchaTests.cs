@@ -79,6 +79,30 @@ public sealed class CaptchaTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task ANewSignInCode_TakesTheCaptchaToo()
+    {
+        await using var kimlik = WithCaptcha(new FakeTurnstile());
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(kimlik);
+        var signIn = await browser.GetPageAsync("/signin");
+        using var asked = await browser.SubmitAsync(
+            signIn,
+            new Dictionary<string, string> { ["Input.Email"] = user.Email, [Answer] = FakeTurnstile.Good },
+            action: signIn.Document.QuerySelector("#email-code")!.GetAttribute("formaction"));
+        var codePage = await browser.GetPageAsync(asked.Headers.Location!.OriginalString);
+        codePage.Document.QuerySelector("#captcha").ShouldBeNull("entering the code takes none");
+        var resend = codePage.Document.QuerySelector("#resend-code")!.GetAttribute("formaction");
+
+        using var withoutAnswer = await browser.SubmitAsync(codePage, new Dictionary<string, string>(), action: resend);
+        var refused = await Browser.ReadPageAsync(withoutAnswer);
+        refused.Text.ShouldContain("Confirm that you are not a robot, then send a new code.");
+        refused.Document.QuerySelector("#captcha").ShouldNotBeNull();
+
+        using var withAnswer = await browser.SubmitAsync(refused, new Dictionary<string, string> { [Answer] = FakeTurnstile.Good }, action: resend);
+        (await Browser.ReadPageAsync(withAnswer)).Text.ShouldContain("a new code is on its way");
+    }
+
+    [Fact]
     public async Task PagesWithoutTheWidget_KeepTheirStrictPolicy()
     {
         using var browser = new Browser(server);

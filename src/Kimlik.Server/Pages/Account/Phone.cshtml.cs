@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -19,6 +20,7 @@ public sealed class PhoneModel(
     UserPhoneNumbers phoneNumbers,
     IOptions<SmsOptions> sms,
     AccountErrorMessages errorMessages,
+    RequestThrottle throttle,
     TimeProvider timeProvider,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
@@ -57,6 +59,14 @@ public sealed class PhoneModel(
         await LoadAsync();
         if (!SignedInRecently || !ModelState.IsValid)
         {
+            return Page();
+        }
+
+        // Texts cost money: an address asks for only a few, whichever accounts it signs in to.
+        if (!throttle.TryAcquire(ThrottledAction.TextRequest, HttpContext))
+        {
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ModelState.AddModelError("Input.PhoneNumber", localizer["Too many attempts. Wait a minute and try again."]);
             return Page();
         }
 

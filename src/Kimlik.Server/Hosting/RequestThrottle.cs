@@ -11,6 +11,7 @@ public enum ThrottledAction
     SignIn,
     SignUp,
     EmailRequest,
+    TextRequest,
 }
 
 /// <summary>
@@ -31,6 +32,7 @@ public sealed class RequestThrottle : IDisposable
             [ThrottledAction.SignIn] = CreateLimiter(limits.SignInsPerMinute),
             [ThrottledAction.SignUp] = CreateLimiter(limits.SignUpsPerMinute),
             [ThrottledAction.EmailRequest] = CreateLimiter(limits.EmailRequestsPerMinute),
+            [ThrottledAction.TextRequest] = CreateLimiter(limits.TextRequestsPerMinute),
         }.ToFrozenDictionary();
     }
 

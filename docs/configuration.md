@@ -111,7 +111,7 @@ Phone numbers on accounts and sign-in with texted codes ([design §10.9](design.
 |---|---|---|
 | `Kimlik:Sms:Provider` | `None` | `Netgsm`, `IletiMerkezi` or `Twilio`. Kimlik refuses to start when the chosen provider is missing a setting it needs. |
 | `Kimlik:Sms:DefaultCountryCode` | | The country calling code of numbers written without one, such as `90` for `0532 123 45 67`. Without it, numbers start with `+` or `00`. |
-| `Kimlik:Sms:AllowedCountryCodes` | all | The country calling codes texts may go to, such as `["90"]`. Limiting them guards against SMS pumping fraud. |
+| `Kimlik:Sms:AllowedCountryCodes` | the default country | The country calling codes texts may go to, such as `["90", "49"]`. When empty, texts go only to `DefaultCountryCode`, or anywhere when that is not set either. Limiting them guards against SMS pumping fraud. |
 | `Kimlik:Sms:Netgsm:Username`, `Kimlik:Sms:Netgsm:Password` | | The subscriber number or API sub-user and its password, for Netgsm's REST v2 API. |
 | `Kimlik:Sms:Netgsm:Header` | | The sender name (`msgheader`) approved in the Netgsm panel. |
 | `Kimlik:Sms:Netgsm:AppName` | | Optional; the application name in Netgsm's reports. |
@@ -183,6 +183,7 @@ Per client address (IPv6 by /64), per minute.
 | `Kimlik:RateLimits:SignInsPerMinute` | `10` | Passwords and second-factor codes on the hosted pages, and passwords and codes confirmed on the account pages |
 | `Kimlik:RateLimits:SignUpsPerMinute` | `10` | Sign-ups |
 | `Kimlik:RateLimits:EmailRequestsPerMinute` | `5` | Requests for verification and password reset emails |
+| `Kimlik:RateLimits:TextRequestsPerMinute` | `5` | Requests that text a code to a phone number being added to an account |
 | `Kimlik:RateLimits:ProtocolRequestsPerMinute` | `300` | The token, introspection and revocation endpoints |
 
 ## Observability

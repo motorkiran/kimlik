@@ -130,6 +130,8 @@ public sealed class PhoneNumberTests(KimlikServerFixture server)
 
         PhoneNumbers.IsAllowed("+905321234567", turkeyOnly).ShouldBeTrue();
         PhoneNumbers.IsAllowed("+12025550123", turkeyOnly).ShouldBeFalse();
+        PhoneNumbers.IsAllowed("+12025550123", new SmsOptions { DefaultCountryCode = "90" }).ShouldBeFalse("only the default country, unless others are allowed");
+        PhoneNumbers.IsAllowed("+905321234567", new SmsOptions { DefaultCountryCode = "90" }).ShouldBeTrue();
         PhoneNumbers.IsAllowed("+12025550123", new SmsOptions()).ShouldBeTrue();
     }
 

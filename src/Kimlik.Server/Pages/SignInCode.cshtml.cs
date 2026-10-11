@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Captcha;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +16,15 @@ namespace Kimlik.Server.Pages;
 /// Where people enter the code sent to their address or texted to their number. It looks the same whether an account
 /// has them or not; a right code signs them in as a password would, with the second factor next if the account needs
 /// one. The link in an emailed code fills the code in, in the browser that asked for it; elsewhere, the page shows the
-/// code to enter there.
+/// code to enter there. A new code takes the CAPTCHA, as the first one did, which shows once someone asks for one.
 /// </summary>
+[ShowsCaptcha]
 public sealed class SignInCodeModel(
     EmailSignIn emailSignIn,
     PhoneSignIn phoneSignIn,
     PendingSignInCode pendingSignInCode,
     SignInFlow signInFlow,
+    CaptchaVerifier captcha,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -44,6 +48,9 @@ public sealed class SignInCodeModel(
 
     /// <summary>The code of a link opened in another browser than the one that asked for it, to enter there.</summary>
     public string? CodeForAnotherBrowser { get; private set; }
+
+    /// <summary>Whether asking for a new code waits for the CAPTCHA, which then shows.</summary>
+    public bool NewCodeNeedsCaptcha { get; private set; }
 
     public IActionResult OnGet(string? code)
     {
@@ -116,6 +123,13 @@ public sealed class SignInCodeModel(
         if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
         {
             return TooManyAttempts();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
+        {
+            NewCodeNeedsCaptcha = true;
+            ErrorMessage = localizer["Confirm that you are not a robot, then send a new code."];
+            return Page();
         }
 
         if (pending.Channel == SignInCodeChannel.Sms)

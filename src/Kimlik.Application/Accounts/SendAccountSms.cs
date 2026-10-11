@@ -16,13 +16,14 @@ public enum AccountSms
 }
 
 /// <summary>
-/// Limits how many texts one account receives, so that forms cannot be used to flood a phone or to run up the bill:
-/// one of each kind a minute, and a few an hour.
+/// Limits the texts Kimlik sends, so that forms cannot be used to flood a phone or to run up the bill: for each account,
+/// one of each kind a minute and a few of each an hour, so that texts of one kind do not use up the other; and a few of
+/// each kind an hour to each number, whichever accounts ask.
 /// </summary>
 public interface ISmsThrottle
 {
-    /// <returns><see langword="false"/> when the account has had enough texts for now.</returns>
-    bool TryAcquire(Guid userId, AccountSms kind);
+    /// <returns><see langword="false"/> when the account, or the number, has had enough texts for now.</returns>
+    bool TryAcquire(Guid userId, AccountSms kind, string phoneNumber);
 }
 
 /// <summary>

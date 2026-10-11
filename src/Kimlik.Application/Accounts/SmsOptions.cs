@@ -30,8 +30,9 @@ public sealed class SmsOptions
     public string? DefaultCountryCode { get; set; }
 
     /// <summary>
-    /// The country calling codes Kimlik sends texts to, such as <c>["90"]</c>; all when empty. Limiting them guards
-    /// against SMS pumping, where texts to premium numbers abroad run up the bill.
+    /// The country calling codes Kimlik sends texts to, such as <c>["90", "49"]</c>. When empty, texts go only to the
+    /// <see cref="DefaultCountryCode"/>, or anywhere when that is not set either. Limiting them guards against SMS
+    /// pumping, where texts to premium numbers abroad run up the bill.
     /// </summary>
     public List<string> AllowedCountryCodes { get; set; } = [];
 

@@ -51,7 +51,7 @@ public sealed class UserPhoneNumbers(
             return AccountErrors.PhoneNumberUnchanged;
         }
 
-        if (!throttle.TryAcquire(user.Id, AccountSms.PhoneVerification))
+        if (!throttle.TryAcquire(user.Id, AccountSms.PhoneVerification, number))
         {
             return AccountErrors.TooManyTexts;
         }

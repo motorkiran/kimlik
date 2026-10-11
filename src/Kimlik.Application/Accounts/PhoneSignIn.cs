@@ -32,7 +32,7 @@ public sealed class PhoneSignIn(
         if (Enabled
             && PhoneNumbers.IsAllowed(phoneNumber, options.Value)
             && await FindAsync(phoneNumber, cancellationToken) is { CanSignIn: true } user
-            && throttle.TryAcquire(user.Id, AccountSms.SignInCode))
+            && throttle.TryAcquire(user.Id, AccountSms.SignInCode, phoneNumber))
         {
             outbox.Enqueue(new SendAccountSms(user.Id, AccountSms.SignInCode, phoneNumber));
             await context.SaveChangesAsync(cancellationToken);

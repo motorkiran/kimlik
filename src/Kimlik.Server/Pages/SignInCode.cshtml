@@ -45,6 +45,10 @@
         <input asp-for="Input.Code" autocomplete="one-time-code" inputmode="numeric" autofocus="@(Model.FilledIn ? null : "autofocus")" />
         <span asp-validation-for="Input.Code" class="field-error"></span>
     </div>
+    @if (Model.NewCodeNeedsCaptcha)
+    {
+        <partial name="_Captcha" model="new[] { Kimlik.Application.Captcha.CaptchaForm.SignInCode }" />
+    }
     <button type="submit" class="button" id="sign-in" autofocus="@(Model.FilledIn ? "autofocus" : null)">@L["Sign in"]</button>
     <button type="submit" class="button button-secondary" id="resend-code" formaction="@Url.Page("/SignInCode", "Resend")" formnovalidate>@L["Send a new code"]</button>
 </form>

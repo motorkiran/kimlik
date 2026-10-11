@@ -21,6 +21,10 @@ public sealed class RateLimitOptions
     [Range(1, 100_000)]
     public int EmailRequestsPerMinute { get; set; } = 5;
 
+    /// <summary>Requests that text a code to a number being added to an account. Each account also gets only a few texts.</summary>
+    [Range(1, 100_000)]
+    public int TextRequestsPerMinute { get; set; } = 5;
+
     /// <summary>Token, introspection and revocation requests.</summary>
     [Range(1, 1_000_000)]
     public int ProtocolRequestsPerMinute { get; set; } = 300;
