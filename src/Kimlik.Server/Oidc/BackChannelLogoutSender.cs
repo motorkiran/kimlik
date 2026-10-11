@@ -10,7 +10,7 @@ namespace Kimlik.Server.Oidc;
 /// Posts logout tokens (OpenID Connect Back-Channel Logout 1.0): JWTs signed with the active token signing key, typed
 /// <c>logout+jwt</c>, that tell a web client that a user's session, or all of their sessions, ended. Unlike webhooks,
 /// they may go to private networks, where apps often run beside Kimlik; only administrators who manage clients set the
-/// endpoints.
+/// endpoints, and redirects are not followed away from them.
 /// </summary>
 internal sealed class BackChannelLogoutSender(IHttpClientFactory httpClients, IOptionsMonitor<OpenIddictServerOptions> server, TimeProvider timeProvider)
     : IBackChannelLogoutSender

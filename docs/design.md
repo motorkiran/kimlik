@@ -680,7 +680,7 @@ When someone signs out of Kimlik, the web apps they signed in to through that se
 - **Clients.** Web clients may register a `backChannelLogoutUri`, on HTTPS, or HTTP on the loopback interface.
 - **Sessions.** Every browser session of the hosted pages has an ID, which ID tokens carry as `sid`, and Kimlik remembers which clients with a back-channel URI each session signed in to. An administrator impersonating a user gets a session ID of its own.
 - **Logout tokens.** When a session ends, by the sign-out page or a logout the app started, each of those clients gets a logout token: a JWT signed with Kimlik's token signing key, typed `logout+jwt`, with `iss`, `aud` (the client ID), `iat`, `exp` two minutes later, `jti`, `sub`, `sid` and the back-channel logout event, posted as the `logout_token` form field. When all of a user's sessions end, after signing out everywhere, a password change or reset, a suspension or a deletion, every client they signed in to through any session gets one without `sid`.
-- **Delivery** is from the outbox, retried until the client answers with a 2xx status. Discovery says `backchannel_logout_supported` and `backchannel_logout_session_supported`.
+- **Delivery** is from the outbox, retried until the client answers with a 2xx status. Redirects are not followed, so the token goes only to the URI the client registered. Unlike webhooks, it may be on a private network, where apps often run beside Kimlik, since only administrators who manage clients set it. Discovery says `backchannel_logout_supported` and `backchannel_logout_session_supported`.
 - **Records** of which clients a session signed in to go when the session ends, and after 90 days otherwise.
 
 ### 8.11 Authentication context

@@ -95,7 +95,9 @@ internal static class OidcServiceCollectionExtensions
         services.AddScoped<OidcPrincipalFactory>();
         services.AddScoped<ScopeDescriptions>();
         services.AddSingleton<IBackChannelLogoutSender, BackChannelLogoutSender>();
-        services.AddHttpClient(BackChannelLogoutSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
+        services.AddHttpClient(BackChannelLogoutSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10))
+            // A redirect would take the logout token, as a GET, to an address the client's administrators did not set.
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
         // Must come after AddServer: see TokenKeyServiceCollectionExtensions.AddTokenKeys.
         services.AddTokenKeys(HealthProbeExtensions.ReadinessTag);
