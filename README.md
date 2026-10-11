@@ -55,6 +55,30 @@ app.MapPost("/webhooks/kimlik", async (HttpRequest request) =>
 
 The [samples](samples/README.md) show a single-page app and its API working with Kimlik end to end.
 
+## Use Kimlik from Node.js
+
+`@kimlik/node`, in [`sdk/js`](sdk/js), does the same for Node.js backends. It is not on npm yet; until it is, install the tarball attached to each [release](https://github.com/motorkiran/kimlik/releases).
+
+```js
+import express from "express";
+import { createKimlik, kimlikMiddleware, requirePermission, verifyWebhook } from "@kimlik/node";
+
+const kimlik = createKimlik({
+  authority: "https://id.example.com/",
+  audience: "invoices-api",
+  // Only for API keys, entitlements and the Management API:
+  clientId: "invoices-api",
+  clientSecret: process.env.KIMLIK_CLIENT_SECRET,
+});
+
+app.get("/invoices", kimlikMiddleware(kimlik), requirePermission("invoices:read"), (req, res) => {
+  res.json({ caller: req.kimlik.userId, organization: req.kimlik.organizationId });
+});
+
+const { data: user } = await kimlik.client.GET("/api/v1/users/{id}", { params: { path: { id } } });
+const event = verifyWebhook({ headers: req.headers, body: rawBody, secret }); // null unless Kimlik signed it
+```
+
 ## Local development
 
 ### Prerequisites

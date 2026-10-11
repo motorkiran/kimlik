@@ -1,0 +1,39 @@
+{
+  "name": "@kimlik/node",
+  "version": "0.4.0",
+  "description": "Protects Node.js APIs with Kimlik, an open-source, self-hosted identity and access management server, and calls its Management API.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/motorkiran/kimlik.git",
+    "directory": "sdk/js"
+  },
+  "keywords": ["kimlik", "oidc", "oauth2", "authorization", "jwt", "webhooks"],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../tests/Kimlik.Server.Tests/Api/openapi-v1.json -o src/schema.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "jose": "^6.2.12",
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

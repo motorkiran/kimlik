@@ -66,10 +66,24 @@ jobs:
             -t:PublishContainer -p:ContainerRegistry=ghcr.io -p:ContainerRepository="${GITHUB_REPOSITORY,,}" \
             -p:ContainerImageTags="\"$tags\"" -p:RuntimeIdentifiers="$runtimes" -p:ContainerRuntimeIdentifiers="$runtimes"
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      # The JavaScript SDK goes with the release as a tarball; publishing it to npm waits until its name is settled.
+      - name: Pack the JavaScript SDK
+        working-directory: sdk/js
+        run: |
+          npm ci
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm test
+          npm run build
+          npm pack --pack-destination ../../artifacts
+
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           prerelease=""
           if [[ "$VERSION" == *-* ]]; then prerelease="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" artifacts/*.nupkg artifacts/*.snupkg --title "Kimlik $VERSION" --generate-notes $prerelease
+          gh release create "$GITHUB_REF_NAME" artifacts/*.nupkg artifacts/*.snupkg artifacts/*.tgz --title "Kimlik $VERSION" --generate-notes $prerelease

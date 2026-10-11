@@ -229,7 +229,7 @@ The backlog, roughly in priority order:
 
 1. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
 2. DPoP (RFC 9449), which OpenIddict does not support yet.
-3. A JavaScript/TypeScript SDK and a Helm chart.
+3. A Helm chart.
 4. OpenID Foundation certification.
 
 Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)); product settings and social providers changed at runtime (M27, M28, [§6.8](#68-configuration)); login apps (M29, [§10.12](#1012-login-apps)).
@@ -1015,6 +1015,18 @@ if (!KimlikWebhook.TryVerify(request.Headers, body, secret, out var webhookEvent
 - Applying the file is idempotent: it creates and updates what is declared and deletes nothing unless pruning is requested explicitly.
 - A JSON Schema ships with Kimlik for editor completion.
 
+### 12.6 JavaScript and TypeScript (`@kimlik/node`)
+
+Node.js backends get the same integration as ASP.NET Core APIs, from one package, `@kimlik/node`, in `sdk/js`. Its npm name is settled before it is first published ([§17.1](#171-open-questions)).
+
+- **Form.** ES modules for Node.js 20 and later, written in TypeScript and published with its types. It has two runtime dependencies, `jose` (MIT) for tokens and keys and `openapi-fetch` (MIT) for the Management API.
+- **Resource servers.** `createKimlik({ authority, audience })` validates access tokens as RFC 9068 JWTs. It checks the signature against the keys the authority publishes (`jwks_uri` from discovery), and checks the issuer, audience, lifetime and `at+jwt` type. The caller comes back as a `KimlikUser`, the same as in `Kimlik.AspNetCore`: subject, client, user ID, roles, permissions, organization, plan, custom entitlements and the acting administrator. With service client credentials, it also takes API keys (`Bearer kmk_…`), which it verifies through the Management API and caches for a minute.
+- **Express and the like.** `kimlikMiddleware(kimlik)` puts the caller on `req.kimlik` and answers 401 without one, and `requirePermission("invoices:read")` answers 403 without the permission. They take the `(req, res, next)` form, so Express, Connect and similar frameworks use them without an adapter.
+- **Entitlements.** `kimlik.entitlementsOf(user)` gives the features and limits of the caller's subscriber, the organization in an organization context and the user otherwise. It reads them through the Management API and caches them for a minute.
+- **Management API.** `kimlik.client` is a client typed from Kimlik's OpenAPI document. It gets client credentials tokens by itself and renews them before they expire.
+- **Webhooks.** `verifyWebhook({ headers, body, secret })` checks a Standard Webhooks signature and timestamp, as `KimlikWebhook` does, and returns the event or `null`.
+- **Tests.** Vitest tests check token validation against keys made in the test, the API key and entitlement caches, the token renewal and webhook signatures. CI builds, type-checks and tests the package on every change.
+
 ### 12.5 Documentation and samples
 
 - Documentation: a getting-started guide, concept guides, an API reference generated from OpenAPI, and SDK docs.
@@ -1136,6 +1148,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M27: Settings at runtime** | Product settings in the database, changed from the admin panel and the API without a restart, with environment variables fixed ([ADR 0002](adr/0002-product-settings-in-the-database.md), [§6.8](#68-configuration)) | An administrator opens registration and requires MFA at runtime, invalid values are refused, and values set in the environment cannot change, in end-to-end tests ✅ |
 | **M28: Social providers at runtime** | Google, Microsoft, GitHub and Apple sign-in set up from the admin panel and the API without a restart ([ADR 0002](adr/0002-product-settings-in-the-database.md)) | A provider set up at runtime appears on the sign-in page at once and disappears when removed, in end-to-end tests ✅ |
 | **M29: Login apps** | Sign-in pages of developers' own, through login challenges that a login app accepts or rejects through the Management API and the SDK ([§10.12](#1012-login-apps)) | A login app signs a person in, with their Kimlik password and second factor, and the app gets tokens with the accepted methods; challenges cannot be completed by another browser or below the required factors, in end-to-end tests ✅ (M27 to M29 released as v0.4.0, 2026-10-11) |
+| **M30: JavaScript SDK** | `@kimlik/node` for Node.js backends: token and API key validation, permission middleware, entitlements, a typed Management API client and webhook verification ([§12.6](#126-javascript-and-typescript-kimliknode)) | A Node.js API validates Kimlik tokens and permissions and verifies webhooks, in tests that run in CI |
 
 ---
 
@@ -1143,7 +1156,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 
 ### 17.1 Open questions
 
-1. **Names and namespaces.** The GitHub organization, reserving the `Kimlik.*` package ID prefix on NuGet, and the documentation domain.
+1. **Names and namespaces.** The GitHub organization, reserving the `Kimlik.*` package ID prefix on NuGet, the npm name of the JavaScript package (`@kimlik/node` while unpublished), and the documentation domain.
 2. **Hosted UI customization.** The MVP offers theming through configuration. Are template overrides needed early?
 3. **Defaults.** Should registration default to open or invite-only? Should any user be able to create organizations, or only admins?
 4. **Network separation.** Should the Management API and admin panel be bindable to a separate port, so they can be exposed internally only?
