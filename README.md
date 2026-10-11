@@ -151,6 +151,16 @@ Providers that speak SAML 2.0 instead, such as AD FS, get a connection with `"pr
 
 While the connection is enabled, people with addresses in those domains sign in only through the provider: the sign-in page sends them there as soon as they enter their address, and other ways of signing in lead there too. Their first sign-in links the account with the same address, or creates one whatever the registration mode, and makes them a member of the organization. Disabling the connection restores the other ways of signing in. Because a connection can sign in anyone in its domains, administrators included, managing connections takes every installation-wide system permission; claim only domains the organization owns.
 
+### Sign-in pages of your own
+
+Kimlik's hosted pages take a logo, colors and a stylesheet. To build the sign-in pages entirely yourself, on your own domain, set `Kimlik__Interactions__LoginUrl` (or **Login app** in the admin panel's settings) to your login page. Authorization requests that need a sign-in then go there with a `login_challenge`, and your backend answers it through the Management API, as a service client with `kimlik.interactions:write`:
+
+1. `GET /api/v1/interactions/login/{challenge}` says which app asks, for which scopes, and whether the sign-in must take a second factor or a passkey.
+2. `POST …/password` and `POST …/second-factor` check the person's Kimlik password and authenticator or recovery code, if your pages use those. Each challenge allows ten checks, and failures count toward the account's lockout.
+3. `POST …/accept` with the user's ID and the methods they used, such as `["pwd", "otp"]`, or `POST …/reject`, returns the URL to send the browser to. Kimlik then finishes the sign-in, in the browser the challenge was sent from, and the app gets its tokens.
+
+Kimlik still applies its rules: the methods must meet the MFA policies and the app's `acr_values`, and a login app cannot sign in users who hold system permissions it does not hold. Those users, and people who sign in with passkeys, use the hosted pages at the challenge's `hostedSignInUrl`. `Kimlik.Client` covers these calls as `kimlik.Interactions`.
+
 ### Provisioning
 
 Permissions, roles, API resources and clients can be declared in a JSON file and kept in version control:

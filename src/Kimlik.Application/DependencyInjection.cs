@@ -51,6 +51,11 @@ public static class DependencyInjection
             .Validate(options => options.RememberBrowserFor >= TimeSpan.Zero, $"{MfaOptions.SectionName}:RememberBrowserFor cannot be negative.")
             .ValidateOnStart();
 
+        services.AddOptions<Interactions.InteractionOptions>()
+            .BindConfiguration(Interactions.InteractionOptions.SectionName)
+            .Validate(options => options.IsValid(), $"{Interactions.InteractionOptions.SectionName}:LoginUrl must be an absolute HTTP or HTTPS URL.")
+            .ValidateOnStart();
+
         services.AddOptions<AuditOptions>()
             .BindConfiguration(AuditOptions.SectionName)
             .Validate(options => options.RetentionPeriod > TimeSpan.Zero, $"{AuditOptions.SectionName}:RetentionPeriod must be positive.")
@@ -79,6 +84,7 @@ public static class DependencyInjection
         services.AddScoped<DefaultUserRoles>();
         services.AddScoped<ExternalLogins>();
         services.AddScoped<SsoDirectory>();
+        services.AddScoped<Interactions.LoginChallenges>();
         services.AddScoped<ApiKeyStore>();
         services.AddScoped<MyApiKeys>();
         services.AddScoped<OrganizationGuard>();

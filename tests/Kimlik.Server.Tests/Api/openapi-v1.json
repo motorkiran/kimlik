@@ -3960,6 +3960,348 @@
         ]
       }
     },
+    "/api/v1/interactions/login/{challenge}": {
+      "get": {
+        "tags": [
+          "Interactions"
+        ],
+        "summary": "Read what a login challenge asks for",
+        "description": "The challenge is the `login_challenge` the login app was sent; unknown, expired and decided ones are not found.\n\nRequires the `kimlik.interactions:write` permission.",
+        "operationId": "GetLoginChallenge",
+        "parameters": [
+          {
+            "name": "challenge",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginChallengeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.interactions:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/interactions/login/{challenge}/accept": {
+      "post": {
+        "tags": [
+          "Interactions"
+        ],
+        "summary": "Sign the person in",
+        "description": "Accepts the challenge for the user, signed in with the given methods, which must meet the factors the request and Kimlik's policies need. Send the browser to `redirectTo`.\n\nRequires the `kimlik.interactions:write` permission.",
+        "operationId": "AcceptLoginChallenge",
+        "parameters": [
+          {
+            "name": "challenge",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptLoginChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginChallengeRedirect"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.interactions:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/interactions/login/{challenge}/reject": {
+      "post": {
+        "tags": [
+          "Interactions"
+        ],
+        "summary": "Refuse the sign-in",
+        "description": "The app gets an `access_denied` error. Send the browser to `redirectTo`.\n\nRequires the `kimlik.interactions:write` permission.",
+        "operationId": "RejectLoginChallenge",
+        "parameters": [
+          {
+            "name": "challenge",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectLoginChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginChallengeRedirect"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.interactions:write`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/interactions/login/{challenge}/password": {
+      "post": {
+        "tags": [
+          "Interactions"
+        ],
+        "summary": "Check a person's password",
+        "description": "Checks the password Kimlik keeps for the address, counting toward the account's lockout; each challenge allows ten checks. Unknown addresses, wrong passwords and locked accounts get the same answer.\n\nRequires the `kimlik.interactions:write` permission.",
+        "operationId": "VerifyLoginPassword",
+        "parameters": [
+          {
+            "name": "challenge",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/interactions/login/{challenge}/second-factor": {
+      "post": {
+        "tags": [
+          "Interactions"
+        ],
+        "summary": "Check a person's second factor",
+        "description": "Checks a code from the user's authenticator app, which works once, or one of their recovery codes, which is used up.\n\nRequires the `kimlik.interactions:write` permission.",
+        "operationId": "VerifyLoginSecondFactor",
+        "parameters": [
+          {
+            "name": "challenge",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySecondFactorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/features": {
       "get": {
         "tags": [
@@ -8261,6 +8603,26 @@
   },
   "components": {
     "schemas": {
+      "AcceptLoginChallengeRequest": {
+        "required": [
+          "userId",
+          "methods"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "How the person signed in, as `amr` values: one or more of `pwd`, `otp`, `fed`, `email`,\n`sms` and `pop`. Two of them, or `pop`, make a multi-factor sign-in."
+          }
+        }
+      },
       "AddMemberRequest": {
         "required": [
           "userId"
@@ -9636,6 +9998,75 @@
       "JsonObject": {
         "type": "object"
       },
+      "LoginChallengeRedirect": {
+        "required": [
+          "redirectTo"
+        ],
+        "type": "object",
+        "properties": {
+          "redirectTo": {
+            "type": "string"
+          }
+        },
+        "description": "Where the login app sends the browser next, to finish the sign-in on Kimlik."
+      },
+      "LoginChallengeResponse": {
+        "required": [
+          "clientId",
+          "clientName",
+          "scopes",
+          "loginHint",
+          "prompt",
+          "secondFactorRequired",
+          "passkeyRequired",
+          "expiresAt",
+          "hostedSignInUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "loginHint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondFactorRequired": {
+            "type": "boolean"
+          },
+          "passkeyRequired": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hostedSignInUrl": {
+            "type": "string"
+          }
+        },
+        "description": "What a login challenge asks for: a sign-in for `ClientId`, with `Scopes`, and the `LoginHint`,\n`Prompt` and `AcrValues` the app sent. `SecondFactorRequired` says that the sign-in must take a second\nfactor or a passkey, as the app asked; `PasskeyRequired` that it must take a passkey. `HostedSignInUrl` signs the\nperson in on Kimlik's own pages instead, for passkeys and for administrators, whom a login app cannot sign in."
+      },
       "MemberResponse": {
         "required": [
           "userId",
@@ -10981,6 +11412,20 @@
         },
         "description": "How to replace a client's secret."
       },
+      "RejectLoginChallengeRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why, for the app, as the `error_description` of its `access_denied` error."
+          }
+        }
+      },
       "RenamePasskeyRequest": {
         "required": [
           "name"
@@ -12191,6 +12636,27 @@
           "suspended"
         ]
       },
+      "VerifiedUserResponse": {
+        "required": [
+          "userId",
+          "secondFactorRequired",
+          "hasAuthenticator"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "secondFactorRequired": {
+            "type": "boolean"
+          },
+          "hasAuthenticator": {
+            "type": "boolean"
+          }
+        },
+        "description": "The person whose password was right. `SecondFactorRequired` says that they must verify a second factor before the\nchallenge can be accepted, because they have one or Kimlik's policies require one; `HasAuthenticator` that they\ncan verify it with an authenticator code."
+      },
       "VerifyApiKeyRequest": {
         "required": [
           "key"
@@ -12201,6 +12667,44 @@
             "maxLength": 256,
             "minLength": 0,
             "type": "string"
+          }
+        }
+      },
+      "VerifyPasswordRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "VerifySecondFactorRequest": {
+        "required": [
+          "userId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "A code from the authenticator app, or a recovery code."
           }
         }
       },
@@ -12399,6 +12903,9 @@
     },
     {
       "name": "Settings"
+    },
+    {
+      "name": "Interactions"
     },
     {
       "name": "Features"

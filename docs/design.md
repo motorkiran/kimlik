@@ -227,11 +227,10 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Developer-hosted sign-in UI through an interaction API.
-2. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
-3. DPoP (RFC 9449), which OpenIddict does not support yet.
-4. A JavaScript/TypeScript SDK and a Helm chart.
-5. OpenID Foundation certification.
+1. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
+2. DPoP (RFC 9449), which OpenIddict does not support yet.
+3. A JavaScript/TypeScript SDK and a Helm chart.
+4. OpenID Foundation certification.
 
 Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)); product settings and social providers changed at runtime (M27, M28, [§6.8](#68-configuration)).
 
@@ -718,6 +717,7 @@ When a session falls short of a requested policy, Kimlik asks for more: a second
 | `/organizations/{id}/members`, `/organizations/{id}/invitations` | Add and remove members, change member roles, invite, resend, revoke |
 | `/sso-connections` | List, create, get, update and delete enterprise SSO connections |
 | `/settings` | Read and change the product settings that can change at runtime |
+| `/interactions/login/{challenge}` | Read, accept and reject login challenges, and check a person's password and second factor for one |
 | `/permissions`, `/roles` | Manage the catalog, assign permissions to roles |
 | `/features`, `/plans`, `/subscriptions` | Manage the feature catalog and plans; subscribe, change plan, cancel |
 | `/entitlements/{subscriberType}/{id}` | Effective features and limits |
@@ -735,6 +735,7 @@ Every operation requires a system permission, for example:
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
 - `kimlik.usage:read` and `kimlik.usage:write`
 - `kimlik.settings:read` and `kimlik.settings:write`
+- `kimlik.interactions:write`
 - `kimlik.webhooks:read`, `kimlik.webhooks:write` and `kimlik.audit:read`
 - `kimlik.api_keys:read` and `kimlik.api_keys:write`
 - `kimlik.api_keys:verify`
@@ -893,6 +894,18 @@ Organizations can have their people sign in through their own identity provider,
 - **Audit.** Creating, changing and deleting connections is audited, and sign-ins record the connection as their provider.
 - **SAML 2.0.** Connections can use SAML instead, for providers such as AD FS or apps set up that way, through the ITfoxtec.Identity.Saml2 library (BSD-3-Clause). A SAML connection holds the provider's entity ID, its sign-on URL and the certificate it signs with, which are what providers show for a new app. Kimlik is one service provider for every connection, so its values are known before a connection exists: `{PublicUrl}/signin/sso/saml` is its entity ID, `…/acs` its assertion consumer service and `…/metadata` its metadata. The request the browser started names the connection. It sends unsigned authentication requests with the HTTP-Redirect binding and takes responses with the HTTP-POST binding. A response must be signed by the certificate, come from the entity ID, be meant for Kimlik's entity ID and assertion consumer service, and answer a request that the same browser started, which a short-lived cookie binds, so responses the provider starts on its own are refused. The subject is the name ID, and the address comes from the `email` or `emailaddress` attribute, or from a name ID in the email format. SAML sign-ins are a first factor only.
 - **Later.** Organizations' own administrators setting up connections after proving their domains through DNS. Signing out at the provider.
+
+### 10.12 Login apps
+
+Developers who want sign-in pages of their own, on their own domain and in their own look, can have Kimlik hand sign-ins to a login app, in the manner of Ory Hydra's login challenges. Kimlik stays the OpenID Connect provider: apps keep signing in through it and get the same tokens.
+
+- **Handing over.** With `Kimlik:Interactions:LoginUrl` set, which an administrator can also set at runtime, an authorization request that needs a sign-in goes to the login app instead of the hosted sign-in page, as `{LoginUrl}?login_challenge={challenge}`. The challenge is a random value that Kimlik keeps for ten minutes, with the request to come back to. A cookie binds it to the browser that was sent, so only that browser can complete it. Consent, organization selection and the account pages stay hosted.
+- **The login app's backend** calls the Management API as a service client with `kimlik.interactions:write`. It reads what the challenge asks for: the client, the scopes, `login_hint`, `acr_values` and `prompt`. Then it signs the person in its own way and ends the challenge:
+  - **Accept** with the user's ID and the methods the person used, from `pwd`, `otp`, `fed`, `email`, `sms` and `pop`. Kimlik refuses an acceptance that falls short of what the request and Kimlik's policies need. A required second factor needs two methods or `pop`, and a phishing-resistant `acr_values` needs `pop`. Kimlik also refuses users who cannot sign in.
+  - **Reject**, which sends the app an `access_denied` error.
+  - Either answer carries a URL on Kimlik to send the browser to. There Kimlik checks the cookie, starts the session with the accepted methods in `amr`, and resumes the authorization request.
+- **Credentials kept by Kimlik.** A login app can check a person's password and their authenticator or recovery code against Kimlik, through endpoints tied to a pending challenge. These count toward Kimlik's lockout as the hosted pages do, and give the same answer for unknown addresses and wrong passwords. Passkeys stay on the hosted pages, since they belong to Kimlik's domain.
+- **Audit.** Sign-ins through a login app record `login_app` as their method next to the accepted ones, and name the service client.
 
 ---
 
@@ -1122,6 +1135,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M26: SAML connections** | SSO connections over SAML 2.0, with service provider metadata, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People sign in through a SAML provider whose signed responses answer their own requests, and forged, unsigned, misdirected or unsolicited responses are refused, in end-to-end tests ✅ (M17 to M26 released as v0.3.0, 2026-10-11) |
 | **M27: Settings at runtime** | Product settings in the database, changed from the admin panel and the API without a restart, with environment variables fixed ([ADR 0002](adr/0002-product-settings-in-the-database.md), [§6.8](#68-configuration)) | An administrator opens registration and requires MFA at runtime, invalid values are refused, and values set in the environment cannot change, in end-to-end tests |
 | **M28: Social providers at runtime** | Google, Microsoft, GitHub and Apple sign-in set up from the admin panel and the API without a restart ([ADR 0002](adr/0002-product-settings-in-the-database.md)) | A provider set up at runtime appears on the sign-in page at once and disappears when removed, in end-to-end tests |
+| **M29: Login apps** | Sign-in pages of developers' own, through login challenges that a login app accepts or rejects through the Management API and the SDK ([§10.12](#1012-login-apps)) | A login app signs a person in, with their Kimlik password and second factor, and the app gets tokens with the accepted methods; challenges cannot be completed by another browser or below the required factors, in end-to-end tests |
 
 ---
 

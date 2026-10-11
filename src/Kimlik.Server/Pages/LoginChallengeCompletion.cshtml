@@ -1,0 +1,8 @@
+@page "/interaction/login/{challenge}"
+@model LoginChallengeCompletionModel
+@{
+    ViewData["Title"] = L["Sign in"];
+}
+
+<h1 id="page-title">@L["Sign in"]</h1>
+<div class="alert alert-error" role="alert">@Model.ErrorMessage</div>

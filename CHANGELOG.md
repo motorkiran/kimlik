@@ -7,6 +7,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 ### Added
 
 - Settings at runtime: branding, registration and password policies, MFA requirements, organization creation and invitations, default plans, CAPTCHA and the social providers can change from the admin panel or `PATCH /api/v1/settings` without a restart (`kimlik.settings:read`, `kimlik.settings:write`). Stored values override the configuration files; values set in the environment stay fixed ([ADR 0002](docs/adr/0002-product-settings-in-the-database.md)).
+- Login apps: with `Kimlik:Interactions:LoginUrl` set, sign-ins go to sign-in pages of your own with a `login_challenge`, which your backend answers through `/api/v1/interactions/login/{challenge}` (`kimlik.interactions:write`): it can check the person's Kimlik password and second factor, then accepts with the methods they used or rejects. Kimlik keeps applying MFA policies and `acr_values`, binds each challenge to the browser it was sent from, and keeps administrators on the hosted pages.
 
 ## [0.3.0] - 2026-10-11
 

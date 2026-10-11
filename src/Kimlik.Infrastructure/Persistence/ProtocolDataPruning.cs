@@ -53,6 +53,9 @@ internal sealed partial class ProtocolDataPruner(
                 await context.UsageCounters.Where(counter => counter.Period < oldestPeriod).ExecuteDeleteAsync(cancellationToken);
                 await context.Set<UsageRecord>().Where(record => record.CreatedAt < now.AddDays(-1)).ExecuteDeleteAsync(cancellationToken);
 
+                // Login challenges are kept a day past their expiry, for looking into a sign-in that went wrong.
+                await context.LoginChallenges.Where(challenge => challenge.ExpiresAt < now.AddDays(-1)).ExecuteDeleteAsync(cancellationToken);
+
                 if (prunedTokens > 0 || prunedAuthorizations > 0)
                 {
                     LogPruned(logger, prunedTokens, prunedAuthorizations);

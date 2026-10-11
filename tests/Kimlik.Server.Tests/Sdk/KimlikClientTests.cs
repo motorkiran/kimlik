@@ -128,6 +128,17 @@ public sealed class KimlikClientTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task UnknownLoginChallenges_AreReported()
+    {
+        await using var services = await CreateServicesAsync();
+        var kimlik = services.GetRequiredService<KimlikClient>();
+
+        var unknown = await Should.ThrowAsync<KimlikApiException>(() => kimlik.Interactions.GetLoginChallengeAsync("not-a-challenge", CancellationToken));
+
+        unknown.Code.ShouldBe("interaction.challenge_not_found");
+    }
+
+    [Fact]
     public async Task InvalidRequest_ReportsTheFields()
     {
         await using var services = await CreateServicesAsync();

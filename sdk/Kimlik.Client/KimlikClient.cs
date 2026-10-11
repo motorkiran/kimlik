@@ -19,6 +19,7 @@ public sealed class KimlikClient
         Clients = new ClientsClient(http);
         Organizations = new OrganizationsClient(http);
         SsoConnections = new SsoConnectionsClient(http);
+        Interactions = new InteractionsClient(http);
         Plans = new PlansClient(http);
         Subscriptions = new SubscriptionsClient(http);
         Usage = new UsageClient(http);
@@ -41,6 +42,8 @@ public sealed class KimlikClient
     public OrganizationsClient Organizations { get; }
 
     public SsoConnectionsClient SsoConnections { get; }
+
+    public InteractionsClient Interactions { get; }
 
     public PlansClient Plans { get; }
 

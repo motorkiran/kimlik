@@ -190,7 +190,8 @@ public sealed class SignInFlow(
     /// Starts the session and records the sign-in. After a second factor (<paramref name="method"/>
     /// <see cref="MultiFactorMethod"/>), <paramref name="firstFactor"/> says how the user signed in first, and
     /// <paramref name="secondFactor"/> is <see cref="PasskeyMethod"/> when a passkey verified the second step, or
-    /// <see cref="FederatedMethod"/> when the provider the user signed in at did.
+    /// <see cref="FederatedMethod"/> when the provider the user signed in at did. <paramref name="loginApp"/> names the login
+    /// app that signed the user in, if one did.
     /// </summary>
     public async Task CompleteAsync(
         User user,
@@ -199,7 +200,8 @@ public sealed class SignInFlow(
         string? provider,
         CancellationToken cancellationToken,
         string? firstFactor = null,
-        string? secondFactor = null)
+        string? secondFactor = null,
+        string? loginApp = null)
     {
         List<Claim> claims = (method, firstFactor) switch
         {
@@ -227,7 +229,7 @@ public sealed class SignInFlow(
 
         await signInManager.SignInWithClaimsAsync(user, persistent, claims);
         await signInManager.Context.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
-        await RecordAsync(user, method, provider, firstFactor, secondFactor, cancellationToken);
+        await RecordAsync(user, method, provider, firstFactor, secondFactor, loginApp, cancellationToken);
     }
 
     /// <summary>
@@ -387,7 +389,7 @@ public sealed class SignInFlow(
 
     /// <summary>Records a sign-in, with the first factor when a second one followed it.</summary>
     private async Task RecordAsync(
-        User user, string method, string? provider, string? firstFactor, string? secondFactor, CancellationToken cancellationToken)
+        User user, string method, string? provider, string? firstFactor, string? secondFactor, string? loginApp, CancellationToken cancellationToken)
     {
         await context.Users
             .Where(candidate => candidate.Id == user.Id)
@@ -407,6 +409,11 @@ public sealed class SignInFlow(
         if (provider is not null)
         {
             data["provider"] = provider;
+        }
+
+        if (loginApp is not null)
+        {
+            data["login_app"] = loginApp;
         }
 
         auditLog.Record(AuditActions.UserSignedIn, AuditSubject.User(user.Id), data, AuditActor.User(user.Id));

@@ -2,6 +2,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.ApiKeys;
 using Kimlik.Domain.Auditing;
+using Kimlik.Domain.Interactions;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
 using Kimlik.Domain.Settings;
@@ -63,6 +64,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     public DbSet<Setting> Settings => Set<Setting>();
+
+    public DbSet<LoginChallenge> LoginChallenges => Set<LoginChallenge>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 

@@ -3,12 +3,14 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Clients;
+using Kimlik.Application.Interactions;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Identity;
+using Kimlik.Server.Interactions;
 using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Antiforgery;
@@ -17,6 +19,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -42,6 +45,8 @@ public sealed class AuthorizeModel(
     IAntiforgery antiforgery,
     IDataProtectionProvider dataProtection,
     BackChannelLogout backChannelLogout,
+    LoginChallenges loginChallenges,
+    IOptionsMonitor<InteractionOptions> interactions,
     TimeProvider timeProvider) : PageModel
 {
     private const string ConsentField = "consent";
@@ -89,6 +94,12 @@ public sealed class AuthorizeModel(
         var request = HttpContext.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
+        // The login app refused the sign-in it was handed.
+        if (LoginApps.RejectionIn(RequestParameters, dataProtection) is { } rejection)
+        {
+            return ForbidWith(Errors.AccessDenied, rejection);
+        }
+
         var session = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
         var user = session.Succeeded ? await userManager.GetUserAsync(session.Principal) : null;
 
@@ -103,6 +114,12 @@ public sealed class AuthorizeModel(
             if (request.HasPromptValue(PromptValues.None))
             {
                 return ForbidWith(Errors.LoginRequired, "The user is not signed in.");
+            }
+
+            // The installation's login app signs the person in, when it has one.
+            if (interactions.CurrentValue.LoginUrl is { } loginUrl)
+            {
+                return await LoginApps.HandOverAsync(HttpContext, request, loginUrl, BuildRetryUri(request), loginChallenges, cancellationToken);
             }
 
             return Challenge(new AuthenticationProperties { RedirectUri = BuildRetryUri(request) }, IdentityConstants.ApplicationScheme);

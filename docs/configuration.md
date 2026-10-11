@@ -15,6 +15,7 @@ Some product settings can also change while Kimlik runs, from **Settings** in th
 - plans: `DefaultUserPlan` and `DefaultOrganizationPlan`
 - CAPTCHA: `Provider`, `SiteKey` and `SecretKey`
 - social providers: the client ID and secret and `TrustEmail` of Google, Microsoft and GitHub, Microsoft's `Tenant`, and Apple's `ClientId`, `TeamId`, `KeyId`, `PrivateKey` and `TrustEmail`
+- login app: `Kimlik:Interactions:LoginUrl`
 
 A value changed at runtime is stored in the database. It overrides `appsettings.json`, but not environment variables or the command line: a setting set there is fixed, and the admin panel shows it as fixed by the environment. Changes are checked as at startup before they are saved. They apply at once on the instance that saves them, and within 15 seconds on the others. Secrets are encrypted with the master key and never shown again. Changing settings takes `kimlik.settings:write` and every other installation-wide system permission, and is audited as `settings.updated`. See [ADR 0002](adr/0002-product-settings-in-the-database.md).
 
@@ -153,6 +154,12 @@ A provider is offered on the sign-in page once its client ID is set. Register `{
 | `Kimlik:SocialLogin:Apple:ClientId` | The Services ID set up for Sign in with Apple. Apple requires HTTPS, also in development. |
 | `Kimlik:SocialLogin:Apple:TeamId`, `…:KeyId`, `…:PrivateKey` | The team ID, and the ID and PEM text of a key with Sign in with Apple enabled; Kimlik signs its client secret with it. |
 | `Kimlik:SocialLogin:{Provider}:TrustEmail` | Whether an address the provider verified counts as verified in Kimlik. On for Google, Apple and GitHub; off for Microsoft, which does not verify every address. |
+
+## Login app
+
+| Setting | Default | Description |
+|---|---|---|
+| `Kimlik:Interactions:LoginUrl` | | A sign-in page of your own. Authorization requests that need a sign-in go there with a `login_challenge` instead of to the hosted sign-in page; see the README. |
 
 ## Webhooks and the outbox
 

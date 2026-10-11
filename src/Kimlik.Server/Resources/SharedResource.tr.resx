@@ -1027,4 +1027,7 @@
   <data name="Your roles: {0}" xml:space="preserve">
     <value>Rolleriniz: {0}</value>
   </data>
+  <data name="This sign-in can no longer be completed. Start again from the application." xml:space="preserve">
+    <value>Bu giriş artık tamamlanamaz. Uygulamadan yeniden başlayın.</value>
+  </data>
 </root>

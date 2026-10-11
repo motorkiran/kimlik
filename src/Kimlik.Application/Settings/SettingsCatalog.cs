@@ -1,6 +1,7 @@
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Branding;
 using Kimlik.Application.Captcha;
+using Kimlik.Application.Interactions;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Application.Plans;
@@ -89,6 +90,7 @@ public static class SettingsCatalog
     private static readonly SettingsSection<PlanOptions> Plans = new(PlanOptions.SectionName);
     private static readonly SettingsSection<CaptchaOptions> Captcha = new(CaptchaOptions.SectionName);
     private static readonly SettingsSection<SocialLoginOptions> Social = new(SocialLoginOptions.SectionName);
+    private static readonly SettingsSection<InteractionOptions> Interactions = new(InteractionOptions.SectionName);
 
     public static readonly IReadOnlyList<SettingDefinition> All =
     [
@@ -129,6 +131,9 @@ public static class SettingsCatalog
         Entry(Social, "Apple:KeyId", SettingType.Text, "The ID of the key that signs Kimlik's client secret for Apple.", options => options.Apple.KeyId, group: "Apple sign-in"),
         Entry(Social, "Apple:PrivateKey", SettingType.Secret, "The PEM text of the .p8 key Apple issued.", options => options.Apple.PrivateKey, group: "Apple sign-in"),
         Entry(Social, "Apple:TrustEmail", SettingType.Boolean, "Addresses Apple verified count as verified.", options => Text(options.Apple.TrustEmail), group: "Apple sign-in"),
+
+        Entry(Interactions, "LoginUrl", SettingType.Url, "A login app of your own that signs people in instead of Kimlik's pages, with login challenges.",
+            options => options.LoginUrl?.ToString(), group: "Login app"),
     ];
 
     public static SettingDefinition? Find(string key) =>
