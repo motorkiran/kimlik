@@ -1874,150 +1874,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/me/organizations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my organizations
-         * @description The organizations the user belongs to, with the user's roles and permissions in each.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        get: operations["ListMyOrganizations"];
-        put?: never;
-        /**
-         * Create an organization
-         * @description The user becomes its first member, with the creator roles of the installation.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        post: operations["CreateMyOrganization"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete an organization
-         * @description Requires `kimlik.org.settings:write` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        delete: operations["DeleteMyOrganization"];
-        options?: never;
-        head?: never;
-        /**
-         * Rename an organization or change its slug
-         * @description Requires `kimlik.org.settings:write` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        patch: operations["UpdateMyOrganization"];
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/membership": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Leave an organization
-         * @description Someone else must be able to manage the members afterwards, unless nobody else is left.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        delete: operations["LeaveOrganization"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List the members of an organization
-         * @description Requires `kimlik.org.members:read` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        get: operations["ListMyOrganizationMembers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/members/{userId}/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Replace a member's roles
-         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission involved.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        put: operations["SetMyOrganizationMemberRoles"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/members/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Remove a member
-         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission the member holds.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        delete: operations["RemoveMyOrganizationMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/me/organizations/{id}/api-keys": {
         parameters: {
             query?: never;
@@ -2063,78 +1919,6 @@ export interface paths {
          *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
          */
         delete: operations["RevokeMyOrganizationApiKey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/invitations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List the invitations of an organization
-         * @description Requires `kimlik.org.members:read` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        get: operations["ListMyOrganizationInvitations"];
-        put?: never;
-        /**
-         * Invite someone to an organization
-         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission the roles carry.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        post: operations["CreateMyOrganizationInvitation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/invitations/{invitationId}/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Send an invitation again
-         * @description Requires `kimlik.org.members:write` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        post: operations["ResendMyOrganizationInvitation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/organizations/{id}/invitations/{invitationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Revoke an invitation
-         * @description Requires `kimlik.org.members:write` in the organization.
-         *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
-         */
-        delete: operations["RevokeMyOrganizationInvitation"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2248,6 +2032,244 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my organizations
+         * @description The organizations the user belongs to, with the user's roles and permissions in each.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        get: operations["ListMyOrganizations"];
+        put?: never;
+        /**
+         * Create an organization
+         * @description The user becomes its first member, with the creator roles of the installation.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        post: operations["CreateMyOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an organization
+         * @description Requires `kimlik.org.settings:write` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        delete: operations["DeleteMyOrganization"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename an organization or change its slug
+         * @description Requires `kimlik.org.settings:write` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        patch: operations["UpdateMyOrganization"];
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Leave an organization
+         * @description Someone else must be able to manage the members afterwards, unless nobody else is left.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        delete: operations["LeaveOrganization"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the members of an organization
+         * @description Requires `kimlik.org.members:read` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        get: operations["ListMyOrganizationMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the roles members of an organization can hold
+         * @description Requires `kimlik.org.members:read` in the organization. Giving a role takes every organization permission it carries.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        get: operations["ListMyOrganizationRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/members/{userId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a member's roles
+         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission involved.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        put: operations["SetMyOrganizationMemberRoles"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a member
+         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission the member holds.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        delete: operations["RemoveMyOrganizationMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the invitations of an organization
+         * @description Requires `kimlik.org.members:read` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        get: operations["ListMyOrganizationInvitations"];
+        put?: never;
+        /**
+         * Invite someone to an organization
+         * @description Requires `kimlik.org.members:write` in the organization, and every organization permission the roles carry.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        post: operations["CreateMyOrganizationInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an invitation again
+         * @description Requires `kimlik.org.members:write` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        post: operations["ResendMyOrganizationInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/organizations/{id}/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke an invitation
+         * @description Requires `kimlik.org.members:write` in the organization.
+         *
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
+         */
+        delete: operations["RevokeMyOrganizationInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/invitations": {
         parameters: {
             query?: never;
@@ -2259,7 +2281,7 @@ export interface paths {
          * List invitations to me
          * @description Pending invitations to the user's verified email address.
          *
-         *     Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
+         *     Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
          */
         get: operations["ListMyInvitations"];
         put?: never;
@@ -2281,7 +2303,7 @@ export interface paths {
         put?: never;
         /**
          * Accept an invitation
-         * @description Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
+         * @description Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
          */
         post: operations["AcceptMyInvitation"];
         delete?: never;
@@ -2301,7 +2323,7 @@ export interface paths {
         put?: never;
         /**
          * Decline an invitation
-         * @description Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.
+         * @description Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.
          */
         post: operations["DeclineMyInvitation"];
         delete?: never;
@@ -2811,6 +2833,13 @@ export interface components {
             joinedAt: string;
             requireMfa: boolean;
             publicMetadata: components["schemas"]["JsonObject"];
+        };
+        /** @description A role that members of an organization can hold, with the permissions it gives. */
+        MyOrganizationRoleResponse: {
+            key: string;
+            name: string;
+            description: null | string;
+            permissions: string[];
         };
         /**
          * @description A group of users, such as a company, workspace or team. Clients may name it by ID or slug. Metadata is what the
@@ -9495,6 +9524,403 @@ export interface operations {
             };
         };
     };
+    ListMyOrganizationApiKeys: {
+        parameters: {
+            query?: {
+                /** @description The `nextCursor` of the previous page. */
+                cursor?: string;
+                /** @description Page size, 50 by default and at most 200. */
+                limit?: number | string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOfApiKeyResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateMyOrganizationApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedApiKeyResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeMyOrganizationApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatusResponse"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetUpMyAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorSetupResponse"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmMyAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegenerateMyRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DisableMyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListMyOrganizations: {
         parameters: {
             query?: never;
@@ -9788,6 +10214,51 @@ export interface operations {
             };
         };
     };
+    ListMyOrganizationRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyOrganizationRoleResponse"][];
+                };
+            };
+            /** @description The access token is missing, invalid or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     SetMyOrganizationMemberRoles: {
         parameters: {
             query?: never;
@@ -9854,178 +10325,6 @@ export interface operations {
             path: {
                 id: string;
                 userId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    ListMyOrganizationApiKeys: {
-        parameters: {
-            query?: {
-                /** @description The `nextCursor` of the previous page. */
-                cursor?: string;
-                /** @description Page size, 50 by default and at most 200. */
-                limit?: number | string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageOfApiKeyResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    CreateMyOrganizationApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateApiKeyRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreatedApiKeyResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    RevokeMyOrganizationApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                keyId: string;
             };
             cookie?: never;
         };
@@ -10267,231 +10566,6 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
-            };
-        };
-    };
-    GetMyMfa: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MfaStatusResponse"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    SetUpMyAuthenticator: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthenticatorSetupResponse"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    ConfirmMyAuthenticator: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecoveryCodesResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    RegenerateMyRecoveryCodes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecoveryCodesResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DisableMyMfa: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthenticatorCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                };
-            };
-            /** @description The access token is missing, invalid or revoked. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The access token was issued to a service client, or the user's roles do not allow the operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

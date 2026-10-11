@@ -47,9 +47,11 @@ internal sealed class PermissionOperationTransformer : IOpenApiOperationTransfor
             requirement = $"Requires the {permissions} permission{(required.Permissions.Count > 1 ? "s" : string.Empty)}.";
             forbidden = $"The access token does not carry {permissions}.";
         }
-        else if (metadata.OfType<RequiredSignedInUser>().Any())
+        else if (metadata.OfType<RequiredSignedInUser>().LastOrDefault() is { } signedIn)
         {
-            requirement = "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.";
+            // Each audience is the scope of the same name.
+            var scopes = string.Join(" or ", signedIn.Audiences.Select(audience => $"`{audience}`"));
+            requirement = $"Acts for the signed-in user: requires an access token for the {scopes} scope issued to a user.";
             forbidden = "The access token was issued to a service client, or the user's roles do not allow the operation.";
         }
         else

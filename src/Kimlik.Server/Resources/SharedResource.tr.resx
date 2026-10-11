@@ -193,6 +193,12 @@
   <data name="Stay signed in to it" xml:space="preserve">
     <value>Oturumunuzu açık tutmak</value>
   </data>
+  <data name="Manage this Kimlik installation" xml:space="preserve">
+    <value>Bu Kimlik kurulumunu yönetmek</value>
+  </data>
+  <data name="Manage your organizations" xml:space="preserve">
+    <value>Organizasyonlarınızı yönetmek</value>
+  </data>
   <data name="The application sent an invalid sign-in request. Return to the application and try again." xml:space="preserve">
     <value>Uygulama geçersiz bir giriş isteği gönderdi. Uygulamaya dönüp tekrar deneyin.</value>
   </data>

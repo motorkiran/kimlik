@@ -4,6 +4,14 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+
+- The `kimlik.organizations` scope: its tokens reach only the Account API's organization and invitation endpoints, with an audience of their own and no system permissions, so any app that signs users in can be allowed it. Those endpoints answer cross-origin calls from the apps allowed the scope. `GET /api/v1/me/organizations/{id}/roles` lists the roles members can hold.
+
+### Changed
+
+- Scopes and audiences that start with `kimlik.` are reserved for Kimlik.
+
 ## [0.5.0] - 2026-10-11
 
 A JavaScript SDK for Node.js backends, and the fixes of a security review of the features since 0.2.0.

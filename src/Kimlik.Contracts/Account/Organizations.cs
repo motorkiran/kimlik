@@ -19,6 +19,9 @@ public sealed record MyOrganizationResponse(
     bool RequireMfa,
     JsonObject PublicMetadata);
 
+/// <summary>A role that members of an organization can hold, with the permissions it gives.</summary>
+public sealed record MyOrganizationRoleResponse(string Key, string Name, string? Description, IReadOnlyList<string> Permissions);
+
 /// <summary>A pending invitation to the signed-in user's verified email address.</summary>
 public sealed record MyInvitationResponse(Guid Id, Guid OrganizationId, string OrganizationName, IReadOnlyList<string> Roles, DateTimeOffset ExpiresAt);
 

@@ -7239,493 +7239,6 @@
         ]
       }
     },
-    "/api/v1/me/organizations": {
-      "get": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "List my organizations",
-        "description": "The organizations the user belongs to, with the user's roles and permissions in each.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "ListMyOrganizations",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MyOrganizationResponse"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Create an organization",
-        "description": "The user becomes its first member, with the creator roles of the installation.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "CreateMyOrganization",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMyOrganizationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MyOrganizationResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}": {
-      "patch": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Rename an organization or change its slug",
-        "description": "Requires `kimlik.org.settings:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "UpdateMyOrganization",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMyOrganizationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MyOrganizationResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Delete an organization",
-        "description": "Requires `kimlik.org.settings:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "DeleteMyOrganization",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/membership": {
-      "delete": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Leave an organization",
-        "description": "Someone else must be able to manage the members afterwards, unless nobody else is left.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "LeaveOrganization",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/members": {
-      "get": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "List the members of an organization",
-        "description": "Requires `kimlik.org.members:read` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "ListMyOrganizationMembers",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "The `nextCursor` of the previous page.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Page size, 50 by default and at most 200.",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageOfMemberResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/members/{userId}/roles": {
-      "put": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Replace a member's roles",
-        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission involved.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "SetMyOrganizationMemberRoles",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetRolesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/members/{userId}": {
-      "delete": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Remove a member",
-        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission the member holds.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "RemoveMyOrganizationMember",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
     "/api/v1/me/organizations/{id}/api-keys": {
       "get": {
         "tags": [
@@ -7920,282 +7433,6 @@
           },
           {
             "name": "keyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/invitations": {
-      "get": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "List the invitations of an organization",
-        "description": "Requires `kimlik.org.members:read` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "ListMyOrganizationInvitations",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "The `nextCursor` of the previous page.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Page size, 50 by default and at most 200.",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageOfInvitationResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Invite someone to an organization",
-        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission the roles carry.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "CreateMyOrganizationInvitation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateInvitationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvitationResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/invitations/{invitationId}/resend": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Send an invitation again",
-        "description": "Requires `kimlik.org.members:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "ResendMyOrganizationInvitation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "invitationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvitationResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The access token is missing, invalid or revoked."
-          },
-          "403": {
-            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
-          }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
-      }
-    },
-    "/api/v1/me/organizations/{id}/invitations/{invitationId}": {
-      "delete": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Revoke an invitation",
-        "description": "Requires `kimlik.org.members:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
-        "operationId": "RevokeMyOrganizationInvitation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "invitationId",
             "in": "path",
             "required": true,
             "schema": {
@@ -8470,13 +7707,833 @@
         ]
       }
     },
+    "/api/v1/me/organizations": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List my organizations",
+        "description": "The organizations the user belongs to, with the user's roles and permissions in each.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "ListMyOrganizations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyOrganizationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Create an organization",
+        "description": "The user becomes its first member, with the creator roles of the installation.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "CreateMyOrganization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMyOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyOrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}": {
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Rename an organization or change its slug",
+        "description": "Requires `kimlik.org.settings:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "UpdateMyOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMyOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyOrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Delete an organization",
+        "description": "Requires `kimlik.org.settings:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "DeleteMyOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/membership": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Leave an organization",
+        "description": "Someone else must be able to manage the members afterwards, unless nobody else is left.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "LeaveOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/members": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List the members of an organization",
+        "description": "Requires `kimlik.org.members:read` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "ListMyOrganizationMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/roles": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List the roles members of an organization can hold",
+        "description": "Requires `kimlik.org.members:read` in the organization. Giving a role takes every organization permission it carries.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "ListMyOrganizationRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyOrganizationRoleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/members/{userId}/roles": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Replace a member's roles",
+        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission involved.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "SetMyOrganizationMemberRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRolesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/members/{userId}": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Remove a member",
+        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission the member holds.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "RemoveMyOrganizationMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/invitations": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List the invitations of an organization",
+        "description": "Requires `kimlik.org.members:read` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "ListMyOrganizationInvitations",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 50 by default and at most 200.",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfInvitationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Invite someone to an organization",
+        "description": "Requires `kimlik.org.members:write` in the organization, and every organization permission the roles carry.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "CreateMyOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/invitations/{invitationId}/resend": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Send an invitation again",
+        "description": "Requires `kimlik.org.members:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "ResendMyOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/me/organizations/{id}/invitations/{invitationId}": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Revoke an invitation",
+        "description": "Requires `kimlik.org.members:write` in the organization.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
+        "operationId": "RevokeMyOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token was issued to a service client, or the user's roles do not allow the operation."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/me/invitations": {
       "get": {
         "tags": [
           "Account"
         ],
         "summary": "List invitations to me",
-        "description": "Pending invitations to the user's verified email address.\n\nActs for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "description": "Pending invitations to the user's verified email address.\n\nActs for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
         "operationId": "ListMyInvitations",
         "responses": {
           "200": {
@@ -8512,7 +8569,7 @@
           "Account"
         ],
         "summary": "Accept an invitation",
-        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
         "operationId": "AcceptMyInvitation",
         "parameters": [
           {
@@ -8559,7 +8616,7 @@
           "Account"
         ],
         "summary": "Decline an invitation",
-        "description": "Acts for the signed-in user: requires an access token for the `kimlik` scope issued to a user.",
+        "description": "Acts for the signed-in user: requires an access token for the `kimlik` or `kimlik.organizations` scope issued to a user.",
         "operationId": "DeclineMyInvitation",
         "parameters": [
           {
@@ -10219,6 +10276,36 @@
           }
         },
         "description": "An organization the signed-in user belongs to, with their roles and permissions in it, and the public metadata\nthat the application keeps about it."
+      },
+      "MyOrganizationRoleResponse": {
+        "required": [
+          "key",
+          "name",
+          "description",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A role that members of an organization can hold, with the permissions it gives."
       },
       "OrganizationResponse": {
         "required": [

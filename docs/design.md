@@ -227,10 +227,9 @@ Decisions agreed during the initial brainstorming on 2026-10-07:
 
 The backlog, roughly in priority order:
 
-1. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
-2. DPoP (RFC 9449), which OpenIddict does not support yet.
-3. A Helm chart.
-4. OpenID Foundation certification.
+1. DPoP (RFC 9449), which OpenIddict does not support yet.
+2. A Helm chart.
+3. OpenID Foundation certification.
 
 Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)); product settings and social providers changed at runtime (M27, M28, [§6.8](#68-configuration)); login apps (M29, [§10.12](#1012-login-apps)); the JavaScript SDK (M30, [§12.6](#126-javascript-and-typescript-kimliknode)).
 
@@ -1028,6 +1027,24 @@ Node.js backends get the same integration as ASP.NET Core APIs, from one package
 - **Webhooks.** `verifyWebhook({ headers, body, secret })` checks a Standard Webhooks signature and timestamp, as `KimlikWebhook` does, and returns the event or `null`. Both throw on a secret shorter than 16 bytes, such as an empty one from a missing setting, which would let anyone sign.
 - **Tests.** Vitest tests check token validation against keys made in the test, the API key and entitlement caches, the token renewal and webhook signatures. CI builds, type-checks and tests the package on every change.
 
+### 12.7 Organization components (`@kimlik/elements`)
+
+Apps that want organization management inside their own pages, instead of linking to `/account/organizations/{id}`, put Kimlik's web components there. They are custom elements, so they work in any framework or none, and they call the Account API from the browser with the user's access token.
+
+- **The `kimlik.organizations` scope.** A token with it can reach the Account API's organization endpoints (`/api/v1/me/organizations…`) and nothing else. Within them, the user's organization roles decide what it may do, as on the hosted pages; Kimlik reads those roles at every call. The scope has an audience of its own, also named `kimlik.organizations`, which Kimlik's API accepts on those endpoints only. Its tokens carry no system permissions, since those travel only to the `kimlik` audience. So any app that signs users in can be allowed the scope without the full access that `kimlik` takes to set up. The consent page names it as "Manage your organizations". The scope and its audience are reserved, as are all names that start with `kimlik.`.
+- **The `kimlik` audience** stays required for the Management API and for the rest of the Account API, so a token for the organization endpoints cannot change a password, delete an account or call the Management API.
+- **CORS.** The organization endpoints answer cross-origin requests from the origins of the redirect URIs of clients allowed the scope. They answer without credentials, since calls carry a bearer token rather than cookies. Other origins get no CORS headers.
+- **Roles.** `GET /api/v1/me/organizations/{id}/roles` lists the roles members of the organization can hold, for members with `kimlik.org.members:read`, so that the components can offer them.
+- **Components:**
+  - `<kimlik-organizations>` lists the user's organizations and the invitations to them. Users accept or decline invitations there, and create organizations when the installation allows it. Choosing an organization fires `kimlik-organization-select` with its ID.
+  - `<kimlik-organization-members organization="…">` shows members and pending invitations. With the matching permissions, users invite people, send invitations again, revoke them, change members' roles and remove members, within the roles they hold.
+  - `<kimlik-organization-settings organization="…">` renames the organization, changes its short name, logo and MFA requirement, and deletes it after the short name is typed. Members leave it there too.
+  - Each component shows only what the user's permissions in the organization allow, and the API checks every change again.
+- **Setting up.** `configureKimlik({ authority, accessToken })` gives the components Kimlik's address and a function that returns a current access token with the scope, such as one from the app's OpenID Connect library.
+- **Look and language.** Components render in a shadow root, take the page's font and colors, and follow CSS custom properties such as `--kimlik-color-primary` and `--kimlik-radius`. Their main parts are styleable through `::part()`. Text is in English or Turkish, from the closest `lang` attribute. They use native buttons, forms and dialogs, label every field, and announce results to screen readers.
+- **Form.** An ES module package for browsers, written in TypeScript without a framework or runtime dependencies, and published with its types. Releases carry it as a tarball until it is on npm, like `@kimlik/node`. Its npm name is settled before it is first published.
+- **Tests.** Server tests cover the scope, its audience, the refused endpoints, CORS and the roles endpoint. Vitest tests with happy-dom render each component against a fake Account API and check what it shows and sends for different permissions.
+
 ### 12.5 Documentation and samples
 
 - Documentation: a getting-started guide, concept guides, an API reference generated from OpenAPI, and SDK docs.
@@ -1150,6 +1167,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M28: Social providers at runtime** | Google, Microsoft, GitHub and Apple sign-in set up from the admin panel and the API without a restart ([ADR 0002](adr/0002-product-settings-in-the-database.md)) | A provider set up at runtime appears on the sign-in page at once and disappears when removed, in end-to-end tests ✅ |
 | **M29: Login apps** | Sign-in pages of developers' own, through login challenges that a login app accepts or rejects through the Management API and the SDK ([§10.12](#1012-login-apps)) | A login app signs a person in, with their Kimlik password and second factor, and the app gets tokens with the accepted methods; challenges cannot be completed by another browser or below the required factors, in end-to-end tests ✅ (M27 to M29 released as v0.4.0, 2026-10-11) |
 | **M30: JavaScript SDK** | `@kimlik/node` for Node.js backends: token and API key validation, permission middleware, entitlements, a typed Management API client and webhook verification ([§12.6](#126-javascript-and-typescript-kimliknode)) | A Node.js API validates Kimlik tokens and permissions and verifies webhooks, in tests that run in CI ✅ (released as v0.5.0, 2026-10-11) |
+| **M31: Organization components** | Web components that put organization management inside apps' own pages, calling the Account API with tokens for the `kimlik.organizations` scope ([§12.7](#127-organization-components-kimlikelements)) | An app's page lists the user's organizations, invites a member and changes their roles through the components, which show only what the user may do; tokens for the scope reach no other endpoint, in server and component tests |
 
 ---
 

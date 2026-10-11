@@ -174,7 +174,7 @@ internal static class TokenEndpoint
         }
 
         var scopes = request.GetScopes();
-        return scopes.IsEmpty || scopes.Any(scope => scope is Scopes.OpenId or Scopes.Profile or Scopes.Email or Scopes.Phone or Scopes.OfflineAccess or KimlikScopes.Api)
+        return scopes.IsEmpty || scopes.Any(scope => scope is Scopes.OpenId or Scopes.Profile or Scopes.Email or Scopes.Phone or Scopes.OfflineAccess || KimlikScopes.IsReserved(scope))
             ? OidcResults.Forbid(Errors.InvalidScope, "Ask for the scopes of the APIs to call, other than Kimlik's own.")
             : null;
     }

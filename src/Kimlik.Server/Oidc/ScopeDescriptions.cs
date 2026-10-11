@@ -1,3 +1,4 @@
+using Kimlik.Contracts;
 using Microsoft.Extensions.Localization;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -20,6 +21,8 @@ public sealed class ScopeDescriptions(IOpenIddictScopeManager scopes, IStringLoc
                 Scopes.Email => localizer["See your email address"].Value,
                 Scopes.Phone => localizer["See your phone number"].Value,
                 Scopes.OfflineAccess => localizer["Stay signed in to it"].Value,
+                KimlikScopes.Api => localizer["Manage this Kimlik installation"].Value,
+                KimlikScopes.Organizations => localizer["Manage your organizations"].Value,
                 _ => await scopes.FindByNameAsync(scope, cancellationToken) is { } apiScope
                     ? await scopes.GetLocalizedDisplayNameAsync(apiScope, cancellationToken) ?? scope
                     : scope,

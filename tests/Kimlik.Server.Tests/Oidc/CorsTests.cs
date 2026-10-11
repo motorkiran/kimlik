@@ -1,4 +1,5 @@
 using System.Net;
+using Kimlik.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -45,18 +46,43 @@ public sealed class CorsTests(KimlikServerFixture server)
         AllowedOrigin(response).ShouldBeNull();
     }
 
-    private Task<string> CreateSpaAsync() =>
+    [Fact]
+    public async Task OrganizationEndpoints_AreOpen_ToAppsAllowedTheirScope()
+    {
+        var allowed = await CreateSpaAsync(KimlikScopes.Organizations);
+        var other = await CreateSpaAsync();
+        using var http = server.CreateClient();
+
+        using var preflight = await SendAsync(
+            http, HttpMethod.Options, $"/api/v1/me/organizations/{Guid.NewGuid()}/members/{Guid.NewGuid()}", allowed,
+            ("Access-Control-Request-Method", "DELETE"), ("Access-Control-Request-Headers", "authorization"));
+        using var otherApp = await SendAsync(http, HttpMethod.Options, "/api/v1/me/organizations", other, ("Access-Control-Request-Method", "GET"));
+        using var account = await SendAsync(http, HttpMethod.Options, "/api/v1/me", allowed, ("Access-Control-Request-Method", "GET"));
+
+        AllowedOrigin(preflight).ShouldBe(allowed);
+        preflight.Headers.GetValues("Access-Control-Allow-Methods").ShouldContain(methods => methods.Contains("DELETE", StringComparison.Ordinal));
+        preflight.Headers.Contains("Access-Control-Allow-Credentials").ShouldBeFalse("calls carry bearer tokens, not cookies");
+        AllowedOrigin(otherApp).ShouldBeNull();
+        AllowedOrigin(account).ShouldBeNull();
+    }
+
+    private Task<string> CreateSpaAsync(string? scope = null) =>
         server.WithServicesAsync(async services =>
         {
             var origin = $"https://{Guid.NewGuid():N}.example.com";
-            await services.GetRequiredService<IOpenIddictApplicationManager>().CreateAsync(new OpenIddictApplicationDescriptor
+            var descriptor = new OpenIddictApplicationDescriptor
             {
                 ClientId = $"spa-{Guid.NewGuid():N}",
                 ClientType = ClientTypes.Public,
                 RedirectUris = { new Uri($"{origin}/callback") },
                 Permissions = { Permissions.Endpoints.Authorization, Permissions.Endpoints.Token, Permissions.GrantTypes.AuthorizationCode, Permissions.ResponseTypes.Code },
-            });
+            };
+            if (scope is not null)
+            {
+                descriptor.Permissions.Add(Permissions.Prefixes.Scope + scope);
+            }
 
+            await services.GetRequiredService<IOpenIddictApplicationManager>().CreateAsync(descriptor);
             return origin;
         });
 

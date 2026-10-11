@@ -18,6 +18,6 @@ internal static class ApiResourceMapping
             audiences.FirstOrDefault() ?? name,
             await scopes.GetDisplayNameAsync(scope, cancellationToken),
             await scopes.GetDescriptionAsync(scope, cancellationToken),
-            IsSystem: name == KimlikScopes.Api);
+            IsSystem: KimlikScopes.IsReserved(name));
     }
 }

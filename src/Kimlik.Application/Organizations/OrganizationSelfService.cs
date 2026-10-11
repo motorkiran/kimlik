@@ -1,11 +1,13 @@
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Access;
+using Kimlik.Application.Roles;
 using Kimlik.Contracts.Account;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
+using RoleScope = Kimlik.Contracts.Management.RoleScope;
 
 namespace Kimlik.Application.Organizations;
 
@@ -25,7 +27,8 @@ public sealed class OrganizationSelfService(
     ListInvitationsHandler listInvitations,
     CreateInvitationHandler createInvitation,
     ResendInvitationHandler resendInvitation,
-    RevokeInvitationHandler revokeInvitation)
+    RevokeInvitationHandler revokeInvitation,
+    ListRolesHandler listRoles)
 {
     public async Task<Result<MyOrganizationResponse>> UpdateAsync(Guid callerId, Guid organizationId, UpdateMyOrganizationRequest request, CancellationToken cancellationToken)
     {
@@ -55,6 +58,21 @@ public sealed class OrganizationSelfService(
     {
         var caller = await guard.AuthorizeAsync(callerId, query.OrganizationId, SystemPermissions.OrganizationMembersRead, cancellationToken);
         return caller.IsFailure ? caller.Error : await listMembers.HandleAsync(query, cancellationToken);
+    }
+
+    /// <summary>The roles members of the organization can hold, at most 200, which members who see the others can give.</summary>
+    public async Task<Result<IReadOnlyList<MyOrganizationRoleResponse>>> ListRolesAsync(Guid callerId, Guid organizationId, CancellationToken cancellationToken)
+    {
+        var caller = await guard.AuthorizeAsync(callerId, organizationId, SystemPermissions.OrganizationMembersRead, cancellationToken);
+        if (caller.IsFailure)
+        {
+            return caller.Error;
+        }
+
+        var roles = await listRoles.HandleAsync(new ListRolesQuery(Search: null, RoleScope.Organization, Cursor: null, Limit: 200), cancellationToken);
+        return roles.IsFailure
+            ? roles.Error
+            : roles.Value.Items.Select(role => new MyOrganizationRoleResponse(role.Key, role.Name, role.Description, role.Permissions)).ToList();
     }
 
     public async Task<Result<MemberResponse>> GetMemberAsync(Guid callerId, Guid organizationId, Guid memberId, CancellationToken cancellationToken)

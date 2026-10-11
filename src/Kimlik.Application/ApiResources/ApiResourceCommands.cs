@@ -93,7 +93,7 @@ public sealed class UpdateApiResourceHandler(IKimlikDbContext context, IOpenIddi
             return await scopes.ToResponseAsync(scope, cancellationToken);
         }
 
-        if (await scopes.GetNameAsync(scope, cancellationToken) == KimlikScopes.Api)
+        if (KimlikScopes.IsReserved((await scopes.GetNameAsync(scope, cancellationToken))!))
         {
             return ApiResourceErrors.SystemResourceReadOnly;
         }
@@ -139,7 +139,7 @@ public sealed class DeleteApiResourceHandler(
         }
 
         var name = (await scopes.GetNameAsync(scope, cancellationToken))!;
-        if (name == KimlikScopes.Api)
+        if (KimlikScopes.IsReserved(name))
         {
             return ApiResourceErrors.SystemResourceReadOnly;
         }

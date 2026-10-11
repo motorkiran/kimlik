@@ -56,4 +56,17 @@ public static class KimlikScopes
     /// carry system permissions (<c>kimlik.*</c>).
     /// </summary>
     public const string Api = "kimlik";
+
+    /// <summary>
+    /// Access to the user's organizations through the Account API, and to nothing else, as Kimlik's organization
+    /// components need. It is also the audience of those tokens, which carry no system permissions.
+    /// </summary>
+    public const string Organizations = "kimlik.organizations";
+
+    /// <summary>
+    /// Whether the name is Kimlik's: <c>kimlik</c>, or one under <c>kimlik.</c> such as <see cref="Organizations"/>. Apps'
+    /// API resources cannot take such a scope or audience.
+    /// </summary>
+    public static bool IsReserved(string name) =>
+        string.Equals(name, Api, StringComparison.OrdinalIgnoreCase) || name.StartsWith(Api + ".", StringComparison.OrdinalIgnoreCase);
 }

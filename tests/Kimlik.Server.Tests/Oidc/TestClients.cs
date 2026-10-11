@@ -69,6 +69,7 @@ internal static class TestClients
                     Permissions.Prefixes.Scope + Scopes.OfflineAccess,
                     Permissions.Prefixes.Scope + ApiScope,
                     Permissions.Prefixes.Scope + KimlikScopes.Api,
+                    Permissions.Prefixes.Scope + KimlikScopes.Organizations,
                 },
                 Requirements = { Requirements.Features.ProofKeyForCodeExchange },
             });

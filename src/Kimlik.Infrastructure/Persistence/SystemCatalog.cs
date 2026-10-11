@@ -46,6 +46,18 @@ internal sealed class SystemCatalog(KimlikDbContext context, IOpenIddictScopeMan
                 new OpenIddictScopeDescriptor { Name = KimlikScopes.Api, DisplayName = "Manage this Kimlik installation", Resources = { KimlikScopes.Api } },
                 cancellationToken);
         }
+
+        if (await scopes.FindByNameAsync(KimlikScopes.Organizations, cancellationToken) is null)
+        {
+            await scopes.CreateAsync(
+                new OpenIddictScopeDescriptor
+                {
+                    Name = KimlikScopes.Organizations,
+                    DisplayName = "Manage your organizations",
+                    Resources = { KimlikScopes.Organizations },
+                },
+                cancellationToken);
+        }
     }
 
     private async Task<Role> SystemRoleAsync(string key, string name, string description, RoleScope scope, DateTimeOffset now, CancellationToken cancellationToken) =>

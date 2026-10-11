@@ -19,7 +19,8 @@ internal static class ManagementApi
         {
             // The issuer and keys come from the server in this process; see ConfigureTokenKeyCredentials.
             options.UseLocalServer();
-            options.AddAudiences(KimlikScopes.Api);
+            // Endpoints say which of them they take: see PermissionEndpointExtensions.
+            options.AddAudiences(KimlikScopes.Api, KimlikScopes.Organizations);
 
             // Revoked tokens and authorizations (sign-out, suspension, deletion) stop working at once,
             // instead of when the access token expires. Registered after UseLocalServer, which resets the former.

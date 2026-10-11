@@ -1,4 +1,6 @@
+using Kimlik.Contracts;
 using Microsoft.AspNetCore.Authorization;
+using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
 namespace Kimlik.Server.Api;
@@ -7,7 +9,7 @@ namespace Kimlik.Server.Api;
 internal sealed record RequiredPermission(IReadOnlyList<string> Permissions);
 
 /// <summary>Marks an endpoint of the Account API, which acts for the signed-in user; also read by the OpenAPI document.</summary>
-internal sealed record RequiredSignedInUser;
+internal sealed record RequiredSignedInUser(IReadOnlyList<string> Audiences);
 
 internal sealed record PermissionRequirement(string Permission) : IAuthorizationRequirement;
 
@@ -27,18 +29,19 @@ internal sealed class PermissionAuthorizationHandler : AuthorizationHandler<Perm
 internal static class PermissionEndpointExtensions
 {
     /// <summary>
-    /// Requires an access token for Kimlik's API issued to a user, rather than to a service client acting on its own
-    /// behalf.
+    /// Requires an access token issued to a user, rather than to a service client acting on its own behalf, for one of
+    /// <paramref name="audiences"/>: Kimlik's API (<c>kimlik</c>) when none are given.
     /// </summary>
-    public static TBuilder RequireSignedInUser<TBuilder>(this TBuilder builder)
+    public static TBuilder RequireSignedInUser<TBuilder>(this TBuilder builder, params string[] audiences)
         where TBuilder : IEndpointConventionBuilder
     {
+        string[] accepted = audiences.Length > 0 ? audiences : [KimlikScopes.Api];
         var policy = new AuthorizationPolicyBuilder(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
-            .RequireAssertion(context => AccountCaller.UserId(context.User) is not null)
+            .RequireAssertion(context => AccountCaller.UserId(context.User) is not null && Array.Exists(accepted, context.User.HasAudience))
             .Build();
 
-        return builder.RequireAuthorization(policy).WithMetadata(new RequiredSignedInUser());
+        return builder.RequireAuthorization(policy).WithMetadata(new RequiredSignedInUser(accepted));
     }
 
     /// <summary>Requires an access token for Kimlik's API that carries every one of <paramref name="permissions"/>.</summary>
@@ -47,6 +50,7 @@ internal static class PermissionEndpointExtensions
     {
         var policy = new AuthorizationPolicyBuilder(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
+            .RequireAssertion(context => context.User.HasAudience(KimlikScopes.Api))
             .AddRequirements([.. permissions.Select(permission => new PermissionRequirement(permission))])
             .Build();
 

@@ -58,7 +58,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
             .ToList();
 
         var apiResources = new List<ProvisionedApiResource>();
-        foreach (var scope in await context.Scopes.AsNoTracking().Where(scope => scope.Name != KimlikScopes.Api).OrderBy(scope => scope.Name).ToListAsync(cancellationToken))
+        foreach (var scope in (await context.Scopes.AsNoTracking().OrderBy(scope => scope.Name).ToListAsync(cancellationToken)).Where(scope => !KimlikScopes.IsReserved(scope.Name!)))
         {
             var resource = await scopes.ToResponseAsync(scope, cancellationToken);
             apiResources.Add(new ProvisionedApiResource
