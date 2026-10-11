@@ -1,0 +1,43 @@
+{
+  "name": "@kimlik/elements",
+  "version": "0.5.0",
+  "description": "Web components that put organization management from Kimlik, an open-source, self-hosted identity and access management server, inside your own pages.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/motorkiran/kimlik.git",
+    "directory": "sdk/elements"
+  },
+  "keywords": [
+    "kimlik",
+    "web-components",
+    "custom-elements",
+    "organizations",
+    "oidc"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "./dist/index.js"
+  ],
+  "scripts": {
+    "generate": "openapi-typescript ../../tests/Kimlik.Server.Tests/Api/openapi-v1.json -o src/schema.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

@@ -38,12 +38,15 @@ jobs:
         run: dotnet test --configuration Release --no-build
 
   javascript:
-    name: JavaScript SDK
+    name: JavaScript (${{ matrix.package }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        package: [js, elements]
     defaults:
       run:
-        working-directory: sdk/js
+        working-directory: sdk/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -51,12 +54,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: sdk/js/package-lock.json
+          cache-dependency-path: sdk/${{ matrix.package }}/package-lock.json
 
       - name: Install
         run: npm ci
 
-      # The Management API types are generated from the OpenAPI document that the .NET tests keep current.
+      # The API types are generated from the OpenAPI document that the .NET tests keep current.
       - name: Check the API types
         run: npm run generate && git diff --exit-code -- src/schema.ts
 

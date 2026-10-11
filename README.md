@@ -79,6 +79,18 @@ const { data: user } = await kimlik.client.GET("/api/v1/users/{id}", { params: {
 const event = verifyWebhook({ headers: req.headers, body: rawBody, secret }); // null unless Kimlik signed it
 ```
 
+## Organization management in your own pages
+
+`@kimlik/elements`, in [`sdk/elements`](sdk/elements), is a set of web components for apps that want organization management inside their own pages rather than on Kimlik's. They list the user's organizations and invitations, manage members, roles and invitations, and change or delete an organization, as the user's roles allow. They call Kimlik with the user's token for the `kimlik.organizations` scope, which reaches nothing else. Releases carry it as a tarball until it is on npm.
+
+```html
+<kimlik-organization-members organization="0199c3a1-1111-7d3c-8b4a-5e6f70819203"></kimlik-organization-members>
+<script type="module">
+  import { configureKimlik } from "@kimlik/elements";
+  configureKimlik({ authority: "https://id.example.com/", accessToken: () => getAccessToken() });
+</script>
+```
+
 ## Local development
 
 ### Prerequisites

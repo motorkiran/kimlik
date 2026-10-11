@@ -7,6 +7,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 ### Added
 
 - The `kimlik.organizations` scope: its tokens reach only the Account API's organization and invitation endpoints, with an audience of their own and no system permissions, so any app that signs users in can be allowed it. Those endpoints answer cross-origin calls from the apps allowed the scope. `GET /api/v1/me/organizations/{id}/roles` lists the roles members can hold.
+- `@kimlik/elements`, web components that put organization management inside apps' own pages: `<kimlik-organizations>`, `<kimlik-organization-members>` and `<kimlik-organization-settings>`, in English and Turkish, styled through CSS custom properties and `::part()`. Releases carry it as a tarball until it is on npm.
 
 ### Changed
 

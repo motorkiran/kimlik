@@ -70,15 +70,19 @@ jobs:
         with:
           node-version: 24
 
-      # The JavaScript SDK goes with the release as a tarball; publishing it to npm waits until its name is settled.
-      - name: Pack the JavaScript SDK
-        working-directory: sdk/js
+      # The JavaScript packages go with the release as tarballs; publishing them to npm waits until their names are settled.
+      - name: Pack the JavaScript packages
         run: |
-          npm ci
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
-          npm test
-          npm run build
-          npm pack --pack-destination ../../artifacts
+          for package in js elements; do
+            (
+              cd "sdk/$package"
+              npm ci
+              npm version "$VERSION" --no-git-tag-version --allow-same-version
+              npm test
+              npm run build
+              npm pack --pack-destination ../../artifacts
+            )
+          done
 
       - name: Create the GitHub release
         env:
