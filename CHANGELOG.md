@@ -7,6 +7,31 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 ### Added
 
 - `@kimlik/node`, a JavaScript and TypeScript SDK for Node.js backends: access token and API key validation as `KimlikUser`, `kimlikMiddleware` and `requirePermission` for Express and similar frameworks, entitlements, a Management API client typed from the OpenAPI document, and webhook verification. Releases carry it as a tarball until it is on npm.
+- `Kimlik:RateLimits:TextRequestsPerMinute` limits, per address, the requests on the account pages that text a code to a new number.
+
+### Changed
+
+- With no `Kimlik:Sms:AllowedCountryCodes`, texts go only to `DefaultCountryCode`, or anywhere when neither is set.
+- A lockout after wrong passwords no longer stops a sign-in through an organization's SSO provider, as it does not stop a passkey.
+- Accounts linked to an enabled SSO connection sign in only through it, whatever their address is now.
+- Deleting an organization that has SSO connections, and replacing the secret of or deleting an app that gets tokens for Kimlik's own API for its users, take every installation-wide system permission.
+- Stored settings that the validators reject, such as values an earlier version accepted, are left out with their section and a warning, instead of keeping their options from binding.
+- `verifyWebhook` and `KimlikWebhook` throw on a secret shorter than 16 bytes, such as an empty one from a missing setting.
+- `@kimlik/node` requires HTTPS for Kimlik's addresses except on the local machine (`requireHttps: false` allows HTTP).
+
+### Security
+
+- SSO links an existing account only when its address is the very one the provider vouches for, not one that reads the same in other letters (such as `ſ` for `s`), and refuses addresses the provider says it has not verified. Linking an account whose address was never verified removes its password, passkeys, second factor and phone number, as a password reset assumes. SSO domains are stored in their IDNA ASCII form.
+- SAML responses must carry a signed assertion that itself confirms the pending request, for Kimlik's assertion consumer service, since providers often sign only the assertion.
+- A right password through a login app, or a right email or SMS code, no longer clears wrong second-factor codes when a second factor follows. Credential checks against a login challenge are counted atomically, so checks sent at once cannot go past ten.
+- The login-challenge cookie goes to the whole host with the `__Host-` prefix when HTTPS is required, so challenges in several tabs stay bound to the browser.
+- An API resource can no longer take Kimlik's own API audience, and tokens carry that audience only with the `kimlik` scope.
+- Usage idempotency keys count once per feature, so a key used for one feature cannot skip another's limit.
+- The CAPTCHA lets a form through only when the provider cannot be reached or fails on its side, not on other answers, and rate limits are checked before it. Asking for a new sign-in code takes the CAPTCHA too.
+- Texts are limited per number and kind, whichever accounts ask, and each account's budget is per kind.
+- Settings changes are made one at a time across instances, since each is validated with the values stored before it.
+- Back-channel logout tokens do not follow redirects.
+- `@kimlik/node` checks that discovery names the authority as its issuer, requires `exp` in access tokens, checks the form of API keys before verifying them, caches them by hash, does not cache failures to verify, and gets a new Management API token once on 401.
 
 ## [0.4.0] - 2026-10-11
 
