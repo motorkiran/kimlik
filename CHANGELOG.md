@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-11
+
+Enterprise single sign-on over OpenID Connect and SAML, phone numbers and SMS codes, delegation and back-channel logout, richer plans with add-ons and metering, and organization pages.
+
 ### Added
 
 - Phone numbers and SMS codes: texts go out through Netgsm, İleti Merkezi or Twilio (`Kimlik:Sms`); people add a number on the account pages by entering the code texted to it, and sign in with texted codes (`amr` `["sms"]`); the `phone` scope adds `phone_number` and `phone_number_verified`; administrators see and remove numbers through the Management API, `Kimlik.Client` and the admin panel, and users through the Account API.
