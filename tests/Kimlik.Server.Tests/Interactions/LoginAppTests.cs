@@ -81,7 +81,7 @@ public sealed class LoginAppTests(KimlikServerFixture server)
     }
 
     [Fact]
-    public async Task OnlyTheBrowserThatWasSent_CompletesTheChallenge_AndOnlyOnce()
+    public async Task OnlyTheBrowserThatWasSent_CompletesTheChallenge_FromAnyOfItsTabs_AndOnlyOnce()
     {
         var kimlik = await KimlikAsync();
         var user = await server.CreateUserAsync();
@@ -90,6 +90,7 @@ public sealed class LoginAppTests(KimlikServerFixture server)
         using var loginApp = await LoginAppAsync();
         using var browser = new Browser(kimlik);
         using var handedOver = await browser.GetAsync(request.Url);
+        using var otherTab = await browser.GetAsync(new AuthorizationRequest(client.ClientId).Url);
         using var accepted = await AcceptAsync(loginApp, ChallengeOf(handedOver), user.Id, "pwd");
         var redirectTo = (await accepted.ReadAsync<LoginChallengeRedirect>()).RedirectTo;
 

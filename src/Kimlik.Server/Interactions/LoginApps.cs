@@ -1,5 +1,6 @@
 using Kimlik.Application.Interactions;
 using Kimlik.Domain.Interactions;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Oidc;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +16,13 @@ namespace Kimlik.Server.Interactions;
 /// </summary>
 internal static class LoginApps
 {
-    /// <summary>The cookie that holds the browser's secret, which the challenges it was sent with are bound to.</summary>
-    public const string BrowserCookie = "kimlik.login_challenge";
+    /// <summary>
+    /// The cookie that holds the browser's secret, which the challenges it was sent with are bound to. Authorization
+    /// requests read it too, so it goes to the whole host, and only the host itself can set it when HTTPS is required.
+    /// </summary>
+    public static string BrowserCookie(ServerOptions server) => server.RequireHttps ? "__Host-kimlik.login_challenge" : "kimlik.login_challenge";
 
-    /// <summary>Where the browser finishes a decided challenge, and where the cookie goes.</summary>
+    /// <summary>Where the browser finishes a decided challenge.</summary>
     public const string CompletionPath = "/interaction/login";
 
     /// <summary>The parameter that a rejected challenge comes back to the authorization request with.</summary>
@@ -28,17 +32,17 @@ internal static class LoginApps
 
     /// <summary>Starts a challenge for the request and sends the browser to the login app with it.</summary>
     public static async Task<IActionResult> HandOverAsync(
-        HttpContext http, OpenIddictRequest request, Uri loginUrl, string returnUrl, LoginChallenges challenges, CancellationToken cancellationToken)
+        HttpContext http, OpenIddictRequest request, Uri loginUrl, string returnUrl, LoginChallenges challenges, ServerOptions server, CancellationToken cancellationToken)
     {
         // One secret per browser, so that challenges in several tabs all stay bound to it.
-        var secret = http.Request.Cookies[BrowserCookie] is { Length: 64 } existing ? existing : LoginChallenges.NewSecret();
-        http.Response.Cookies.Append(BrowserCookie, secret, new CookieOptions
+        var secret = http.Request.Cookies[BrowserCookie(server)] is { Length: 64 } existing ? existing : LoginChallenges.NewSecret();
+        http.Response.Cookies.Append(BrowserCookie(server), secret, new CookieOptions
         {
             HttpOnly = true,
-            Secure = http.Request.IsHttps,
+            Secure = server.RequireHttps || http.Request.IsHttps,
             // The login app sends the browser back with a top-level navigation, which carries a Lax cookie.
             SameSite = SameSiteMode.Lax,
-            Path = CompletionPath,
+            Path = "/",
             MaxAge = LoginChallenge.Lifetime,
             IsEssential = true,
         });

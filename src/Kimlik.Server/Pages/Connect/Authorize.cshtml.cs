@@ -9,6 +9,7 @@ using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Kimlik.Server.Interactions;
 using Kimlik.Server.Oidc;
@@ -47,6 +48,7 @@ public sealed class AuthorizeModel(
     BackChannelLogout backChannelLogout,
     LoginChallenges loginChallenges,
     IOptionsMonitor<InteractionOptions> interactions,
+    IOptions<ServerOptions> server,
     TimeProvider timeProvider) : PageModel
 {
     private const string ConsentField = "consent";
@@ -119,7 +121,7 @@ public sealed class AuthorizeModel(
             // The installation's login app signs the person in, when it has one.
             if (interactions.CurrentValue.LoginUrl is { } loginUrl)
             {
-                return await LoginApps.HandOverAsync(HttpContext, request, loginUrl, BuildRetryUri(request), loginChallenges, cancellationToken);
+                return await LoginApps.HandOverAsync(HttpContext, request, loginUrl, BuildRetryUri(request), loginChallenges, server.Value, cancellationToken);
             }
 
             return Challenge(new AuthenticationProperties { RedirectUri = BuildRetryUri(request) }, IdentityConstants.ApplicationScheme);

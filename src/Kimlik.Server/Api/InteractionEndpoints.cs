@@ -50,7 +50,7 @@ internal static class InteractionEndpoints
 
     /// <summary>Where the browser finishes a decided challenge, on Kimlik.</summary>
     internal static string CompletionUrl(ServerOptions server, string challenge) =>
-        $"{server.PublicUrl!.AbsoluteUri.TrimEnd('/')}/interaction/login/{Uri.EscapeDataString(challenge)}";
+        $"{server.PublicUrl!.AbsoluteUri.TrimEnd('/')}{LoginApps.CompletionPath}/{Uri.EscapeDataString(challenge)}";
 
     private static async Task<Results<Ok<LoginChallengeResponse>, ProblemHttpResult>> GetAsync(
         string challenge, GetLoginChallengeHandler handler, IOptions<ServerOptions> server, CancellationToken cancellationToken)

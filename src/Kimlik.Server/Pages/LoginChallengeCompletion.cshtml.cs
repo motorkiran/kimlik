@@ -2,6 +2,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Interactions;
 using Kimlik.Domain.Interactions;
 using Kimlik.Domain.Users;
+using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Kimlik.Server.Interactions;
 using Microsoft.AspNetCore.DataProtection;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Pages;
 
@@ -23,6 +25,7 @@ public sealed class LoginChallengeCompletionModel(
     SignInFlow signInFlow,
     IKimlikDbContext context,
     IDataProtectionProvider dataProtection,
+    IOptions<ServerOptions> server,
     TimeProvider timeProvider,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -32,7 +35,7 @@ public sealed class LoginChallengeCompletionModel(
     {
         if (await challenges.FindAsync(challenge, cancellationToken) is not { Status: LoginChallengeStatus.Accepted or LoginChallengeStatus.Rejected } decided
             || timeProvider.GetUtcNow() >= decided.ExpiresAt
-            || !decided.IsHeldBy(Request.Cookies[LoginApps.BrowserCookie]))
+            || !decided.IsHeldBy(Request.Cookies[LoginApps.BrowserCookie(server.Value)]))
         {
             return Fail();
         }
