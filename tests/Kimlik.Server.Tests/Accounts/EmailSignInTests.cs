@@ -9,7 +9,6 @@ using Kimlik.Server.Tests.Mfa;
 using Kimlik.Server.Tests.Oidc;
 using Kimlik.Server.Tests.Passkeys;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -117,7 +116,7 @@ public sealed partial class EmailSignInTests(KimlikServerFixture server)
     public async Task Code_Expires_AfterTenMinutes()
     {
         var clock = new ShiftedTimeProvider();
-        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        await using var kimlik = server.WithShiftedClock(clock);
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
         var user = await server.CreateUserAsync();
         using var browser = new Browser(kimlik);

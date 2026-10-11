@@ -1,8 +1,6 @@
 using Kimlik.Domain.Auditing;
 using Kimlik.Server.Tests.Accounts;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Server.Tests.Passkeys;
 
@@ -66,7 +64,7 @@ public sealed class AccountPasskeyTests(KimlikServerFixture server)
     public async Task AddingAPasskey_TakesARecentSignIn()
     {
         var clock = new ShiftedTimeProvider();
-        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        await using var kimlik = server.WithShiftedClock(clock);
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
         var user = await server.CreateUserAsync();
         using var browser = new Browser(kimlik);

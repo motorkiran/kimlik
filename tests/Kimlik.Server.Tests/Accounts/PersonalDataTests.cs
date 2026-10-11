@@ -7,9 +7,7 @@ using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Organizations;
 using Kimlik.Server.Tests.Passkeys;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Server.Tests.Accounts;
 
@@ -52,7 +50,7 @@ public sealed class PersonalDataTests(KimlikServerFixture server)
     public async Task OldSignIn_MustSignInAgain_ToDownload()
     {
         var clock = new ShiftedTimeProvider();
-        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        await using var kimlik = server.WithShiftedClock(clock);
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
         var user = await server.CreateUserAsync();
         using var browser = new Browser(kimlik);

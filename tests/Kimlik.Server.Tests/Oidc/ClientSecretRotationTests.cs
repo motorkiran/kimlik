@@ -2,9 +2,7 @@ using System.Net;
 using Kimlik.Contracts.Management;
 using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Passkeys;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Server.Tests.Oidc;
 
@@ -15,7 +13,7 @@ public sealed class ClientSecretRotationTests(KimlikServerFixture server)
     public async Task PreviousSecret_KeepsWorking_UntilItExpires()
     {
         var clock = new ShiftedTimeProvider();
-        await using var kimlik = server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        await using var kimlik = server.WithShiftedClock(clock);
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
         var client = await server.CreateServiceClientAsync();
         using var api = await server.CreateApiClientAsync();

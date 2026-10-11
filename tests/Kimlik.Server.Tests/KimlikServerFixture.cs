@@ -3,12 +3,14 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Webhooks;
 using Kimlik.Server.Oidc;
+using Kimlik.Server.Tests.Passkeys;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -83,6 +85,21 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
     /// A host that checks the security stamp of sign-in sessions on every request instead of every few minutes, as
     /// if each request came after the interval.
     /// </summary>
+    /// <summary>
+    /// A host whose clock runs <paramref name="clock"/>'s offset ahead. The background workers that lease or prune what
+    /// every host shares are left out of it: ahead of the others, they would take over deliveries other hosts hold, or
+    /// delete data that other tests use.
+    /// </summary>
+    internal WebApplicationFactory<Program> WithShiftedClock(ShiftedTimeProvider clock) => WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+    {
+        services.AddSingleton<TimeProvider>(clock);
+        string[] sharedWork = ["OutboxDispatcher", "WebhookDeliveryService", "SubscriptionExpirationService", "ProtocolDataPruningService", "AuditRetentionService"];
+        foreach (var worker in services.Where(service => service.ServiceType == typeof(IHostedService) && sharedWork.Contains(service.ImplementationType?.Name)).ToList())
+        {
+            services.Remove(worker);
+        }
+    }));
+
     public async Task<WebApplicationFactory<Program>> WithStrictSessionsAsync()
     {
         var strict = WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>

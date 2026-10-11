@@ -9,6 +9,7 @@ using Kimlik.Infrastructure.Settings;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Api;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -170,6 +171,9 @@ public sealed class SettingsTests(KimlikServerFixture server)
     private static async Task<Result<IReadOnlyList<SettingResponse>>> UpdateAsync(WebApplicationFactory<Program> kimlik, params (string Key, string? Value)[] values)
     {
         await using var scope = kimlik.Services.CreateAsyncScope();
+
+        // Kimlik itself makes the change, outside of any request, even if one that ran before left its context behind.
+        scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = null;
         return await scope.ServiceProvider.GetRequiredService<UpdateSettingsHandler>().HandleAsync(
             new UpdateSettingsRequest { Values = values.ToDictionary(value => value.Key, value => value.Value) }, TestContext.Current.CancellationToken);
     }
