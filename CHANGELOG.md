@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
+Administrators change product settings and social providers at runtime, and developers can bring sign-in pages of their own.
+
 ### Added
 
 - Settings at runtime: branding, registration and password policies, MFA requirements, organization creation and invitations, default plans, CAPTCHA and the social providers can change from the admin panel or `PATCH /api/v1/settings` without a restart (`kimlik.settings:read`, `kimlik.settings:write`). Stored values override the configuration files; values set in the environment stay fixed ([ADR 0002](docs/adr/0002-product-settings-in-the-database.md)).
