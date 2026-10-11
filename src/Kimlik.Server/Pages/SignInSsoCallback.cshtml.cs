@@ -42,7 +42,8 @@ public sealed class SignInSsoCallbackModel(SsoDirectory directory, OrganizationS
             principal.FindFirstValue(ClaimTypes.GivenName) ?? principal.GetClaim(Claims.GivenName),
             principal.FindFirstValue(ClaimTypes.Surname) ?? principal.GetClaim(Claims.FamilyName),
             principal.GetClaim(Claims.Locale),
-            principal.GetClaim("hd"));
+            principal.GetClaim("hd"),
+            bool.TryParse(principal.GetClaim(Claims.EmailVerified), out var emailVerified) ? emailVerified : null);
         var returnUrl = AccountLinks.IsLocalUrl(result.Properties.RedirectUri) ? result.Properties.RedirectUri! : "/";
 
         // Providers report the factors they verified in the ID token, such as ["pwd", "mfa"] (RFC 8176).

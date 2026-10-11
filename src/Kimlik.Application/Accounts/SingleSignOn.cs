@@ -1,4 +1,6 @@
+using System.Text;
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Common;
@@ -91,20 +93,27 @@ public sealed class SsoDirectory(IKimlikDbContext context, ISecretEncryption enc
 }
 
 /// <summary>Who an organization's provider says the person signing in is.</summary>
-/// <remarks><c>HostedDomain</c> is the Workspace domain Google names in <c>hd</c>.</remarks>
-public sealed record SsoIdentity(string Subject, string? Email, string? GivenName, string? FamilyName, string? Locale, string? HostedDomain = null);
+/// <remarks>
+/// <c>HostedDomain</c> is the Workspace domain Google names in <c>hd</c>; <c>EmailVerified</c> is the provider's
+/// <c>email_verified</c>, if it said.
+/// </remarks>
+public sealed record SsoIdentity(
+    string Subject, string? Email, string? GivenName, string? FamilyName, string? Locale, string? HostedDomain = null, bool? EmailVerified = null);
 
 /// <summary>
 /// Finds or makes the account of someone an organization's provider signed in. Later sign-ins find it by the link the
 /// first one made; the first needs an address in the connection's domains, and links the account with that address or
-/// creates one, verified, as the provider vouches for the address. When the address of the account was not verified
-/// yet, the link is the first proof that the person owns it, as a password reset is: accounts at other providers linked
-/// before are unlinked and its sessions end. The account joins the organization if it is not a member yet.
+/// creates one, verified, as the provider vouches for the address; only an account whose address is the very one the
+/// provider vouches for is linked, not one that reads the same in other letters. When the address of the account was not
+/// verified yet, the link is the first proof that the person owns it, as a password reset is: what the account signed in
+/// with before goes, its password, passkeys, second factor, phone number and accounts at other providers, and its
+/// sessions end. The account joins the organization if it is not a member yet.
 /// </summary>
 public sealed class SsoSignInHandler(
     UserManager<User> userManager,
     ExternalLogins logins,
     RegisterExternalUserHandler register,
+    TwoFactor twoFactor,
     IUserSessions sessions,
     IKimlikDbContext context,
     IAuditLog auditLog,
@@ -128,8 +137,14 @@ public sealed class SsoSignInHandler(
                 return AccountErrors.AddressOutsideConnection;
             }
 
+            // A provider that says it has not verified the address does not vouch for it.
+            if (identity.EmailVerified == false)
+            {
+                return AccountErrors.AddressNotVerifiedAtProvider;
+            }
+
             var found = await userManager.FindByEmailAsync(identity.Email!) is { } existing
-                ? await LinkAsync(existing, login, cancellationToken)
+                ? await LinkAsync(existing, connection, identity, login, cancellationToken)
                 : await register.HandleAsync(
                     new RegisterExternalUserCommand(login, identity.Email!, EmailVerified: true, identity.GivenName, identity.FamilyName, identity.Locale, returnUrl)
                     {
@@ -160,8 +175,15 @@ public sealed class SsoSignInHandler(
         return user;
     }
 
-    private async Task<Result<User>> LinkAsync(User user, ExternalLogin login, CancellationToken cancellationToken)
+    private async Task<Result<User>> LinkAsync(User user, SsoProvider connection, SsoIdentity identity, ExternalLogin login, CancellationToken cancellationToken)
     {
+        // Identity finds addresses by a form that folds some letters into others, such as ſ into S: only the very address
+        // the provider vouches for, in the connection's domains, is linked.
+        if (!SameAddress(user.Email, identity.Email) || !connection.Covers(user.Email))
+        {
+            return AccountErrors.LookalikeAddress;
+        }
+
         if ((await userManager.GetLoginsAsync(user)).Any(existing => existing.LoginProvider == login.Provider))
         {
             // The provider knows the person by another subject now, such as after their account there was made again.
@@ -170,16 +192,7 @@ public sealed class SsoSignInHandler(
 
         if (!user.EmailConfirmed)
         {
-            foreach (var earlier in await userManager.GetLoginsAsync(user))
-            {
-                await userManager.RemoveLoginAsync(user, earlier.LoginProvider, earlier.ProviderKey);
-                auditLog.Record(
-                    AuditActions.UserLoginUnlinked,
-                    AuditSubject.User(user.Id),
-                    new Dictionary<string, object?> { ["provider"] = earlier.LoginProvider, ["reason"] = "sso" },
-                    AuditActor.User(user.Id));
-            }
-
+            await ClearCredentialsAsync(user);
             user.EmailConfirmed = true;
             await userManager.UpdateAsync(user);
             await userManager.UpdateSecurityStampAsync(user);
@@ -195,4 +208,52 @@ public sealed class SsoSignInHandler(
         auditLog.Record(AuditActions.UserLoginLinked, AuditSubject.User(user.Id), new Dictionary<string, object?> { ["provider"] = login.Provider }, AuditActor.User(user.Id));
         return user;
     }
+
+    /// <summary>
+    /// Removes what an account whose address was never verified signs in with: whoever registered it may not be the
+    /// person the provider vouches for, as a password reset assumes too.
+    /// </summary>
+    private async Task ClearCredentialsAsync(User user)
+    {
+        var reason = new Dictionary<string, object?> { ["reason"] = "sso" };
+        foreach (var earlier in await userManager.GetLoginsAsync(user))
+        {
+            await userManager.RemoveLoginAsync(user, earlier.LoginProvider, earlier.ProviderKey);
+            auditLog.Record(
+                AuditActions.UserLoginUnlinked,
+                AuditSubject.User(user.Id),
+                new Dictionary<string, object?> { ["provider"] = earlier.LoginProvider, ["reason"] = "sso" },
+                AuditActor.User(user.Id));
+        }
+
+        if (await userManager.HasPasswordAsync(user))
+        {
+            await userManager.RemovePasswordAsync(user);
+            auditLog.Record(AuditActions.UserPasswordRemoved, AuditSubject.User(user.Id), reason, AuditActor.User(user.Id));
+        }
+
+        foreach (var passkey in await userManager.GetPasskeysAsync(user))
+        {
+            await userManager.RemovePasskeyAsync(user, passkey.CredentialId);
+            auditLog.Record(AuditActions.UserPasskeyRemoved, AuditSubject.User(user.Id), reason, AuditActor.User(user.Id));
+        }
+
+        if (user.TwoFactorEnabled || await userManager.GetAuthenticatorKeyAsync(user) is not null)
+        {
+            await twoFactor.ClearAsync(user);
+            auditLog.Record(AuditActions.UserMfaReset, AuditSubject.User(user.Id), reason, AuditActor.User(user.Id));
+        }
+
+        if (user.PhoneNumber is not null)
+        {
+            await userManager.SetPhoneNumberAsync(user, null);
+            auditLog.Record(AuditActions.UserPhoneNumberRemoved, AuditSubject.User(user.Id), reason, AuditActor.User(user.Id));
+        }
+    }
+
+    /// <summary>Whether two addresses are the same: letters only match in another case when both addresses are plain ASCII.</summary>
+    private static bool SameAddress(string? stored, string? vouched) =>
+        stored is not null && vouched is not null
+        && (string.Equals(stored, vouched, StringComparison.Ordinal)
+            || (Ascii.IsValid(stored) && Ascii.IsValid(vouched) && string.Equals(stored, vouched, StringComparison.OrdinalIgnoreCase)));
 }

@@ -13,6 +13,8 @@ public sealed class SsoConnectionTests
     [Theory]
     [InlineData("Acme.COM.", "acme.com")]
     [InlineData(" eu.acme.com ", "eu.acme.com")]
+    [InlineData("acmeſoft.com", "acmesoft.com")]
+    [InlineData("münchen.de", "xn--mnchen-3ya.de")]
     [InlineData("acme", null)]
     [InlineData("acme .com", null)]
     [InlineData("@acme.com", null)]

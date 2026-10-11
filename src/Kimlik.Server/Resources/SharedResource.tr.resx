@@ -871,6 +871,12 @@
   <data name="Your account is linked to another account at your organization's provider. Ask an administrator." xml:space="preserve">
     <value>Hesabınız, kurumunuzun kimlik sağlayıcısındaki başka bir hesaba bağlı. Bir yöneticiye başvurun.</value>
   </data>
+  <data name="Another account has an address that reads the same as yours. Ask an administrator." xml:space="preserve">
+    <value>Başka bir hesabın adresi sizinkiyle aynı okunuyor. Bir yöneticiye başvurun.</value>
+  </data>
+  <data name="Your organization's provider has not verified your email address. Ask your administrator." xml:space="preserve">
+    <value>Kurumunuzun kimlik sağlayıcısı e-posta adresinizi doğrulamamış. Yöneticinize başvurun.</value>
+  </data>
   <data name="Another organization has this short name." xml:space="preserve">
     <value>Bu kısa ad başka bir organizasyonda kullanılıyor.</value>
   </data>

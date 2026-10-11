@@ -19,6 +19,9 @@ namespace Kimlik.Server.Tests.SocialLogin;
 /// <summary>What an organization's provider says about the person who signs in there.</summary>
 internal sealed record WorkProfile(string Subject, string? Email, string[] Methods)
 {
+    /// <summary>The provider's <c>email_verified</c>, left out when <see langword="null"/>.</summary>
+    public bool? EmailVerified { get; init; }
+
     public static WorkProfile New(string email, params string[] methods) => new($"employee-{Guid.NewGuid():N}", email, methods.Length > 0 ? methods : ["pwd"]);
 }
 
@@ -105,6 +108,11 @@ internal sealed class TestIdentityProvider : IAsyncDisposable
         if (profile.Email is not null)
         {
             claims["email"] = profile.Email;
+        }
+
+        if (profile.EmailVerified is { } verified)
+        {
+            claims["email_verified"] = verified;
         }
 
         if (nonce is not null)

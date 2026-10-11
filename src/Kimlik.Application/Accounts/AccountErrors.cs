@@ -41,6 +41,13 @@ public static class AccountErrors
     public static readonly Error AddressOutsideConnection = Error.Validation(
         "account.address_outside_connection", "The provider did not share an email address in the organization's domains.");
 
+    /// <summary>An account has an address that reads the same as the one an organization's provider vouches for, in other letters.</summary>
+    public static readonly Error LookalikeAddress = Error.Conflict(
+        "account.lookalike_address", "Another account has an address that reads the same; an administrator must look into it.");
+
+    public static readonly Error AddressNotVerifiedAtProvider = Error.Validation(
+        "account.address_not_verified_at_provider", "The provider has not verified the email address it shared.");
+
     /// <summary>The code is wrong, has expired or was replaced by a newer one, or no account can sign in with it.</summary>
     public static readonly Error WrongCode = Error.Validation("account.wrong_code", "The code is not right, or it has expired.");
 

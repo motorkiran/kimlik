@@ -110,6 +110,99 @@ public sealed class SingleSignOnTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task AccountWithALookalikeAddress_IsNotLinked()
+    {
+        var provider = await TestIdentityProvider.SharedAsync(server);
+        var sso = await ConnectAsync();
+        var name = $"sam-{Guid.NewGuid():N}";
+        var lookalike = await CreateUserAsync($"{name.Replace('s', 'ſ')}@{sso.Domain}");
+        using var browser = new Browser(provider.Kimlik);
+
+        using var toProvider = await browser.GetAsync($"/signin/sso/{sso.Connection.Id}");
+        using var back = await provider.SignInAsync(browser, toProvider, WorkProfile.New($"{name}@{sso.Domain}"));
+
+        (await Browser.ReadPageAsync(back)).Text.ShouldContain("reads the same as yours");
+        (await LoginsAsync(lookalike.Id)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddressTheProviderHasNotVerified_IsRefused()
+    {
+        var provider = await TestIdentityProvider.SharedAsync(server);
+        var sso = await ConnectAsync();
+        var email = $"grace@{sso.Domain}";
+        using var browser = new Browser(provider.Kimlik);
+
+        using var toProvider = await browser.GetAsync($"/signin/sso/{sso.Connection.Id}");
+        using var back = await provider.SignInAsync(browser, toProvider, WorkProfile.New(email) with { EmailVerified = false });
+
+        (await Browser.ReadPageAsync(back)).Text.ShouldContain("has not verified your email address");
+        (await server.QueryDatabaseAsync(context => context.Users.AnyAsync(candidate => candidate.Email == email))).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task UnverifiedAccount_IsLinked_WithoutWhatItSignedInWithBefore()
+    {
+        var provider = await TestIdentityProvider.SharedAsync(server);
+        var sso = await ConnectAsync();
+        var user = await CreateUserAsync($"ada@{sso.Domain}", verified: false);
+        await server.WithServicesAsync(async services =>
+        {
+            var users = services.GetRequiredService<UserManager<User>>();
+            (await users.AddLoginAsync(await FindAsync(users, user.Id), new UserLoginInfo("GitHub", $"{Guid.NewGuid():N}", "GitHub"))).Succeeded.ShouldBeTrue();
+        });
+        using var browser = new Browser(provider.Kimlik);
+
+        using var toProvider = await browser.GetAsync($"/signin/sso/{sso.Connection.Id}");
+        using var back = await provider.SignInAsync(browser, toProvider, WorkProfile.New(user.Email));
+
+        back.Headers.Location!.OriginalString.ShouldBe("/");
+        var linked = await FindAsync(user.Email);
+        linked.Id.ShouldBe(user.Id);
+        linked.EmailConfirmed.ShouldBeTrue();
+        linked.PasswordHash.ShouldBeNull("whoever registered the address before may not be the person the provider vouches for");
+        (await LoginsAsync(user.Id)).ShouldBe([SsoConnection.LoginProviderOf(sso.Connection.Id)]);
+    }
+
+    [Fact]
+    public async Task LockedOutAccount_StillSignsInThroughTheProvider()
+    {
+        var provider = await TestIdentityProvider.SharedAsync(server);
+        var sso = await ConnectAsync();
+        var user = await CreateUserAsync($"ada@{sso.Domain}");
+        await server.WithServicesAsync(async services =>
+        {
+            var users = services.GetRequiredService<UserManager<User>>();
+            (await users.SetLockoutEndDateAsync(await FindAsync(users, user.Id), DateTimeOffset.UtcNow.AddHours(1))).Succeeded.ShouldBeTrue();
+        });
+        using var browser = new Browser(provider.Kimlik);
+
+        using var toProvider = await browser.GetAsync($"/signin/sso/{sso.Connection.Id}");
+        using var back = await provider.SignInAsync(browser, toProvider, WorkProfile.New(user.Email));
+
+        back.Headers.Location!.OriginalString.ShouldBe("/");
+    }
+
+    [Fact]
+    public async Task AccountLinkedToAConnection_LeadsToItsProvider_WhateverItsAddress()
+    {
+        var provider = await TestIdentityProvider.SharedAsync(server);
+        var sso = await ConnectAsync();
+        var user = await CreateUserAsync($"ada-{Guid.NewGuid():N}@example.com");
+        await server.WithServicesAsync(async services =>
+        {
+            var users = services.GetRequiredService<UserManager<User>>();
+            var login = new UserLoginInfo(SsoConnection.LoginProviderOf(sso.Connection.Id), $"employee-{Guid.NewGuid():N}", "Acme Entra ID");
+            (await users.AddLoginAsync(await FindAsync(users, user.Id), login)).Succeeded.ShouldBeTrue();
+        });
+        using var browser = new Browser(provider.Kimlik);
+
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+
+        signIn.Headers.Location!.OriginalString.ShouldStartWith($"/signin/sso/{sso.Connection.Id}");
+    }
+
+    [Fact]
     public async Task OtherFirstFactors_LeadToTheProvider_InsteadOfASession()
     {
         var provider = await TestIdentityProvider.SharedAsync(server);
@@ -178,11 +271,11 @@ public sealed class SingleSignOnTests(KimlikServerFixture server)
         return (organization.Id, domain, await created.ReadAsync<SsoConnectionResponse>());
     }
 
-    private Task<TestUser> CreateUserAsync(string email) =>
+    private Task<TestUser> CreateUserAsync(string email, bool verified = true) =>
         server.WithServicesAsync(async services =>
         {
             var user = User.Create(email, "Ada", "Lovelace", "en", DateTimeOffset.UtcNow);
-            user.EmailConfirmed = true;
+            user.EmailConfirmed = verified;
             user.MarkPasskeyOffered(DateTimeOffset.UtcNow);
             (await services.GetRequiredService<UserManager<User>>().CreateAsync(user, TestUsers.Password)).Succeeded.ShouldBeTrue();
             return new TestUser(user.Id, email, TestUsers.Password);
@@ -190,6 +283,8 @@ public sealed class SingleSignOnTests(KimlikServerFixture server)
 
     private Task<User> FindAsync(string email) =>
         server.WithServicesAsync(async services => (await services.GetRequiredService<UserManager<User>>().FindByEmailAsync(email)).ShouldNotBeNull());
+
+    private static async Task<User> FindAsync(UserManager<User> users, Guid id) => (await users.FindByIdAsync(id.ToString())).ShouldNotBeNull();
 
     private Task<bool> IsMemberAsync(Guid organizationId, Guid userId) =>
         server.QueryDatabaseAsync(context => context.Memberships.AnyAsync(membership => membership.OrganizationId == organizationId && membership.UserId == userId));

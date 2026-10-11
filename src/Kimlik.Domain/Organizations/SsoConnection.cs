@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -184,18 +185,37 @@ public sealed class SsoConnection
         || (NormalizeDomain(hostedDomain) is { } domain && domains.Contains(domain, StringComparer.Ordinal));
 
     /// <summary>
-    /// A domain as connections keep it, lowercase and without a final dot, such as <c>acme.com</c>; <see langword="null"/>
-    /// when it is not a domain name with at least two labels.
+    /// A domain as connections keep it: in its ASCII form (IDNA), lowercase and without a final dot, such as <c>acme.com</c>
+    /// or <c>xn--mnchen-3ya.de</c>; <see langword="null"/> when it is not a domain name with at least two labels. The ASCII
+    /// form maps characters that read as others, such as <c>ſ</c> as <c>s</c>, so an address cannot slip past its
+    /// domain's connection in another spelling.
     /// </summary>
     public static string? NormalizeDomain(string? domain)
     {
-        var normalized = domain?.Trim().TrimEnd('.').ToLowerInvariant();
-        return normalized is { Length: > 0 and <= DomainMaxLength }
+        var trimmed = domain?.Trim().TrimEnd('.');
+        if (trimmed is not { Length: > 0 and <= DomainMaxLength })
+        {
+            return null;
+        }
+
+        string normalized;
+        try
+        {
+            normalized = Idna.GetAscii(trimmed).ToLowerInvariant();
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        return normalized.Length <= DomainMaxLength
             && normalized.Contains('.', StringComparison.Ordinal)
             && Uri.CheckHostName(normalized) == UriHostNameType.Dns
             ? normalized
             : null;
     }
+
+    private static readonly IdnMapping Idna = new() { UseStd3AsciiRules = true };
 
     /// <summary>The domain of an email address, as connections keep domains.</summary>
     public static string? DomainOf(string? email)

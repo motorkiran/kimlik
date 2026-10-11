@@ -4,6 +4,7 @@ using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.Mfa;
 using Kimlik.Domain.Auditing;
+using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Users;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -169,13 +170,31 @@ public sealed class SignInFlow(
     }
 
     /// <summary>
-    /// Where the browser goes instead of a session when the user's address is in the domains of an enabled SSO connection
-    /// they did not sign in through: to the connection's provider. <see langword="null"/> when no connection stands in the way.
+    /// Where the browser goes instead of a session when the user must sign in through an enabled SSO connection they did
+    /// not sign in through, because their address is in its domains or their account is linked to it: to the connection's
+    /// provider. <see langword="null"/> when no connection stands in the way.
     /// </summary>
-    public async Task<string?> SingleSignOnPathAsync(User user, string? provider, string returnUrl, CancellationToken cancellationToken) =>
-        await sso.ForAddressAsync(user.Email, cancellationToken) is { } connection && connection.LoginProvider != provider
+    public async Task<string?> SingleSignOnPathAsync(User user, string? provider, string returnUrl, CancellationToken cancellationToken)
+    {
+        var connection = await sso.ForAddressAsync(user.Email, cancellationToken) ?? await LinkedConnectionAsync(user, cancellationToken);
+        return connection is not null && connection.LoginProvider != provider
             ? links.GetPathByPage(signInManager.Context, "/SignInSso", values: new { connection = connection.Id, returnUrl })
             : null;
+    }
+
+    /// <summary>An enabled SSO connection the account is linked to, whatever its address is now.</summary>
+    private async Task<SsoProvider?> LinkedConnectionAsync(User user, CancellationToken cancellationToken)
+    {
+        foreach (var login in await signInManager.UserManager.GetLoginsAsync(user))
+        {
+            if (SsoConnection.IdOf(login.LoginProvider) is { } id && await sso.FindAsync(id, cancellationToken) is { Enabled: true } linked)
+            {
+                return linked;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Where to go after a password sign-in: once per account, to the offer to add a passkey, for people who have none;
