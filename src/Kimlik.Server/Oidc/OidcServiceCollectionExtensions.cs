@@ -60,8 +60,10 @@ internal static class OidcServiceCollectionExtensions
                     .AllowClientCredentialsFlow()
                     .AllowDeviceAuthorizationFlow();
 
-                // PKCE for every client, confidential ones included (OAuth 2.0 Security BCP, RFC 9700).
-                options.RequireProofKeyForCodeExchange();
+                // PKCE is required client by client: of every browser and native app, and of web apps unless an administrator turned
+                // it off (OAuth 2.0 Security BCP, RFC 9700). OpenIddict holds a client that sends it to it either way, with S256
+                // only: plain gives an intercepted code to whoever saw the challenge.
+                options.Configure(server => server.CodeChallengeMethods.Remove(CodeChallengeMethods.Plain));
 
                 options.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.Phone, Scopes.OfflineAccess);
 

@@ -88,6 +88,7 @@ public sealed class ExportProvisioningHandler(IKimlikDbContext context, IOpenIdd
                 Roles = client.Type == ClientType.Service ? client.Roles : null,
                 RequireOrganization = client.RequireOrganization,
                 RequirePushedAuthorization = client.RequirePushedAuthorization,
+                RequirePkce = client.Type == ClientType.Service || client.RequirePkce,
                 AllowTokenExchange = client.AllowTokenExchange,
                 BackChannelLogoutUri = client.BackChannelLogoutUri,
                 JsonWebKeySet = client.JsonWebKeySet,

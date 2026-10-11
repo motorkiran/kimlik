@@ -88,6 +88,19 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task RequestWithoutPkce_IsRefused_ByAClientThatRequiresIt()
+    {
+        var client = await server.CreateWebClientAsync();
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+
+        using var response = await browser.GetAsync(new AuthorizationRequest(client.ClientId) { Pkce = false }.Url);
+
+        (await Browser.ReadPageAsync(response, HttpStatusCode.BadRequest)).Text.ShouldContain("code_challenge");
+    }
+
+    [Fact]
     public async Task ExplicitConsent_IsAskedOnce_ThenRemembered()
     {
         var client = await server.CreateWebClientAsync(ConsentTypes.Explicit);

@@ -59,6 +59,9 @@ public static class ClientErrors
     public static readonly Error PushedAuthorizationNotSupported = Error.Validation(
         "client.pushed_authorization_not_supported", "Service clients do not sign users in, so they make no authorization requests.");
 
+    public static readonly Error PkceRequired = Error.Validation(
+        "client.pkce_required", "Browser and native apps always sign in with PKCE; only a web app can be set to sign in without it.");
+
     public static readonly Error TokenExchangeNotSupported = Error.Validation(
         "client.token_exchange_not_supported", "Only web and service clients, which keep a secret or keys, may exchange tokens.");
 

@@ -13,7 +13,7 @@ public enum ClientType
     /// <summary>A mobile or desktop app. Public; signs users in with authorization code and PKCE.</summary>
     Native,
 
-    /// <summary>A server-side web app. Confidential; signs users in with authorization code and PKCE.</summary>
+    /// <summary>A server-side web app. Confidential; signs users in with authorization code and, unless it is turned off, PKCE.</summary>
     Web,
 
     /// <summary>A backend acting on its own behalf. Confidential; uses client credentials and holds roles.</summary>
@@ -37,6 +37,7 @@ public sealed record ClientResponse(
     IReadOnlyList<string> Roles,
     bool RequireOrganization,
     bool RequirePushedAuthorization,
+    bool RequirePkce,
     JsonObject? JsonWebKeySet,
     bool AllowTokenExchange,
     string? BackChannelLogoutUri,
@@ -89,6 +90,12 @@ public sealed record CreateClientRequest
     /// with only the <c>request_uri</c> it gets back, so no authorization parameter travels through the browser.
     /// </summary>
     public bool RequirePushedAuthorization { get; init; }
+
+    /// <summary>
+    /// Whether sign-ins must use PKCE (RFC 7636), as they always do for browser and native apps. Only a web app can be set
+    /// to sign in without it, such as an older app that cannot send it; one that sends it is held to it either way.
+    /// </summary>
+    public bool RequirePkce { get; init; } = true;
 
     /// <summary>
     /// For a web or service client that authenticates with keys rather than a secret (<c>private_key_jwt</c>, RFC 7523):
@@ -157,6 +164,8 @@ public sealed record UpdateClientRequest
     public bool? RequireOrganization { get; init; }
 
     public bool? RequirePushedAuthorization { get; init; }
+
+    public bool? RequirePkce { get; init; }
 
     public bool? AllowTokenExchange { get; init; }
 

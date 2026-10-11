@@ -2469,6 +2469,7 @@ export interface components {
             roles: string[];
             requireOrganization: boolean;
             requirePushedAuthorization: boolean;
+            requirePkce: boolean;
             jsonWebKeySet: null | components["schemas"]["JsonObject"];
             allowTokenExchange: boolean;
             backChannelLogoutUri: null | string;
@@ -2540,6 +2541,11 @@ export interface components {
              *     with only the `request_uri` it gets back, so no authorization parameter travels through the browser.
              */
             requirePushedAuthorization?: boolean;
+            /**
+             * @description Whether sign-ins must use PKCE (RFC 7636), as they always do for browser and native apps. Only a web app can be set
+             *     to sign in without it, such as an older app that cannot send it; one that sends it is held to it either way.
+             */
+            requirePkce?: boolean;
             jsonWebKeySet?: null | components["schemas"]["JsonObject"];
             /**
              * @description Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693), to call
@@ -3103,6 +3109,8 @@ export interface components {
             requireOrganization?: boolean;
             /** @description Whether the client must push its authorization requests (RFC 9126). */
             requirePushedAuthorization?: boolean;
+            /** @description Whether sign-ins must use PKCE; only a web client can be set not to. */
+            requirePkce?: boolean;
             /** @description Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693). */
             allowTokenExchange?: boolean;
             /** @description Where a web client receives logout tokens when the user's session ends. */
@@ -3350,6 +3358,7 @@ export interface components {
             firstParty?: null | boolean;
             requireOrganization?: null | boolean;
             requirePushedAuthorization?: null | boolean;
+            requirePkce?: null | boolean;
             allowTokenExchange?: null | boolean;
             redirectUris?: null | string[];
             postLogoutRedirectUris?: null | string[];

@@ -26,6 +26,12 @@ internal sealed class AuthorizationRequest(string clientId)
 
     public string RedirectUri { get; init; } = TestWebClient.RedirectUri;
 
+    /// <summary>Whether the request carries PKCE, as clients that cannot, and the OpenID certification tests, do not.</summary>
+    public bool Pkce { get; init; } = true;
+
+    /// <summary>More parameters, such as <c>max_age</c>, <c>login_hint</c> or ones the server does not know.</summary>
+    public IReadOnlyDictionary<string, string> Extra { get; init; } = new Dictionary<string, string>();
+
     public string Url => QueryHelpers.AddQueryString("/connect/authorize", Parameters);
 
     /// <summary>The request's parameters, as sent in the URL or pushed to the server (RFC 9126).</summary>
@@ -41,9 +47,18 @@ internal sealed class AuthorizationRequest(string clientId)
                 ["scope"] = Scope,
                 ["state"] = State,
                 ["nonce"] = Nonce,
-                ["code_challenge"] = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(CodeVerifier))),
-                ["code_challenge_method"] = "S256",
             };
+
+            if (Pkce)
+            {
+                parameters["code_challenge"] = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(CodeVerifier)));
+                parameters["code_challenge_method"] = "S256";
+            }
+
+            foreach (var (name, value) in Extra)
+            {
+                parameters[name] = value;
+            }
 
             if (Organization is not null)
             {

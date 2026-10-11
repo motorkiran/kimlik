@@ -38,7 +38,7 @@ public sealed class CreateClientHandler(
         }
 
         var settings = new ClientSettings(
-            request.DisplayName, request.FirstParty, request.RedirectUris, request.PostLogoutRedirectUris, request.Scopes, request.RequireOrganization, request.RequirePushedAuthorization, request.AllowTokenExchange, request.BackChannelLogoutUri);
+            request.DisplayName, request.FirstParty, request.RedirectUris, request.PostLogoutRedirectUris, request.Scopes, request.RequireOrganization, request.RequirePushedAuthorization, request.RequirePkce, request.AllowTokenExchange, request.BackChannelLogoutUri);
         var validation = await ClientPresets.ValidateAsync(context, request.Type, settings, cancellationToken);
         if (validation.IsFailure)
         {
@@ -161,6 +161,7 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
             request.HasScopes ? request.Scopes ?? [] : current.Scopes,
             request.RequireOrganization ?? current.RequireOrganization,
             request.RequirePushedAuthorization ?? current.RequirePushedAuthorization,
+            request.RequirePkce ?? current.RequirePkce,
             request.AllowTokenExchange ?? current.AllowTokenExchange,
             request.HasBackChannelLogoutUri ? request.BackChannelLogoutUri : current.BackChannelLogoutUri);
 

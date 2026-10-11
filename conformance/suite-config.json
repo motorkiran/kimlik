@@ -1,0 +1,60 @@
+{
+  "alias": "kimlik",
+  "description": "Kimlik",
+  "server": {
+    "discoveryUrl": "https://id.example.com/.well-known/openid-configuration"
+  },
+  "client": {
+    "client_id": "conformance",
+    "client_secret": "replace-with-a-long-random-secret"
+  },
+  "client2": {
+    "client_id": "conformance-2",
+    "client_secret": "replace-with-another-long-random-secret"
+  },
+  "browser": [
+    {
+      "match": "https://id.example.com/connect/authorize*",
+      "tasks": [
+        {
+          "task": "Sign in",
+          "optional": true,
+          "match": "https://id.example.com/signin*",
+          "commands": [
+            ["text", "id", "Input_Email", "conformance@example.com", "optional"],
+            ["text", "id", "Input_Password", "replace-with-the-test-users-password", "optional"],
+            ["click", "id", "password-sign-in"]
+          ]
+        },
+        {
+          "task": "Skip the passkey offer",
+          "optional": true,
+          "match": "https://id.example.com/signin/passkey*",
+          "commands": [["click", "id", "not-now"]]
+        },
+        {
+          "task": "Consent",
+          "optional": true,
+          "match": "https://id.example.com/connect/authorize*",
+          "commands": [["click", "css", "button[name=consent][value=accept]"]]
+        },
+        {
+          "task": "Verify Complete",
+          "match": "*/test/*/callback*",
+          "commands": [["wait", "id", "submission_complete", 10]]
+        }
+      ]
+    },
+    {
+      "match": "https://id.example.com/connect/endsession*",
+      "tasks": [
+        {
+          "task": "Confirm signing out",
+          "optional": true,
+          "match": "https://id.example.com/connect/endsession*",
+          "commands": [["click", "css", "button[name=confirm]"]]
+        }
+      ]
+    }
+  ]
+}

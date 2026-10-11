@@ -151,6 +151,9 @@ public sealed record ProvisionedClient
     /// <summary>Whether the client must push its authorization requests (RFC 9126).</summary>
     public bool RequirePushedAuthorization { get; init; }
 
+    /// <summary>Whether sign-ins must use PKCE; only a web client can be set not to.</summary>
+    public bool RequirePkce { get; init; } = true;
+
     /// <summary>Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693).</summary>
     public bool AllowTokenExchange { get; init; }
 

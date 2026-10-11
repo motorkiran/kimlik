@@ -229,9 +229,9 @@ The backlog, roughly in priority order:
 
 1. DPoP (RFC 9449), which OpenIddict does not support yet.
 2. A Helm chart.
-3. OpenID Foundation certification.
+3. Applying for OpenID Foundation certification, once the suite has been run against a public deployment.
 
-Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)); product settings and social providers changed at runtime (M27, M28, [§6.8](#68-configuration)); login apps (M29, [§10.12](#1012-login-apps)); the JavaScript SDK (M30, [§12.6](#126-javascript-and-typescript-kimliknode)); organization components (M31, [§12.7](#127-organization-components-kimlikelements)).
+Done since the MVP: passkeys, as a sign-in of their own and as the second step (M9, M15, [§10.4](#104-passkeys)); email sign-in codes, links and accounts without a password (M10, M16, [§10.5](#105-email-sign-in-codes)); personal data export (M11, [§10.7](#107-privacy-kvkkgdpr)); the device authorization grant and breached-password checks (M12, [§8.8](#88-device-authorization), [§10.2](#102-credentials)); admin impersonation (M13, [§10.6](#106-administrative-security)); `private_key_jwt` and PAR (M14, [§8.2](#82-grants-and-client-authentication)); phone numbers and SMS codes (M17, [§10.9](#109-phone-numbers-and-sms-codes)); token exchange (M18, [§8.9](#89-token-exchange)); back-channel logout (M19, [§8.10](#810-back-channel-logout)); add-ons and entitlement overrides (M20, [§5.7](#57-add-ons-and-custom-deals)); CAPTCHA and step-up with `acr_values` (M21, [§10.10](#1010-bot-protection), [§8.11](#811-authentication-context)); usage metering (M22, [§5.8](#58-usage-metering)); secret rotation with overlap (M23, [§8.2](#82-grants-and-client-authentication)); enterprise SSO over OpenID Connect and SAML (M24, M26, [§10.11](#1011-enterprise-single-sign-on)); organization pages (M25, [§6.4](#64-hosted-ui)); product settings and social providers changed at runtime (M27, M28, [§6.8](#68-configuration)); login apps (M29, [§10.12](#1012-login-apps)); the JavaScript SDK (M30, [§12.6](#126-javascript-and-typescript-kimliknode)); organization components (M31, [§12.7](#127-organization-components-kimlikelements)); readiness for OpenID certification (M32, [§8.12](#812-openid-certification)).
 
 ### 4.3 Out of scope
 
@@ -578,7 +578,8 @@ erDiagram
 
 ### 8.2 Grants and client authentication
 
-- **MVP grants:** `authorization_code` (PKCE with S256 is required for every client), `refresh_token` and `client_credentials`.
+- **MVP grants:** `authorization_code`, `refresh_token` and `client_credentials`.
+- **PKCE** with S256 is required of browser and native apps, and of web apps unless an administrator turns it off for one (`requirePkce: false`), such as an older app that cannot send it or the OpenID certification tests ([§8.12](#812-openid-certification)), which do not. A web app that sends PKCE is held to it either way, and a code issued without it cannot be redeemed with a verifier.
 - **Device authorization** (RFC 8628, `urn:ietf:params:oauth:grant-type:device_code`) for native clients, such as command-line tools and TV apps ([§8.8](#88-device-authorization)).
 - **Token exchange** (RFC 8693, `urn:ietf:params:oauth:grant-type:token-exchange`) for backends that call other APIs on a user's behalf ([§8.9](#89-token-exchange)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
@@ -693,6 +694,29 @@ When a session falls short of a requested policy, Kimlik asks for more: a second
 
 ---
 
+### 8.12 OpenID certification
+
+Kimlik prepares for the OpenID Foundation's certification of providers, in the profiles that match what it does.
+
+- **Profiles:** Basic OP (the authorization code flow, with `client_secret_basic` and `client_secret_post`), Config OP (discovery), RP-Initiated Logout OP and Back-Channel Logout OP.
+- **Not targeted:**
+  - Implicit and Hybrid OP, since Kimlik does not support those flows (RFC 9700).
+  - Dynamic OP, since Kimlik has no dynamic client registration.
+  - Form Post, Front-Channel Logout and Session Management.
+- **What the tests need from Kimlik.**
+  - The suite's requests carry no PKCE, so its clients are web clients with PKCE turned off ([§8.2](#82-grants-and-client-authentication)).
+  - Requests the suite does not expect to be understood must not fail: `display`, `ui_locales`, `claims_locales`, unknown `acr_values`, the `claims` parameter and unknown parameters are ignored.
+  - `prompt=consent` shows the consent page even to first-party apps.
+  - PKCE takes S256 only.
+  - Reusing an authorization code revokes the tokens it gave.
+- **Skipped, as the suite allows:**
+  - Request objects and `request_uri`, since discovery does not offer unsigned ones.
+  - ID tokens signed with `none`.
+  - The `address` scope.
+- **Warned, as the suite allows:** `phone_number`, until the test user verifies a number by text, and `name` asked for through the `claims` parameter, since Kimlik returns claims by scope.
+- **Running the suite.** `conformance/` holds a provisioning file for the suite's two clients and a configuration for its test plans. The configuration includes the browser steps that sign the suite's user in through the hosted pages. [docs/certification.md](certification.md) walks through a run on the hosted suite or a local one. Kimlik must be reachable over HTTPS from wherever the suite runs.
+- **Tests.** `BasicOpConformanceTests` and `LogoutConformanceTests` follow the plans' test modules, each named in the test, against the test server on every change. Applying for certification, which the OpenID Foundation charges non-members for, is the maintainers' decision.
+
 ## 9. API design
 
 ### 9.1 Conventions
@@ -783,7 +807,7 @@ Kimlik uses OWASP ASVS (Level 2) and the OAuth 2.0 Security Best Current Practic
 | Phished or reused passwords | MFA (TOTP), enforceable for administrators, organizations or the whole installation |
 | Account enumeration | Identical responses and comparable timing for sign-up, sign-in and password reset |
 | CSRF, XSS, clickjacking | Anti-forgery tokens, output encoding, CSP with nonces, `frame-ancestors 'none'` |
-| Open redirects, code interception | Exact redirect URI matching, PKCE (S256) for all clients |
+| Open redirects, code interception | Exact redirect URI matching, PKCE (S256) for browser and native apps and, by default, web apps |
 | Token theft and replay | Short-lived access tokens, refresh token rotation with reuse detection, revocation |
 | Secret leakage | Hashed secrets, encrypted reversible secrets, API keys shown once with a scannable prefix |
 | Session hijacking | `__Host-` cookies with `Secure`, `HttpOnly` and `SameSite`; security stamp validation; HSTS |
@@ -1168,6 +1192,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M29: Login apps** | Sign-in pages of developers' own, through login challenges that a login app accepts or rejects through the Management API and the SDK ([§10.12](#1012-login-apps)) | A login app signs a person in, with their Kimlik password and second factor, and the app gets tokens with the accepted methods; challenges cannot be completed by another browser or below the required factors, in end-to-end tests ✅ (M27 to M29 released as v0.4.0, 2026-10-11) |
 | **M30: JavaScript SDK** | `@kimlik/node` for Node.js backends: token and API key validation, permission middleware, entitlements, a typed Management API client and webhook verification ([§12.6](#126-javascript-and-typescript-kimliknode)) | A Node.js API validates Kimlik tokens and permissions and verifies webhooks, in tests that run in CI ✅ (released as v0.5.0, 2026-10-11) |
 | **M31: Organization components** | Web components that put organization management inside apps' own pages, calling the Account API with tokens for the `kimlik.organizations` scope ([§12.7](#127-organization-components-kimlikelements)) | An app's page lists the user's organizations, invites a member and changes their roles through the components, which show only what the user may do; tokens for the scope reach no other endpoint, in server and component tests ✅ |
+| **M32: Certification readiness** | What the OpenID Foundation's Basic, Config, RP-Initiated Logout and Back-Channel Logout OP plans test, and what a run needs ([§8.12](#812-openid-certification)) | The plans' checks pass against the test server in CI, and `conformance/` sets up a run of the suite ✅ |
 
 ---
 

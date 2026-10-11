@@ -9036,6 +9036,7 @@
           "roles",
           "requireOrganization",
           "requirePushedAuthorization",
+          "requirePkce",
           "jsonWebKeySet",
           "allowTokenExchange",
           "backChannelLogoutUri",
@@ -9090,6 +9091,9 @@
             "type": "boolean"
           },
           "requirePushedAuthorization": {
+            "type": "boolean"
+          },
+          "requirePkce": {
             "type": "boolean"
           },
           "jsonWebKeySet": {
@@ -9284,6 +9288,10 @@
           "requirePushedAuthorization": {
             "type": "boolean",
             "description": "Whether the client must push its authorization requests to `/connect/par` (RFC 9126) and send the browser\nwith only the `request_uri` it gets back, so no authorization parameter travels through the browser."
+          },
+          "requirePkce": {
+            "type": "boolean",
+            "description": "Whether sign-ins must use PKCE (RFC 7636), as they always do for browser and native apps. Only a web app can be set\nto sign in without it, such as an older app that cannot send it; one that sends it is held to it either way."
           },
           "jsonWebKeySet": {
             "oneOf": [
@@ -11133,6 +11141,10 @@
             "type": "boolean",
             "description": "Whether the client must push its authorization requests (RFC 9126)."
           },
+          "requirePkce": {
+            "type": "boolean",
+            "description": "Whether sign-ins must use PKCE; only a web client can be set not to."
+          },
           "allowTokenExchange": {
             "type": "boolean",
             "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693)."
@@ -11970,6 +11982,12 @@
             ]
           },
           "requirePushedAuthorization": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "requirePkce": {
             "type": [
               "null",
               "boolean"

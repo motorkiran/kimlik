@@ -14,6 +14,7 @@ internal static class ClientMapping
     {
         var permissions = await applications.GetPermissionsAsync(application, cancellationToken);
         var type = await applications.GetPresetAsync(application, cancellationToken);
+        var requirements = await applications.GetRequirementsAsync(application, cancellationToken);
 
         return new ClientResponse(
             await applications.GetIdentifierAsync(application, cancellationToken),
@@ -26,7 +27,8 @@ internal static class ClientMapping
             ClientPresets.ScopesOf(type, permissions),
             [.. roles.Order(StringComparer.Ordinal)],
             ClientPresets.RequiresOrganization(await applications.GetPropertiesAsync(application, cancellationToken)),
-            (await applications.GetRequirementsAsync(application, cancellationToken)).Contains(Requirements.Features.PushedAuthorizationRequests),
+            requirements.Contains(Requirements.Features.PushedAuthorizationRequests),
+            requirements.Contains(Requirements.Features.ProofKeyForCodeExchange),
             await applications.GetJsonWebKeySetAsync(application, cancellationToken) is { } keys ? ClientKeys.ToJson(keys) : null,
             permissions.Contains(OidcPermissions.GrantTypes.TokenExchange, StringComparer.Ordinal),
             ClientPresets.BackChannelLogoutUriOf(await applications.GetPropertiesAsync(application, cancellationToken))?.AbsoluteUri,

@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
+using Kimlik.Application.Clients;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Server.Tests.Oidc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kimlik.Server.Tests.Provisioning;
 
@@ -38,6 +40,27 @@ public sealed class ProvisioningFileTests(KimlikServerFixture server)
 
         using var http = kimlik.CreateClient();
         (await http.RequestClientCredentialsTokenAsync(new TestClient("report-worker", WorkerSecret), "reports")).ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ConformanceFile_SetsUpTheSuitesClients()
+    {
+        var file = Path.Combine(ProjectDirectory(), "..", "..", "conformance", "provisioning.json");
+
+        await using var kimlik = await StartAsync(
+            file, new() { ["Conformance:ClientSecret"] = "a conformance client secret", ["Conformance:Client2Secret"] = "a second conformance secret" });
+
+        await using var scope = kimlik.Services.CreateAsyncScope();
+        var clients = scope.ServiceProvider.GetRequiredService<GetClientHandler>();
+        var applications = scope.ServiceProvider.GetRequiredService<OpenIddict.Abstractions.IOpenIddictApplicationManager>();
+        foreach (var clientId in new[] { "conformance", "conformance-2" })
+        {
+            var id = Guid.Parse((await applications.GetIdAsync((await applications.FindByClientIdAsync(clientId, TestContext.Current.CancellationToken))!, TestContext.Current.CancellationToken))!);
+            var client = (await clients.HandleAsync(id, TestContext.Current.CancellationToken)).Value;
+            client.RequirePkce.ShouldBeFalse();
+            client.FirstParty.ShouldBeTrue();
+            client.PostLogoutRedirectUris.ShouldBe(["https://www.certification.openid.net/test/a/kimlik/post_logout_redirect"]);
+        }
     }
 
     [Theory]

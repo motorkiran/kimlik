@@ -247,6 +247,35 @@ public sealed class ClientApiTests(KimlikServerFixture server)
         http.PostFormAsync("/connect/token", [new("grant_type", "client_credentials"), new("scope", TestClients.ApiScope)], client);
 
     [Fact]
+    public async Task OnlyWebApps_CanSignInWithoutPkce()
+    {
+        using var api = await server.CreateApiClientAsync();
+
+        using var spa = await api.Http.PostJsonAsync(Clients, new CreateClientRequest
+        {
+            ClientId = NewClientId(),
+            DisplayName = "Dashboard",
+            Type = ClientType.Spa,
+            RedirectUris = ["https://dashboard.example.com/callback"],
+            RequirePkce = false,
+        });
+        (await spa.ReadProblemCodeAsync()).ShouldBe("client.pkce_required");
+
+        using var web = await api.Http.PostJsonAsync(Clients, new CreateClientRequest
+        {
+            ClientId = NewClientId(),
+            DisplayName = "Legacy portal",
+            Type = ClientType.Web,
+            RedirectUris = ["https://portal.example.com/callback"],
+        });
+        var client = (await web.ReadAsync<CreatedClientResponse>()).Client;
+        client.RequirePkce.ShouldBeTrue("PKCE is required unless it is turned off");
+
+        using var relaxed = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Clients}/{client.Id}", """{ "requirePkce": false }""");
+        (await relaxed.ReadAsync<ClientResponse>()).RequirePkce.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task AppsThatSignUsersInToKimliksApi_TakeFullAccessToSetUp()
     {
         using var delegated = await server.CreateApiClientAsync(await server.CreateRoleWithAsync(SystemPermissions.ClientsRead, SystemPermissions.ClientsWrite));

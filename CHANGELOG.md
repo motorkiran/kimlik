@@ -8,10 +8,14 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 - The `kimlik.organizations` scope: its tokens reach only the Account API's organization and invitation endpoints, with an audience of their own and no system permissions, so any app that signs users in can be allowed it. Those endpoints answer cross-origin calls from the apps allowed the scope. `GET /api/v1/me/organizations/{id}/roles` lists the roles members can hold.
 - `@kimlik/elements`, web components that put organization management inside apps' own pages: `<kimlik-organizations>`, `<kimlik-organization-members>` and `<kimlik-organization-settings>`, in English and Turkish, styled through CSS custom properties and `::part()`. Releases carry it as a tarball until it is on npm.
+- `requirePkce` on clients: PKCE stays required of browser and native apps, and of web apps by default, but an administrator can turn it off for a web app that cannot send it, such as the OpenID conformance suite.
+- `conformance/` and [docs/certification.md](docs/certification.md) set up a run of the OpenID Foundation's conformance suite for the Basic, Config, RP-Initiated Logout and Back-Channel Logout OP profiles, and tests follow those plans' checks on every change.
 
 ### Changed
 
 - Scopes and audiences that start with `kimlik.` are reserved for Kimlik.
+- PKCE takes S256 only; `plain` is no longer accepted.
+- `prompt=consent` shows the consent page to first-party apps too.
 
 ## [0.5.0] - 2026-10-11
 

@@ -34,6 +34,7 @@ else if (_client is { } client)
                     <MudCheckBox @bind-Value="_requirePushedAuthorization" Label="Require pushed authorization requests (PAR)" ReadOnly="!CanWrite" />
                     @if (client.Type == ClientType.Web)
                     {
+                        <MudCheckBox @bind-Value="_requirePkce" Label="Require PKCE (turn off only for an app that cannot send it)" ReadOnly="!CanWrite" id="require-pkce" />
                         <MudTextField @bind-Value="_backChannelLogoutUri" Label="Back-channel logout URI" ReadOnly="!CanWrite" id="back-channel-logout-uri"
                                       HelperText="Receives a logout token when a user's session ends. Optional." />
                     }
@@ -122,6 +123,7 @@ else if (_client is { } client)
     private bool _requireOrganization;
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
     private bool _requirePushedAuthorization;
+    private bool _requirePkce = true;
     private bool _allowTokenExchange;
     private string? _backChannelLogoutUri;
     private string? _keys;
@@ -161,6 +163,7 @@ else if (_client is { } client)
         _firstParty = client.FirstParty;
         _requireOrganization = client.RequireOrganization;
         _requirePushedAuthorization = client.RequirePushedAuthorization;
+        _requirePkce = client.RequirePkce;
         _allowTokenExchange = client.AllowTokenExchange;
         _backChannelLogoutUri = client.BackChannelLogoutUri;
         _keys = client.JsonWebKeySet?.ToJsonString(Indented);
@@ -182,6 +185,7 @@ else if (_client is { } client)
                 FirstParty = _firstParty,
                 RequireOrganization = _requireOrganization,
                 RequirePushedAuthorization = _requirePushedAuthorization,
+                RequirePkce = _client.Type == ClientType.Web ? _requirePkce : null,
                 AllowTokenExchange = _client.Type == ClientType.Web ? _allowTokenExchange : null,
                 BackChannelLogoutUri = _client.Type == ClientType.Web && !string.IsNullOrWhiteSpace(_backChannelLogoutUri) ? _backChannelLogoutUri.Trim() : null,
                 Scopes = [.. _scopes],

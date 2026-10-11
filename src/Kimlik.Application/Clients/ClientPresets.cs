@@ -24,6 +24,7 @@ internal sealed record ClientSettings(
     IReadOnlyList<string> Scopes,
     bool RequireOrganization,
     bool RequirePushedAuthorization,
+    bool RequirePkce,
     bool AllowTokenExchange,
     string? BackChannelLogoutUri);
 
@@ -135,6 +136,11 @@ public static partial class ClientPresets
             return ClientErrors.PushedAuthorizationNotSupported;
         }
 
+        if (type is ClientType.Spa or ClientType.Native && !settings.RequirePkce)
+        {
+            return ClientErrors.PkceRequired;
+        }
+
         if (!IsConfidential(type) && settings.AllowTokenExchange)
         {
             return ClientErrors.TokenExchangeNotSupported;
@@ -189,7 +195,11 @@ public static partial class ClientPresets
                 OidcPermissions.GrantTypes.RefreshToken,
                 OidcPermissions.ResponseTypes.Code,
             ]);
-            descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+            if (settings.RequirePkce)
+            {
+                descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+            }
+
             if (settings.RequirePushedAuthorization)
             {
                 descriptor.Requirements.Add(Requirements.Features.PushedAuthorizationRequests);

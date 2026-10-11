@@ -1,0 +1,30 @@
+{
+  "$schema": "../docs/schemas/provisioning.schema.json",
+  // The clients the OpenID conformance suite signs in with. Replace "kimlik" in the URLs with the alias of your test plan,
+  // and the host with that of a local suite if you run one. The secrets come from configuration, such as the environment
+  // variables Conformance__ClientSecret and Conformance__Client2Secret, and go in suite-config.json too.
+  "clients": [
+    {
+      "clientId": "conformance",
+      "displayName": "OpenID conformance suite",
+      "type": "web",
+      "clientSecret": "${Conformance:ClientSecret}",
+      // The suite's requests carry no PKCE.
+      "requirePkce": false,
+      "redirectUris": ["https://www.certification.openid.net/test/a/kimlik/callback"],
+      "postLogoutRedirectUris": ["https://www.certification.openid.net/test/a/kimlik/post_logout_redirect"],
+      "backChannelLogoutUri": "https://www.certification.openid.net/test/a/kimlik/backchannel_logout",
+      "scopes": ["openid", "profile", "email", "phone", "offline_access"]
+    },
+    {
+      "clientId": "conformance-2",
+      "displayName": "OpenID conformance suite (second client)",
+      "type": "web",
+      "clientSecret": "${Conformance:Client2Secret}",
+      "requirePkce": false,
+      "redirectUris": ["https://www.certification.openid.net/test/a/kimlik/callback"],
+      "postLogoutRedirectUris": ["https://www.certification.openid.net/test/a/kimlik/post_logout_redirect"],
+      "scopes": ["openid", "profile", "email", "phone", "offline_access"]
+    }
+  ]
+}
