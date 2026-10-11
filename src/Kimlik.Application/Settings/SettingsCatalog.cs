@@ -139,6 +139,16 @@ public static class SettingsCatalog
     public static SettingDefinition? Find(string key) =>
         All.FirstOrDefault(definition => string.Equals(definition.Key, key, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// What the validators that run at startup say about the options of the sections that <paramref name="keys"/> belong to,
+    /// as <paramref name="configuration"/> sets them: the failures of each section they reject, by its name.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(IConfiguration configuration, IEnumerable<string> keys, IServiceProvider services) =>
+        keys.Select(Find).OfType<SettingDefinition>().Select(definition => definition.Section).Distinct()
+            .Select(section => (section.Name, Failures: section.Validate(configuration, services)))
+            .Where(result => result.Failures.Count > 0)
+            .ToDictionary(result => result.Name, result => result.Failures, StringComparer.OrdinalIgnoreCase);
+
     private static SettingDefinition Entry<TOptions>(
         SettingsSection<TOptions> section, string property, SettingType type, string description, Func<TOptions, string?> read, IReadOnlyList<string>? choices = null, string? group = null)
         where TOptions : class, new() => new()

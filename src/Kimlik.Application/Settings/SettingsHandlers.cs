@@ -113,6 +113,9 @@ public sealed partial class UpdateSettingsHandler(
             changes[definition] = normalized.Value;
         }
 
+        // Changes are validated with the settings stored now, so they are made one at a time, on every instance.
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
+        await context.LockSettingsAsync(cancellationToken);
         var rows = await context.Settings.ToListAsync(cancellationToken);
         var values = rows.ToDictionary(row => row.Key, row => StoredSettingSecrets.Decrypt(encryption, row), StringComparer.OrdinalIgnoreCase);
         foreach (var (definition, value) in changes)
@@ -127,11 +130,10 @@ public sealed partial class UpdateSettingsHandler(
             }
         }
 
-        var candidate = stored.WithStored(values);
-        var failures = changes.Keys.Select(definition => definition.Section).Distinct().SelectMany(section => section.Validate(candidate, services)).ToList();
-        if (failures.Count > 0)
+        var rejected = SettingsCatalog.Validate(stored.WithStored(values), changes.Keys.Select(definition => definition.Key), services);
+        if (rejected.Count > 0)
         {
-            return SettingsErrors.Invalid(failures);
+            return SettingsErrors.Invalid(rejected.Values.SelectMany(failures => failures));
         }
 
         var now = timeProvider.GetUtcNow();
@@ -164,6 +166,7 @@ public sealed partial class UpdateSettingsHandler(
                 ["settings"] = changes.ToDictionary(change => change.Key.Key, change => change.Key.Type == SettingType.Secret && change.Value is not null ? "(secret)" : change.Value),
             });
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         await stored.ReloadAsync(cancellationToken);
         return GetSettingsHandler.Describe(configuration, stored);
     }

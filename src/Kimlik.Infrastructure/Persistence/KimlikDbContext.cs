@@ -88,6 +88,9 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.CurrentTransaction is { } current ? new JoinedTransaction(current) : await Database.BeginTransactionAsync(cancellationToken);
 
+    public async Task LockSettingsAsync(CancellationToken cancellationToken) =>
+        await Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.Settings})", cancellationToken);
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

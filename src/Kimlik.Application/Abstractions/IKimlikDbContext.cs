@@ -75,4 +75,10 @@ public interface IKimlikDbContext
 
     /// <summary>Starts a transaction, or joins the one already in progress, which then decides the outcome.</summary>
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Waits until no other change to the stored settings is in progress, on any instance, and keeps others waiting until
+    /// the transaction in progress ends.
+    /// </summary>
+    Task LockSettingsAsync(CancellationToken cancellationToken);
 }

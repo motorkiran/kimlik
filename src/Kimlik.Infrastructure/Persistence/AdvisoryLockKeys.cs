@@ -15,4 +15,6 @@ internal static class AdvisoryLockKeys
     public const long ProtocolDataPruning = 0x4B494D4C494B_0004;
 
     public const long AuditRetention = 0x4B494D4C494B_0005;
+
+    public const long Settings = 0x4B494D4C494B_0006;
 }

@@ -86,6 +86,17 @@ internal sealed partial class StoredSettings(
                 }
             }
 
+            // Values the validators reject, such as ones an earlier version accepted, would keep their options from binding:
+            // their section goes back to the configuration alone.
+            foreach (var (section, failures) in SettingsCatalog.Validate(WithStored(values), values.Keys, scope.ServiceProvider))
+            {
+                LogRejected(logger, section, string.Join(" ", failures));
+                foreach (var key in values.Keys.Where(key => key.StartsWith($"{section}:", StringComparison.OrdinalIgnoreCase)).ToList())
+                {
+                    values.Remove(key);
+                }
+            }
+
             provider.Replace(values);
             _version = (rows.Count, rows.Count == 0 ? null : rows.Max(row => row.UpdatedAt));
         }
@@ -125,6 +136,9 @@ internal sealed partial class StoredSettings(
 
     [LoggerMessage(LogLevel.Warning, "The stored setting {Key} could not be decrypted and is left out; set it again")]
     private static partial void LogUnreadable(ILogger logger, string key, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "The stored settings of {Section} are left out, as they are not valid: {Failures} Set them again")]
+    private static partial void LogRejected(ILogger logger, string section, string failures);
 
     [LoggerMessage(LogLevel.Warning, "The stored settings could not be loaded, so the configuration alone applies until they can")]
     private static partial void LogUnavailable(ILogger logger, Exception exception);

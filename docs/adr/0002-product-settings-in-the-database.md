@@ -21,7 +21,7 @@
   - the CAPTCHA provider and its keys
   - the social providers: their client IDs and secrets, Apple's key, the Microsoft tenant and whether their addresses are trusted. OpenIddict's client builds its registrations again when they change.
 - Settings that wire up infrastructure at startup stay in configuration only: connection strings, keys, token lifetimes, rate limits, email and text messages.
-- Changes are validated as a whole with the same validators as at startup before they are saved, so an invalid value never takes effect. Secrets, such as the CAPTCHA secret key, are encrypted with the master key, and the API never returns them.
+- Changes are validated as a whole with the same validators as at startup before they are saved, so an invalid value never takes effect. They are made one at a time across instances, under a PostgreSQL advisory lock, since each is validated with the values stored before it. Stored values are validated again whenever they load: a section that the validators reject, such as with values an earlier version accepted, falls back to the configuration alone, and a warning names it. Secrets, such as the CAPTCHA secret key, are encrypted with the master key, and the API never returns them.
 - Each instance loads the settings after migrating the database, applies its own changes at once, and checks every 15 seconds whether another instance changed them.
 - Reading settings takes `kimlik.settings:read`. Changing them takes `kimlik.settings:write` and every installation-wide system permission, since they include security policies such as MFA for administrators. Changes are audited as `settings.updated`.
 

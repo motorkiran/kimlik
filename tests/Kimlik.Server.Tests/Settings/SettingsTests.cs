@@ -3,6 +3,7 @@ using Kimlik.Application.Settings;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
 using Kimlik.Domain.Common;
+using Kimlik.Domain.Settings;
 using Kimlik.Domain.Users;
 using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Settings;
@@ -141,6 +142,41 @@ public sealed class SettingsTests(KimlikServerFixture server)
 
         using var browser = new Browser(second);
         (await browser.GetPageAsync("/signin")).Text.ShouldContain("Acme ID");
+    }
+
+    [Fact]
+    public async Task StoredValuesTheValidatorsReject_AreLeftOut_WithTheirSection()
+    {
+        await using var kimlik = await StartAsync();
+        (await UpdateAsync(kimlik, ("Kimlik:Branding:ProductName", "Acme ID"), ("Kimlik:Accounts:Registration", "InviteOnly"))).IsSuccess.ShouldBeTrue();
+
+        // As an earlier version could have stored it, or someone in the database.
+        await using (var scope = kimlik.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<KimlikDbContext>();
+            context.Settings.Add(Setting.Create("Kimlik:Accounts:PasswordMinimumLength", "4", isSecret: false, DateTimeOffset.UtcNow));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await kimlik.Services.LoadStoredSettingsAsync(TestContext.Current.CancellationToken);
+
+        var settings = Describe(kimlik);
+        settings.Single(setting => setting.Key == "Kimlik:Accounts:PasswordMinimumLength").Source.ShouldBe(SettingSource.Default);
+        settings.Single(setting => setting.Key == "Kimlik:Accounts:Registration").Source.ShouldBe(SettingSource.Default);
+        settings.Single(setting => setting.Key == "Kimlik:Branding:ProductName").Value.ShouldBe("Acme ID");
+        using var browser = new Browser(kimlik);
+        (await browser.GetPageAsync("/signup")).Document.QuerySelector("form").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task ChangesAtTheSameMoment_AreMadeOneAtATime()
+    {
+        await using var kimlik = await StartAsync();
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(index => UpdateAsync(kimlik, ("Kimlik:Branding:ProductName", $"Acme {index}"))));
+
+        results.ShouldAllBe(result => result.IsSuccess);
+        Describe(kimlik).Single(setting => setting.Key == "Kimlik:Branding:ProductName").Source.ShouldBe(SettingSource.Database);
     }
 
     [Fact]
