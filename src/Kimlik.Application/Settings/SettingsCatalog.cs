@@ -88,6 +88,7 @@ public static class SettingsCatalog
     private static readonly SettingsSection<OrganizationOptions> Organizations = new(OrganizationOptions.SectionName);
     private static readonly SettingsSection<PlanOptions> Plans = new(PlanOptions.SectionName);
     private static readonly SettingsSection<CaptchaOptions> Captcha = new(CaptchaOptions.SectionName);
+    private static readonly SettingsSection<SocialLoginOptions> Social = new(SocialLoginOptions.SectionName);
 
     public static readonly IReadOnlyList<SettingDefinition> All =
     [
@@ -116,23 +117,48 @@ public static class SettingsCatalog
             options => options.Provider.ToString(), Enum.GetNames<CaptchaProvider>()),
         Entry(Captcha, "SiteKey", SettingType.Text, "The CAPTCHA provider's site key.", options => options.SiteKey),
         Entry(Captcha, "SecretKey", SettingType.Secret, "The CAPTCHA provider's secret key.", options => options.SecretKey),
+
+        .. Provider("Google", options => options.Google, "Sign-in with Google appears once the client ID is set."),
+        .. Provider("Microsoft", options => options.Microsoft, "Sign-in with Microsoft appears once the client ID is set."),
+        Entry(Social, "Microsoft:Tenant", SettingType.Text, "Whose Microsoft accounts can sign in: common, organizations, consumers or one tenant's ID.",
+            options => options.Microsoft.Tenant, group: "Microsoft sign-in"),
+        .. Provider("GitHub", options => options.GitHub, "Sign-in with GitHub appears once the client ID is set."),
+        Entry(Social, "Apple:ClientId", SettingType.Text, "Sign-in with Apple appears once its Services ID is set here, with the team, key ID and key.",
+            options => options.Apple.ClientId, group: "Apple sign-in"),
+        Entry(Social, "Apple:TeamId", SettingType.Text, "The team of the Apple developer account.", options => options.Apple.TeamId, group: "Apple sign-in"),
+        Entry(Social, "Apple:KeyId", SettingType.Text, "The ID of the key that signs Kimlik's client secret for Apple.", options => options.Apple.KeyId, group: "Apple sign-in"),
+        Entry(Social, "Apple:PrivateKey", SettingType.Secret, "The PEM text of the .p8 key Apple issued.", options => options.Apple.PrivateKey, group: "Apple sign-in"),
+        Entry(Social, "Apple:TrustEmail", SettingType.Boolean, "Addresses Apple verified count as verified.", options => Text(options.Apple.TrustEmail), group: "Apple sign-in"),
     ];
 
     public static SettingDefinition? Find(string key) =>
         All.FirstOrDefault(definition => string.Equals(definition.Key, key, StringComparison.OrdinalIgnoreCase));
 
     private static SettingDefinition Entry<TOptions>(
-        SettingsSection<TOptions> section, string property, SettingType type, string description, Func<TOptions, string?> read, IReadOnlyList<string>? choices = null)
+        SettingsSection<TOptions> section, string property, SettingType type, string description, Func<TOptions, string?> read, IReadOnlyList<string>? choices = null, string? group = null)
         where TOptions : class, new() => new()
         {
             Key = $"{section.Name}:{property}",
-            Group = section.Name["Kimlik:".Length..],
+            Group = group ?? section.Name["Kimlik:".Length..],
             Type = type,
             Description = description,
             Choices = choices ?? [],
             Section = section,
             Read = options => read((TOptions)options),
         };
+
+    /// <summary>The client ID, secret and email trust of a social provider.</summary>
+    private static SettingDefinition[] Provider(string name, Func<SocialLoginOptions, SocialProviderOptions> provider, string description)
+    {
+        var group = $"{name} sign-in";
+        return
+        [
+            Entry(Social, $"{name}:ClientId", SettingType.Text, description, options => provider(options).ClientId, group: group),
+            Entry(Social, $"{name}:ClientSecret", SettingType.Secret, $"Kimlik's client secret at {name}.", options => provider(options).ClientSecret, group: group),
+            Entry(Social, $"{name}:TrustEmail", SettingType.Boolean, $"Addresses {name} verified count as verified, so new accounts skip email verification.",
+                options => Text(provider(options).TrustEmail), group: group),
+        ];
+    }
 
     private static string Text(bool value) => value ? "true" : "false";
 }

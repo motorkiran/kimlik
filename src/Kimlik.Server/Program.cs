@@ -23,7 +23,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddSignInSession();
 builder.Services.AddOidcServer();
-builder.Services.AddSocialLogin(builder.Configuration);
+builder.Services.AddSocialLogin();
 builder.Services.AddBrowserClientCors();
 builder.Services.AddManagementApi();
 builder.Services.AddHostedUi();

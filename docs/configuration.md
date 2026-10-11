@@ -14,6 +14,7 @@ Some product settings can also change while Kimlik runs, from **Settings** in th
 - organizations: `UsersCanCreate` and `InvitationLifetime`
 - plans: `DefaultUserPlan` and `DefaultOrganizationPlan`
 - CAPTCHA: `Provider`, `SiteKey` and `SecretKey`
+- social providers: the client ID and secret and `TrustEmail` of Google, Microsoft and GitHub, Microsoft's `Tenant`, and Apple's `ClientId`, `TeamId`, `KeyId`, `PrivateKey` and `TrustEmail`
 
 A value changed at runtime is stored in the database. It overrides `appsettings.json`, but not environment variables or the command line: a setting set there is fixed, and the admin panel shows it as fixed by the environment. Changes are checked as at startup before they are saved. They apply at once on the instance that saves them, and within 15 seconds on the others. Secrets are encrypted with the master key and never shown again. Changing settings takes `kimlik.settings:write` and every other installation-wide system permission, and is audited as `settings.updated`. See [ADR 0002](adr/0002-product-settings-in-the-database.md).
 

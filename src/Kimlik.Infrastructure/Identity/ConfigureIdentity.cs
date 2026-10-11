@@ -4,8 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace Kimlik.Infrastructure.Identity;
 
-/// <summary>Applies Kimlik's account policies to ASP.NET Core Identity.</summary>
-internal sealed class ConfigureIdentity(IOptionsMonitor<AccountOptions> accounts)
+/// <summary>
+/// Applies Kimlik's account policies to ASP.NET Core Identity. They are read anew rather than from their monitor, whose
+/// cached value may not have caught up yet when Identity's options are built again after a change.
+/// </summary>
+internal sealed class ConfigureIdentity(IOptionsFactory<AccountOptions> accounts)
     : IConfigureOptions<IdentityOptions>, IConfigureOptions<PasswordHasherOptions>, IConfigureOptions<DataProtectionTokenProviderOptions>
 {
     // OWASP's current recommendation for PBKDF2-HMAC-SHA512.
@@ -13,7 +16,7 @@ internal sealed class ConfigureIdentity(IOptionsMonitor<AccountOptions> accounts
 
     public void Configure(IdentityOptions options)
     {
-        var policy = accounts.CurrentValue;
+        var policy = accounts.Create(Options.DefaultName);
 
         // Version 3 adds passkeys to the store.
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;

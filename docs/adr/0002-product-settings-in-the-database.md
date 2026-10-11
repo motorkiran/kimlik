@@ -18,8 +18,9 @@
   - MFA requirements for administrators and for everyone
   - whether users can create organizations, and how long invitations last
   - default plans
-  - the CAPTCHA provider, its keys and the forms it guards
-- Settings that wire up infrastructure at startup stay in configuration only: connection strings, keys, token lifetimes, rate limits, email, text messages, and social providers.
+  - the CAPTCHA provider and its keys
+  - the social providers: their client IDs and secrets, Apple's key, the Microsoft tenant and whether their addresses are trusted. OpenIddict's client builds its registrations again when they change.
+- Settings that wire up infrastructure at startup stay in configuration only: connection strings, keys, token lifetimes, rate limits, email and text messages.
 - Changes are validated as a whole with the same validators as at startup before they are saved, so an invalid value never takes effect. Secrets, such as the CAPTCHA secret key, are encrypted with the master key, and the API never returns them.
 - Each instance loads the settings after migrating the database, applies its own changes at once, and checks every 15 seconds whether another instance changed them.
 - Reading settings takes `kimlik.settings:read`. Changing them takes `kimlik.settings:write` and every installation-wide system permission, since they include security policies such as MFA for administrators. Changes are audited as `settings.updated`.
@@ -29,4 +30,4 @@
 - Administrators change these settings in the admin panel or through `/api/v1/settings`, without a restart. Other instances follow within 15 seconds.
 - Operators who want a setting fixed set it in the environment. Settings files remain the defaults.
 - The provisioning file does not carry settings. Configuration as code keeps using configuration.
-- Social providers, text messages and the other infrastructure settings still take a restart. Moving social providers into the database is left for later, because OpenIddict's client builds their registrations at startup.
+- Text messages, email and the other infrastructure settings still take a restart.

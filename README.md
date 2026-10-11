@@ -127,7 +127,7 @@ Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`. 
 
 ### Sign-in with other providers
 
-People can sign up and sign in with an account at Google, Microsoft, Apple or GitHub. A provider appears on the sign-in page once its client ID is set:
+People can sign up and sign in with an account at Google, Microsoft, Apple or GitHub. A provider appears on the sign-in page once its client ID is set, in the configuration or at runtime in the admin panel:
 
 | Provider | Settings |
 |---|---|

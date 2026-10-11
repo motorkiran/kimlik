@@ -1,4 +1,4 @@
-namespace Kimlik.Server.SocialLogin;
+namespace Kimlik.Application.Accounts;
 
 /// <summary>
 /// Sign-in with accounts at other providers, from the <c>Kimlik:SocialLogin</c> configuration section. A provider is
@@ -32,7 +32,7 @@ public class SocialProviderOptions
     /// </summary>
     public bool TrustEmail { get; set; }
 
-    internal bool IsEnabled => !string.IsNullOrWhiteSpace(ClientId);
+    public bool IsEnabled => !string.IsNullOrWhiteSpace(ClientId);
 }
 
 public sealed class MicrosoftProviderOptions : SocialProviderOptions

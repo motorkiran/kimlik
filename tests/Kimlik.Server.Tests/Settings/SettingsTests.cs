@@ -112,6 +112,23 @@ public sealed class SettingsTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task SocialProviders_AppearAndGo_WithoutARestart()
+    {
+        await using var kimlik = await StartAsync();
+        using var browser = new Browser(kimlik);
+        (await browser.GetPageAsync("/signin")).Text.ShouldNotContain("Continue with Google");
+
+        (await UpdateAsync(kimlik, ("Kimlik:SocialLogin:Google:ClientId", "google-client"), ("Kimlik:SocialLogin:Google:ClientSecret", "google-secret")))
+            .IsSuccess.ShouldBeTrue();
+        (await browser.GetPageAsync("/signin")).Text.ShouldContain("Continue with Google");
+        Describe(kimlik).Single(setting => setting.Key == "Kimlik:SocialLogin:Google:ClientSecret").Value.ShouldBeNull();
+
+        (await UpdateAsync(kimlik, ("Kimlik:SocialLogin:Apple:ClientId", "com.example.web"))).Error!.Code.ShouldBe("settings.invalid", "Apple needs its key");
+        (await UpdateAsync(kimlik, ("Kimlik:SocialLogin:Google:ClientId", null))).IsSuccess.ShouldBeTrue();
+        (await browser.GetPageAsync("/signin")).Text.ShouldNotContain("Continue with Google");
+    }
+
+    [Fact]
     public async Task AnotherInstance_PicksUpChanges()
     {
         var database = $"settings_{Guid.NewGuid():N}";
