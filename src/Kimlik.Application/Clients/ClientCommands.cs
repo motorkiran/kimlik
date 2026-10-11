@@ -239,6 +239,11 @@ public sealed class RegenerateClientSecretHandler(
             return guardResult.Error;
         }
 
+        if (await applications.ActsForUsersInKimlikAsync(application, cancellationToken) && guard.EnsureHoldsAllSystemPermissions() is { IsFailure: true } denied)
+        {
+            return denied.Error;
+        }
+
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         var descriptor = new OpenIddictApplicationDescriptor();
         await applications.PopulateAsync(descriptor, application, cancellationToken);
@@ -336,6 +341,11 @@ public sealed class DeleteClientHandler(IKimlikDbContext context, IOpenIddictApp
         if (guardResult.IsFailure)
         {
             return guardResult;
+        }
+
+        if (await applications.ActsForUsersInKimlikAsync(application, cancellationToken) && guard.EnsureHoldsAllSystemPermissions() is { IsFailure: true } denied)
+        {
+            return denied;
         }
 
         var clientId = await applications.GetClientIdAsync(application, cancellationToken);

@@ -842,6 +842,7 @@ People can sign in with a one-time code sent to their address instead of a passw
 ### 10.6 Administrative security
 
 - The admin panel and the Management API require system permissions. The `kimlik-admin` role can only be granted through bootstrap or by another administrator.
+- Callers cannot grant, or manage users, clients and roles holding, system permissions they do not hold themselves. Apps that get tokens for Kimlik's own API on behalf of the users who sign in, which carry an administrator's access when one signs in, take every installation-wide system permission to set up, to change, to have their secret replaced and to delete.
 - Every administrative change is audited with the actor, the target and the changed fields.
 - Administrators must use MFA by default. Accounts holding system permissions enroll at their next sign-in, and the admin panel accepts only sessions authenticated with MFA.
 - **Impersonation.** For support, administrators with `kimlik.users:impersonate` sign in as a user from the user's page in the admin panel, after a confirmation page. The browser's session becomes the user's for at most 30 minutes; it is not persistent and is never extended, and it keeps how and when the administrator signed in. A banner on every hosted page names the user and offers to stop, which signs the browser out so the administrator signs in as themselves again.

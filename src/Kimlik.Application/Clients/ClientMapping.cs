@@ -55,6 +55,13 @@ internal static class ClientMapping
         return assignments.ToLookup(assignment => assignment.ApplicationId, assignment => assignment.Key);
     }
 
+    /// <summary>Whether the client gets tokens for Kimlik's own API on behalf of the users who sign in to it.</summary>
+    public static async Task<bool> ActsForUsersInKimlikAsync(this IOpenIddictApplicationManager applications, object application, CancellationToken cancellationToken)
+    {
+        var type = await applications.GetPresetAsync(application, cancellationToken);
+        return ClientPresets.ActsForUsersInKimlik(type, ClientPresets.ScopesOf(type, await applications.GetPermissionsAsync(application, cancellationToken)));
+    }
+
     /// <summary>The Kimlik client type, read from the OpenIddict settings it produced.</summary>
     public static async Task<ClientType> GetPresetAsync(this IOpenIddictApplicationManager applications, object application, CancellationToken cancellationToken) =>
         ClientPresets.TypeOf(

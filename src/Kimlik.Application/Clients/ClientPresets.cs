@@ -60,7 +60,7 @@ public static partial class ClientPresets
     /// <summary>
     /// Whether the client gets tokens for Kimlik's own API on behalf of the users who sign in to it. Those tokens
     /// carry everything the user may do in Kimlik, an administrator's included, so only callers with full access
-    /// may set up such a client or change where its tokens go.
+    /// may set up such a client, change where its tokens go, replace its secret or delete it.
     /// </summary>
     internal static bool ActsForUsersInKimlik(ClientType type, IEnumerable<string> scopes) =>
         SignsInUsers(type) && scopes.Contains(KimlikScopes.Api, StringComparer.Ordinal);

@@ -255,7 +255,7 @@ public sealed class ClientApiTests(KimlikServerFixture server)
         {
             ClientId = NewClientId(),
             DisplayName = "Console",
-            Type = ClientType.Spa,
+            Type = ClientType.Web,
             RedirectUris = ["https://console.example.com/callback"],
             Scopes = ["openid", KimlikScopes.Api],
         };
@@ -270,6 +270,12 @@ public sealed class ClientApiTests(KimlikServerFixture server)
         using var redirected = await delegated.Http.SendJsonAsync(
             HttpMethod.Patch, $"{Clients}/{client.Id}", """{ "redirectUris": ["https://attacker.example.com/callback"] }""");
         (await redirected.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
+
+        // Nor can its secret be had or the app taken away.
+        using var regenerated = await delegated.Http.PostAsync($"{Clients}/{client.Id}/secret");
+        (await regenerated.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
+        using var deleted = await delegated.Http.DeleteAsync($"{Clients}/{client.Id}", TestContext.Current.CancellationToken);
+        (await deleted.ReadProblemCodeAsync()).ShouldBe("access.privilege_escalation");
     }
 
     [Fact]
