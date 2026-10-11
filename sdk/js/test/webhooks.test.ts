@@ -39,6 +39,13 @@ describe("verifyWebhook", () => {
     expect(verifyWebhook({ headers, body, secret, now })?.id).toBe("msg_2");
   });
 
+  it("will not check against a secret too short to be one, such as a missing setting", () => {
+    const headers = { "webhook-id": "msg_4", "webhook-timestamp": `${timestamp}`, "webhook-signature": sign("msg_4", timestamp, body) };
+
+    expect(() => verifyWebhook({ headers, body, secret: "", now })).toThrow(/at least 16 bytes/);
+    expect(() => verifyWebhook({ headers: {}, body, secret: `whsec_${Buffer.from("short").toString("base64")}`, now })).toThrow(/at least 16 bytes/);
+  });
+
   it("refuses changed bodies, wrong secrets and old timestamps", () => {
     const signature = sign("msg_3", timestamp, body);
     const headers = { "webhook-id": "msg_3", "webhook-timestamp": `${timestamp}`, "webhook-signature": signature };

@@ -55,12 +55,13 @@ describe("access tokens", () => {
     expect(caller?.userId).toBeUndefined();
   });
 
-  it("are refused for other audiences, other types and once expired", async () => {
+  it("are refused for other audiences, other types, once expired and without an expiry", async () => {
     const claims = { sub: "0199c3a1-0f2e-7d3c-8b4a-5e6f70819203" };
 
     expect(await kimlik.verifyAccessToken(await fake.token(claims, { audience: "other-api" }))).toBeNull();
     expect(await kimlik.verifyAccessToken(await fake.token(claims, { typ: "JWT" }))).toBeNull();
     expect(await kimlik.verifyAccessToken(await fake.token(claims, { expiresIn: "-5m" }))).toBeNull();
+    expect(await kimlik.verifyAccessToken(await fake.token(claims, { expiresIn: null }))).toBeNull();
     expect(await kimlik.authenticate("Basic abc")).toBeNull();
     expect(await kimlik.authenticate(undefined)).toBeNull();
   });

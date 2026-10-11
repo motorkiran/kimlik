@@ -23,6 +23,8 @@ app.get("/invoices", kimlikMiddleware(kimlik), requirePermission("invoices:read"
 
 API keys, entitlements and the Management API need your API's service client, as `clientId` and `clientSecret`, whose role holds what they call for: `kimlik.api_keys:verify` for API keys and `kimlik.subscriptions:read` for entitlements. API key answers and entitlements are cached for a minute.
 
+Kimlik's addresses must use HTTPS, except on the local machine; set `requireHttps: false` to allow HTTP elsewhere, such as on a private network.
+
 ## Development
 
 ```sh

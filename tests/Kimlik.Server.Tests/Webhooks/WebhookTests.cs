@@ -32,6 +32,9 @@ public sealed class WebhookTests(KimlikServerFixture server)
         KimlikWebhook.TryVerify(received.Headers, received.Body.Replace("user.created", "user.deleted", StringComparison.Ordinal), endpoint.Secret, out _).ShouldBeFalse();
         KimlikWebhook.TryVerify(received.Headers, received.Body, "whsec_" + Convert.ToBase64String(new byte[32]), out _).ShouldBeFalse();
 
+        // A secret too short to be one, such as a missing setting, is a mistake, not a refusal.
+        Should.Throw<ArgumentException>(() => KimlikWebhook.TryVerify(received.Headers, received.Body, string.Empty, out _));
+
         using var listed = await admin.Http.GetAsync($"/api/v1/webhooks/deliveries?endpointId={endpoint.Endpoint.Id}&limit=200", CancellationToken);
         var delivery = (await listed.ReadAsync<Page<WebhookDeliveryResponse>>()).Items.Single(candidate => candidate.EventId.ToString() == received.Id);
         delivery = await WaitForDeliveryAsync(admin, delivery.Id, WebhookDeliveryStatus.Succeeded);

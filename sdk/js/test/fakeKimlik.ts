@@ -24,14 +24,17 @@ export class FakeKimlik {
   }
 
   /** An access token as Kimlik issues them, with the claims given. */
-  token(claims: JWTPayload, options: { typ?: string; audience?: string; expiresIn?: string } = {}): Promise<string> {
-    return new SignJWT(claims)
+  token(claims: JWTPayload, options: { typ?: string; audience?: string; expiresIn?: string | null } = {}): Promise<string> {
+    const token = new SignJWT(claims)
       .setProtectedHeader({ alg: "RS256", kid: "kimlik-1", typ: options.typ ?? "at+jwt" })
       .setIssuer(authority)
       .setAudience(options.audience ?? audience)
-      .setIssuedAt()
-      .setExpirationTime(options.expiresIn ?? "5m")
-      .sign(this.privateKey);
+      .setIssuedAt();
+    if (options.expiresIn !== null) {
+      token.setExpirationTime(options.expiresIn ?? "5m");
+    }
+
+    return token.sign(this.privateKey);
   }
 
   readonly fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {

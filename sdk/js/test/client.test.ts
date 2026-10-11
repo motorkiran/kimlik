@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createKimlik, type Kimlik } from "../src/index.js";
 import { audience, authority, FakeKimlik } from "./fakeKimlik.js";
 
+const validKey = `kmk_${"a".repeat(43)}`;
+const revokedKey = `kmk_${"b".repeat(43)}`;
+
 describe("the Management API", () => {
   let fake: FakeKimlik;
   let kimlik: Kimlik;
@@ -30,21 +33,43 @@ describe("the Management API", () => {
     fake.routes.set("POST /api/v1/api-keys/verify", async (request) => {
       verifications++;
       const { key } = (await request.json()) as { key: string };
-      return Response.json(key === "kmk_valid"
+      return Response.json(key === validKey
         ? { active: true, id: "0199c3a1-3333-7d3c-8b4a-5e6f70819203", organizationId: "0199c3a1-1111-7d3c-8b4a-5e6f70819203", permissions: ["invoices:read"], plan: "pro", customEntitlements: false }
         : { active: false, customEntitlements: false });
     });
 
-    const caller = await kimlik.authenticate("Bearer kmk_valid");
-    await kimlik.authenticate("Bearer kmk_valid");
+    const caller = await kimlik.authenticate(`Bearer ${validKey}`);
+    await kimlik.authenticate(`Bearer ${validKey}`);
 
     expect(caller?.apiKeyId).toBe("0199c3a1-3333-7d3c-8b4a-5e6f70819203");
     expect(caller?.subject).toBe("0199c3a1-3333-7d3c-8b4a-5e6f70819203");
     expect(caller?.userId).toBeUndefined();
     expect(caller?.organizationId).toBe("0199c3a1-1111-7d3c-8b4a-5e6f70819203");
     expect(caller?.hasPermission("invoices:read")).toBe(true);
-    expect(await kimlik.authenticate("Bearer kmk_revoked")).toBeNull();
+    expect(await kimlik.authenticate(`Bearer ${revokedKey}`)).toBeNull();
+    expect(await kimlik.authenticate("Bearer kmk_made-up")).toBeNull();
     expect(verifications).toBe(2);
+  });
+
+  it("does not keep failures to verify an API key", async () => {
+    let verifications = 0;
+    fake.routes.set("POST /api/v1/api-keys/verify", () =>
+      ++verifications === 1 ? new Response(null, { status: 503 }) : Response.json({ active: true, id: "0199c3a1-3333-7d3c-8b4a-5e6f70819203", customEntitlements: false }));
+
+    await expect(kimlik.authenticate(`Bearer ${validKey}`)).rejects.toThrow(/503/);
+    expect((await kimlik.authenticate(`Bearer ${validKey}`))?.apiKeyId).toBe("0199c3a1-3333-7d3c-8b4a-5e6f70819203");
+  });
+
+  it("gets a new token once when Kimlik no longer takes the one it has", async () => {
+    fake.routes.set("GET /api/v1/users/0199c3a1-0f2e-7d3c-8b4a-5e6f70819203", (request) =>
+      request.headers.get("authorization") === "Bearer service-token-1"
+        ? new Response(null, { status: 401 })
+        : Response.json({ id: "0199c3a1-0f2e-7d3c-8b4a-5e6f70819203", email: "ada@example.com" }));
+
+    const { data } = await kimlik.client.GET("/api/v1/users/{id}", { params: { path: { id: "0199c3a1-0f2e-7d3c-8b4a-5e6f70819203" } } });
+
+    expect(data?.email).toBe("ada@example.com");
+    expect(fake.tokenRequests).toBe(2);
   });
 
   it("reads entitlements of the caller's organization, and keeps them for a minute", async () => {
@@ -62,5 +87,27 @@ describe("the Management API", () => {
     expect(entitlements.features["seats"]).toBe(25);
     expect(entitlements.features["storage"]).toBeNull();
     expect(reads).toBe(1);
+  });
+});
+
+describe("Kimlik's addresses", () => {
+  it("use HTTPS, unless on this machine or allowed otherwise", () => {
+    expect(() => createKimlik({ authority: "http://id.example.test/" })).toThrow(/HTTPS/);
+    expect(() => createKimlik({ authority: "http://localhost:5080/" })).not.toThrow();
+    expect(() => createKimlik({ authority: "http://id.internal/", requireHttps: false })).not.toThrow();
+  });
+
+  it("come from a discovery document of the authority itself, read again after a failure", async () => {
+    const fake = await FakeKimlik.create();
+    const kimlik = createKimlik({ authority, audience, fetch: fake.fetch });
+    const token = await fake.token({ sub: "0199c3a1-0f2e-7d3c-8b4a-5e6f70819203" });
+    fake.routes.set("GET /.well-known/openid-configuration", () =>
+      Response.json({ issuer: "https://elsewhere.example.test/", jwks_uri: `${authority}.well-known/jwks`, token_endpoint: `${authority}connect/token` }));
+
+    await expect(kimlik.verifyAccessToken(token)).rejects.toThrow(/does not describe/);
+
+    fake.routes.set("GET /.well-known/openid-configuration", () =>
+      Response.json({ issuer: authority, jwks_uri: `${authority}.well-known/jwks`, token_endpoint: `${authority}connect/token` }));
+    expect((await kimlik.verifyAccessToken(token))?.subject).toBe("0199c3a1-0f2e-7d3c-8b4a-5e6f70819203");
   });
 });

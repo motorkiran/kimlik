@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createRemoteJWKSet, customFetch, errors, jwtVerify, type JWTVerifyGetKey } from "jose";
 import createClient, { type Client } from "openapi-fetch";
 import type { paths } from "./schema.js";
@@ -26,6 +27,11 @@ export interface KimlikOptions {
   clientSecret?: string;
   /** How far token lifetimes may be off, in seconds; 60 by default. */
   clockTolerance?: number;
+  /**
+   * Whether Kimlik's addresses must use HTTPS, so that keys and tokens cannot be tampered with on the way; `true` by
+   * default. Addresses on the local machine may use HTTP either way.
+   */
+  requireHttps?: boolean;
   /** The fetch to call Kimlik with; the global one by default. */
   fetch?: typeof fetch;
 }
@@ -54,12 +60,19 @@ interface Discovery {
 }
 
 const apiKeyPrefix = "kmk_";
+const apiKeyPattern = /^kmk_[A-Za-z0-9_-]{43}$/;
 const cacheLifetime = 60_000;
 const cacheLimit = 10_000;
 
 export function createKimlik(options: KimlikOptions): Kimlik {
   const fetchImpl = options.fetch ?? globalThis.fetch;
+  const secure = (url: URL) =>
+    url.protocol === "https:" || (url.protocol === "http:" && (options.requireHttps === false || isLoopback(url.hostname)));
   const authority = new URL(options.authority);
+  if (!secure(authority)) {
+    throw new Error("Kimlik's authority must use HTTPS, unless it is on this machine or requireHttps is false.");
+  }
+
   const base = authority.href.replace(/\/+$/, "");
   let discovery: Promise<Discovery> | undefined;
   let keys: JWTVerifyGetKey | undefined;
@@ -68,19 +81,40 @@ export function createKimlik(options: KimlikOptions): Kimlik {
     (discovery ??= (async () => {
       const response = await fetchImpl(`${base}/.well-known/openid-configuration`);
       if (!response.ok) {
-        discovery = undefined;
         throw new Error(`Kimlik's discovery document could not be read: ${response.status}.`);
       }
 
-      return (await response.json()) as Discovery;
-    })());
+      // The issuer must be the authority it was read from, and keys and tokens must come from addresses as safe.
+      const document = (await response.json()) as Partial<Discovery>;
+      if (typeof document.issuer !== "string" || document.issuer.replace(/\/+$/, "") !== base
+        || !isSecureUrl(document.jwks_uri, secure) || !isSecureUrl(document.token_endpoint, secure)) {
+        throw new Error(`Kimlik's discovery document does not describe ${authority.href}.`);
+      }
+
+      return document as Discovery;
+    })().catch((error: unknown) => {
+      // Read again next time, as after an outage.
+      discovery = undefined;
+      throw error;
+    }));
 
   const tokens = new ClientCredentialsTokens(options, fetchImpl, async () => (await discover()).token_endpoint);
-  const client = createClient<paths>({ baseUrl: base, fetch: (request) => fetchImpl(request) });
-  client.use({
-    async onRequest({ request }) {
-      request.headers.set("Authorization", `Bearer ${await tokens.get()}`);
-      return request;
+  const client = createClient<paths>({
+    baseUrl: base,
+    async fetch(request) {
+      // A token Kimlik no longer takes, such as after the client's roles or keys changed, is replaced once.
+      const retry = request.clone();
+      const token = await tokens.get();
+      request.headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetchImpl(request);
+      if (response.status !== 401) {
+        return response;
+      }
+
+      await response.body?.cancel();
+      tokens.forget(token);
+      retry.headers.set("Authorization", `Bearer ${await tokens.get()}`);
+      return fetchImpl(retry);
     },
   });
 
@@ -99,6 +133,7 @@ export function createKimlik(options: KimlikOptions): Kimlik {
         issuer,
         audience: options.audience,
         typ: "at+jwt",
+        requiredClaims: ["exp"],
         clockTolerance: options.clockTolerance ?? 60,
       });
       return typeof payload.sub === "string" ? userFromToken(payload) : null;
@@ -112,9 +147,19 @@ export function createKimlik(options: KimlikOptions): Kimlik {
   }
 
   async function verifyApiKey(key: string): Promise<KimlikUser | null> {
-    return apiKeys.get(key, async () => {
-      const { data, error } = await client.POST("/api/v1/api-keys/verify", { body: { key } });
-      if (error || !data?.active || !data.id) {
+    // Made-up values are turned away here, without a call to Kimlik or an entry in the cache, which holds hashes of keys.
+    if (!apiKeyPattern.test(key)) {
+      return null;
+    }
+
+    return apiKeys.get(createHash("sha256").update(key).digest("hex"), async () => {
+      const { data, response } = await client.POST("/api/v1/api-keys/verify", { body: { key } });
+      if (!response.ok) {
+        // Not an answer about the key, so it is not kept.
+        throw new Error(`API keys could not be verified: ${response.status}.`);
+      }
+
+      if (!data?.active || !data.id) {
         return null;
       }
 
@@ -179,6 +224,13 @@ class ClientCredentialsTokens {
     return (this.#pending ??= this.request().finally(() => (this.#pending = undefined)));
   }
 
+  /** Stops using the token, unless another request has replaced it already. */
+  forget(token: string): void {
+    if (this.#token?.value === token) {
+      this.#token = undefined;
+    }
+  }
+
   private async request(): Promise<string> {
     const { clientId, clientSecret } = this.options;
     if (!clientId || !clientSecret) {
@@ -201,7 +253,10 @@ class ClientCredentialsTokens {
   }
 }
 
-/** Values kept for a minute, and at most ten thousand of them, so that a burst of callers does not grow it for good. */
+/**
+ * Values kept for a minute, and at most ten thousand of them, so that a burst of callers does not grow it for good: the
+ * oldest go first. Failures are not kept.
+ */
 class Cache<T> {
   readonly #entries = new Map<string, { value: Promise<T>; expiresAt: number }>();
 
@@ -212,21 +267,32 @@ class Cache<T> {
       return cached.value;
     }
 
-    if (this.#entries.size >= cacheLimit) {
-      for (const [stale, entry] of this.#entries) {
-        if (entry.expiresAt <= now) {
-          this.#entries.delete(stale);
-        }
+    // A map keeps the order entries came in, so the first ones are the oldest.
+    this.#entries.delete(key);
+    for (const oldest of this.#entries.keys()) {
+      if (this.#entries.size < cacheLimit) {
+        break;
       }
 
-      if (this.#entries.size >= cacheLimit) {
-        this.#entries.clear();
-      }
+      this.#entries.delete(oldest);
     }
 
     const value = load();
-    this.#entries.set(key, { value, expiresAt: now + cacheLifetime });
-    value.catch(() => this.#entries.delete(key));
+    const entry = { value, expiresAt: now + cacheLifetime };
+    this.#entries.set(key, entry);
+    value.catch(() => {
+      if (this.#entries.get(key) === entry) {
+        this.#entries.delete(key);
+      }
+    });
     return value;
   }
+}
+
+function isLoopback(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "[::1]" || /^127(\.\d{1,3}){3}$/.test(hostname);
+}
+
+function isSecureUrl(value: unknown, secure: (url: URL) => boolean): boolean {
+  return typeof value === "string" && URL.canParse(value) && secure(new URL(value));
 }

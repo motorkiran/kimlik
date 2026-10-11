@@ -20,6 +20,7 @@ public static class KimlikWebhook
 
     private const string SecretPrefix = "whsec_";
     private const string SignatureVersion = "v1,";
+    private const int MinimumKeyLength = 16;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
@@ -43,6 +44,7 @@ public static class KimlikWebhook
         IHeaderDictionary headers, string body, string secret, TimeProvider timeProvider, [NotNullWhen(true)] out WebhookEvent? webhookEvent)
     {
         webhookEvent = null;
+        var key = KeyOf(secret);
         string? id = headers["webhook-id"];
         string? timestamp = headers["webhook-timestamp"];
         string? signatures = headers["webhook-signature"];
@@ -54,7 +56,7 @@ public static class KimlikWebhook
             return false;
         }
 
-        var expected = HMACSHA256.HashData(KeyOf(secret), Encoding.UTF8.GetBytes($"{id}.{timestamp}.{body}"));
+        var expected = HMACSHA256.HashData(key, Encoding.UTF8.GetBytes($"{id}.{timestamp}.{body}"));
 
         // The header can carry several signatures, such as while a secret is being replaced.
         var signed = signatures.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(signature =>
@@ -71,8 +73,17 @@ public static class KimlikWebhook
         return webhookEvent is not null;
     }
 
-    private static byte[] KeyOf(string secret) =>
-        Convert.FromBase64String(secret.StartsWith(SecretPrefix, StringComparison.Ordinal) ? secret[SecretPrefix.Length..] : secret);
+    /// <summary>
+    /// The key of the secret, which must be one: a key shorter than 16 bytes, such as an empty one from a missing setting,
+    /// would let anyone sign.
+    /// </summary>
+    private static byte[] KeyOf(string secret)
+    {
+        var key = Convert.FromBase64String(secret.StartsWith(SecretPrefix, StringComparison.Ordinal) ? secret[SecretPrefix.Length..] : secret);
+        return key.Length >= MinimumKeyLength
+            ? key
+            : throw new ArgumentException("The webhook secret is not an endpoint's whsec_… secret: it must hold at least 16 bytes.", nameof(secret));
+    }
 
     private static bool TryDecode(string value, out byte[] bytes)
     {

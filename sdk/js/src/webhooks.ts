@@ -24,6 +24,7 @@ export interface WebhookEvent {
 export const webhookTolerance = 5 * 60 * 1000;
 
 const secretPrefix = "whsec_";
+const minimumKeyLength = 16;
 const signatureVersion = "v1,";
 
 type Headers = Record<string, string | string[] | undefined> | { get(name: string): string | null };
@@ -34,6 +35,12 @@ type Headers = Record<string, string | string[] | undefined> | { get(name: strin
  * Pass the body exactly as it arrived. Delivery is at least once, so handle each event ID once.
  */
 export function verifyWebhook(options: { headers: Headers; body: string; secret: string; now?: Date }): WebhookEvent | null {
+  const key = Buffer.from(options.secret.startsWith(secretPrefix) ? options.secret.slice(secretPrefix.length) : options.secret, "base64");
+  if (key.length < minimumKeyLength) {
+    // Such as an empty one from a missing setting, which would let anyone sign.
+    throw new Error("The webhook secret is not an endpoint's whsec_… secret: it must hold at least 16 bytes.");
+  }
+
   const id = header(options.headers, "webhook-id");
   const timestamp = header(options.headers, "webhook-timestamp");
   const signatures = header(options.headers, "webhook-signature");
@@ -46,7 +53,6 @@ export function verifyWebhook(options: { headers: Headers; body: string; secret:
     return null;
   }
 
-  const key = Buffer.from(options.secret.startsWith(secretPrefix) ? options.secret.slice(secretPrefix.length) : options.secret, "base64");
   const expected = createHmac("sha256", key).update(`${id}.${timestamp}.${options.body}`, "utf8").digest();
 
   // The header can carry several signatures, such as while a secret is being replaced.
