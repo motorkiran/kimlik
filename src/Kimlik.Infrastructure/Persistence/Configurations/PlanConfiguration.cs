@@ -131,8 +131,10 @@ internal sealed class UsageRecordConfiguration : IEntityTypeConfiguration<UsageR
         builder.Property(record => record.Key).HasMaxLength(UsageRecord.KeyMaxLength);
         builder.HasOne<User>().WithMany().HasForeignKey(record => record.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<Organization>().WithMany().HasForeignKey(record => record.OrganizationId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(record => new { record.UserId, record.Key }, "ix_usage_records_user").IsUnique().HasFilter("user_id IS NOT NULL");
-        builder.HasIndex(record => new { record.OrganizationId, record.Key }, "ix_usage_records_organization").IsUnique().HasFilter("organization_id IS NOT NULL");
+        builder.HasOne<Feature>().WithMany().HasForeignKey(record => record.FeatureId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(record => new { record.UserId, record.FeatureId, record.Key }, "ix_usage_records_user").IsUnique().HasFilter("user_id IS NOT NULL");
+        builder.HasIndex(record => new { record.OrganizationId, record.FeatureId, record.Key }, "ix_usage_records_organization").IsUnique().HasFilter("organization_id IS NOT NULL");
+        builder.HasIndex(record => record.FeatureId);
         builder.HasIndex(record => record.CreatedAt);
     }
 }

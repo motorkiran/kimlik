@@ -47,15 +47,15 @@ internal sealed class UsageCounters(KimlikDbContext context) : IUsageCounters
         return rows.Count == 0 ? null : rows[0];
     }
 
-    public async Task<bool> ClaimAsync(Subscriber subscriber, string key, DateTimeOffset now, CancellationToken cancellationToken)
+    public async Task<bool> ClaimAsync(Subscriber subscriber, Guid featureId, string key, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var id = Guid.CreateVersion7(now);
         var claimed = subscriber.UserId is { } userId
             ? await context.Database.ExecuteSqlAsync($"""
-                INSERT INTO kimlik.usage_records (id, user_id, key, created_at) VALUES ({id}, {userId}, {key}, {now}) ON CONFLICT DO NOTHING
+                INSERT INTO kimlik.usage_records (id, user_id, feature_id, key, created_at) VALUES ({id}, {userId}, {featureId}, {key}, {now}) ON CONFLICT DO NOTHING
                 """, cancellationToken)
             : await context.Database.ExecuteSqlAsync($"""
-                INSERT INTO kimlik.usage_records (id, organization_id, key, created_at) VALUES ({id}, {subscriber.OrganizationId}, {key}, {now}) ON CONFLICT DO NOTHING
+                INSERT INTO kimlik.usage_records (id, organization_id, feature_id, key, created_at) VALUES ({id}, {subscriber.OrganizationId}, {featureId}, {key}, {now}) ON CONFLICT DO NOTHING
                 """, cancellationToken);
         return claimed == 1;
     }

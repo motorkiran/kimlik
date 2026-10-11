@@ -1061,6 +1061,10 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid>("FeatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("feature_id");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1081,14 +1085,17 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_usage_records_created_at");
 
-                    b.HasIndex(new[] { "OrganizationId", "Key" }, "ix_usage_records_organization")
+                    b.HasIndex("FeatureId")
+                        .HasDatabaseName("ix_usage_records_feature_id");
+
+                    b.HasIndex(new[] { "OrganizationId", "FeatureId", "Key" }, "ix_usage_records_organization")
                         .IsUnique()
-                        .HasDatabaseName("ix_usage_records_organization_id_key")
+                        .HasDatabaseName("ix_usage_records_organization_id_feature_id_key")
                         .HasFilter("organization_id IS NOT NULL");
 
-                    b.HasIndex(new[] { "UserId", "Key" }, "ix_usage_records_user")
+                    b.HasIndex(new[] { "UserId", "FeatureId", "Key" }, "ix_usage_records_user")
                         .IsUnique()
-                        .HasDatabaseName("ix_usage_records_user_id_key")
+                        .HasDatabaseName("ix_usage_records_user_id_feature_id_key")
                         .HasFilter("user_id IS NOT NULL");
 
                     b.ToTable("usage_records", "kimlik", t =>
@@ -2198,6 +2205,13 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Kimlik.Domain.Plans.UsageRecord", b =>
                 {
+                    b.HasOne("Kimlik.Domain.Plans.Feature", null)
+                        .WithMany()
+                        .HasForeignKey("FeatureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_usage_records_features_feature_id");
+
                     b.HasOne("Kimlik.Domain.Organizations.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")

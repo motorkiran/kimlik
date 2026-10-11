@@ -41,6 +41,31 @@ public sealed class UsageTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task IdempotencyKeys_CountOncePerFeature_AndDoNotSkipAnotherFeaturesLimit()
+    {
+        using var api = await server.CreateApiClientAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..10];
+        var (calls, exports, plan) = ($"calls_{suffix}", $"exports_{suffix}", $"two_meters_{suffix}");
+        foreach (var feature in new[] { calls, exports })
+        {
+            using var created = await api.Http.PostJsonAsync("/api/v1/features", new CreateFeatureRequest { Key = feature, Name = feature, Type = FeatureType.Limit, Metered = true });
+        }
+
+        using var planCreated = await api.Http.SendJsonAsync(
+            HttpMethod.Post, "/api/v1/plans", $$"""{ "key": "{{plan}}", "name": "Two meters", "features": { "{{calls}}": 5, "{{exports}}": 1 } }""");
+        var user = await server.CreateUserAsync();
+        await SubscribeAsync(api, user.Id, plan);
+
+        (await RecordAsync(api, user.Id, calls, quantity: 1, enforce: true, key: "request-1")).Used.ShouldBe(1);
+        (await RecordAsync(api, user.Id, exports, quantity: 1, enforce: true, key: "request-1")).Used.ShouldBe(1);
+        (await RecordAsync(api, user.Id, exports, quantity: 1, enforce: true, key: "request-1")).Used.ShouldBe(1);
+
+        (await RecordAsync(api, user.Id, calls, quantity: 1, enforce: true, key: "request-2")).Used.ShouldBe(2);
+        using var refused = await api.Http.PostJsonAsync("/api/v1/usage", Request(user.Id, exports, quantity: 1, enforce: true, key: "request-2"));
+        (await refused.ReadProblemCodeAsync()).ShouldBe("usage.limit_reached");
+    }
+
+    [Fact]
     public async Task ConcurrentUse_NeverGoesPastTheLimit()
     {
         using var api = await server.CreateApiClientAsync();

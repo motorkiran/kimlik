@@ -11,6 +11,9 @@ public interface IUsageCounters
     /// </summary>
     Task<long?> AddAsync(Subscriber subscriber, Guid featureId, DateOnly period, long quantity, long? limit, DateTimeOffset now, CancellationToken cancellationToken);
 
-    /// <summary>Takes an idempotency key for the subscriber; <see langword="false"/> when a request with it came already.</summary>
-    Task<bool> ClaimAsync(Subscriber subscriber, string key, DateTimeOffset now, CancellationToken cancellationToken);
+    /// <summary>
+    /// Takes an idempotency key for the subscriber's use of the feature; <see langword="false"/> when a request with it came
+    /// already. The same key for another feature is another request.
+    /// </summary>
+    Task<bool> ClaimAsync(Subscriber subscriber, Guid featureId, string key, DateTimeOffset now, CancellationToken cancellationToken);
 }

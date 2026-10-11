@@ -43,6 +43,9 @@ public sealed class UsageRecord
 
     public Guid? OrganizationId { get; private init; }
 
+    /// <summary>The feature whose use the key counted once; the same key for another feature is another request.</summary>
+    public Guid FeatureId { get; private init; }
+
     public string Key { get; private init; } = null!;
 
     public DateTimeOffset CreatedAt { get; private init; }

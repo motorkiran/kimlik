@@ -67,7 +67,7 @@ public sealed class RecordUsageHandler(IKimlikDbContext context, Entitlements en
         }
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
-        if (request.IdempotencyKey is { } key && !await counters.ClaimAsync(subscriber, key, now, cancellationToken))
+        if (request.IdempotencyKey is { } key && !await counters.ClaimAsync(subscriber, feature.Id, key, now, cancellationToken))
         {
             // A retry of use already counted: the answer is the month's use as it is now.
             var counted = await context.UsageCounters.AsNoTracking()
