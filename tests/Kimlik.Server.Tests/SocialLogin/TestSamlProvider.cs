@@ -51,12 +51,25 @@ internal sealed class TestSamlProvider : IDisposable
 
     /// <summary>
     /// A response to <paramref name="request"/> for the person with <paramref name="email"/>, as the form field
-    /// <c>SAMLResponse</c> carries it. The arguments break it in the ways the tests need.
+    /// <c>SAMLResponse</c> carries it. The arguments break it in the ways the tests need: <paramref name="confirms"/> is
+    /// the request the assertion, signed alone, was issued for, when only the response around it answers this one.
     /// </summary>
     public string Respond(
-        SamlRequest request, string subject, string? email, X509Certificate2? signedWith = null, bool signed = true, string? inResponseTo = null, string? audience = null)
+        SamlRequest request,
+        string subject,
+        string? email,
+        X509Certificate2? signedWith = null,
+        bool signed = true,
+        string? inResponseTo = null,
+        string? audience = null,
+        string? confirms = null)
     {
         var configuration = new Saml2Configuration { Issuer = EntityId, SigningCertificate = signed ? signedWith ?? Certificate : null };
+        if (confirms is not null)
+        {
+            configuration.AuthnResponseSignType = Saml2AuthnResponseSignTypes.SignAssertion;
+        }
+
         List<Claim> claims = [new(ClaimTypes.NameIdentifier, subject), new(ClaimTypes.GivenName, "Grace")];
         if (email is not null)
         {
@@ -65,13 +78,14 @@ internal sealed class TestSamlProvider : IDisposable
 
         var response = new Saml2AuthnResponse(configuration)
         {
-            InResponseToAsString = inResponseTo ?? request.Id,
+            InResponseToAsString = confirms ?? inResponseTo ?? request.Id,
             Status = Saml2StatusCodes.Success,
             Destination = new Uri(request.AssertionConsumerService),
             NameId = new Saml2NameIdentifier(subject, NameIdentifierFormats.Persistent),
             ClaimsIdentity = new ClaimsIdentity(claims),
         };
         response.CreateSecurityToken(audience ?? request.Issuer);
+        response.InResponseToAsString = inResponseTo ?? request.Id;
 
         var binding = new Saml2PostBinding();
         binding.Bind(response);

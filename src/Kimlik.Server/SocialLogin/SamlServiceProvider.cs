@@ -12,6 +12,8 @@ using Kimlik.Server.Identity;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens.Saml2;
+using Saml2TokenConstants = Microsoft.IdentityModel.Tokens.Saml2.Saml2Constants;
 
 namespace Kimlik.Server.SocialLogin;
 
@@ -122,6 +124,7 @@ public sealed partial class SamlServiceProvider(
         if (response.Status != Saml2StatusCodes.Success
             || response.InResponseToAsString != pending.RequestId
             || (response.Destination is { } destination && destination != AssertionConsumerService)
+            || !ConfirmsRequest(response.Saml2SecurityToken, pending)
             || response.ClaimsIdentity is not { } identity
             || identity.FindFirst(ClaimTypes.NameIdentifier)?.Value is not { Length: > 0 } subject)
         {
@@ -132,6 +135,18 @@ public sealed partial class SamlServiceProvider(
         var email = First(identity, EmailAttributes) ?? (subject.Contains('@', StringComparison.Ordinal) ? subject : null);
         return new SsoIdentity(subject, email, First(identity, GivenNameAttributes), First(identity, FamilyNameAttributes), Locale: null);
     }
+
+    /// <summary>
+    /// Whether the signed assertion itself answers the request, as the Web Browser SSO profile has a bearer assertion say:
+    /// for the request's ID, to Kimlik's assertion consumer service. Providers often sign only the assertion, and the
+    /// response around it could otherwise answer this request with an assertion issued for another.
+    /// </summary>
+    private bool ConfirmsRequest(Saml2SecurityToken? token, PendingSamlRequest pending) =>
+        token?.Assertion.Subject?.SubjectConfirmations.Any(confirmation =>
+            confirmation.Method == Saml2TokenConstants.ConfirmationMethods.Bearer
+            && confirmation.SubjectConfirmationData is { } data
+            && data.InResponseTo?.Value == pending.RequestId
+            && data.Recipient == AssertionConsumerService) == true;
 
     /// <summary>Kimlik's metadata as a service provider, which providers can import.</summary>
     public string Metadata()

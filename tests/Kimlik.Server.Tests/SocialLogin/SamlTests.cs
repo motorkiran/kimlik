@@ -61,7 +61,7 @@ public sealed class SamlTests(KimlikServerFixture server) : IDisposable
         signedIn.Headers.Location!.OriginalString.ShouldBe("/");
     }
 
-    public static TheoryData<string> Forgeries => ["another certificate", "unsigned", "another request", "another audience"];
+    public static TheoryData<string> Forgeries => ["another certificate", "unsigned", "another request", "assertion for another request", "another audience"];
 
     [Theory]
     [MemberData(nameof(Forgeries))]
@@ -82,6 +82,7 @@ public sealed class SamlTests(KimlikServerFixture server) : IDisposable
             "another certificate" => _provider.Respond(request, subject, email, signedWith: otherCertificate),
             "unsigned" => _provider.Respond(request, subject, email, signed: false),
             "another request" => _provider.Respond(request, subject, email, inResponseTo: $"_{Guid.NewGuid():N}"),
+            "assertion for another request" => _provider.Respond(request, subject, email, confirms: $"_{Guid.NewGuid():N}"),
             _ => _provider.Respond(request, subject, email, audience: "https://elsewhere.test/saml"),
         };
         using var refused = await TestSamlProvider.PostAsync(browser, request, response);
