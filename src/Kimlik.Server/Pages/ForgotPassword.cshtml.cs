@@ -31,16 +31,17 @@ public sealed class ForgotPasswordModel(
             return Page();
         }
 
-        if (!await captcha.PassesAsync(CaptchaForm.PasswordReset, HttpContext, cancellationToken))
-        {
-            ModelState.AddModelError(string.Empty, localizer["Confirm that you are not a robot."]);
-            return Page();
-        }
-
+        // The rate limit comes first, so that requests past it never reach the CAPTCHA provider.
         if (!throttle.TryAcquire(ThrottledAction.EmailRequest, HttpContext))
         {
             Response.StatusCode = StatusCodes.Status429TooManyRequests;
             ModelState.AddModelError(string.Empty, localizer["Too many attempts. Wait a minute and try again."]);
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.PasswordReset, HttpContext, cancellationToken))
+        {
+            ModelState.AddModelError(string.Empty, localizer["Confirm that you are not a robot."]);
             return Page();
         }
 

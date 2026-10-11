@@ -44,11 +44,16 @@ public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOpt
 {
     public const string HttpClientName = "Kimlik.Captcha";
 
+    /// <summary>Longer than any answer the providers make (Turnstile's are at most 2048 characters), so nothing longer is sent on.</summary>
+    private const int MaxAnswerLength = 4096;
+
     public bool Guards(CaptchaForm form) => options.CurrentValue.Guards(form);
 
     /// <summary>
-    /// Whether the request may go on: the form is not guarded, or the provider accepted the widget's answer. A missing
-    /// or refused answer stops it; an unreachable provider does not, so an outage does not lock people out.
+    /// Whether the request may go on: the form is not guarded, or the provider accepted the widget's answer. A missing,
+    /// oversized or refused answer stops it, as does any answer the provider gives that is not a success. Only a provider
+    /// that cannot be reached, times out or fails on its side lets the form through, so an outage does not lock people
+    /// out.
     /// </summary>
     public async Task<bool> PassesAsync(CaptchaForm form, HttpContext context, CancellationToken cancellationToken)
     {
@@ -58,7 +63,7 @@ public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOpt
         }
 
         var service = CaptchaService.For(options.CurrentValue.Provider);
-        if (!context.Request.HasFormContentType || context.Request.Form[service.ResponseField].ToString() is not { Length: > 0 } answer)
+        if (!context.Request.HasFormContentType || context.Request.Form[service.ResponseField].ToString() is not { Length: > 0 and <= MaxAnswerLength } answer)
         {
             return false;
         }
@@ -69,18 +74,35 @@ public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOpt
             fields.Add(new("remoteip", address.ToString()));
         }
 
+        HttpResponseMessage response;
         try
         {
             using var content = new FormUrlEncodedContent(fields);
-            using var response = await httpClients.CreateClient(HttpClientName).PostAsync(service.VerifyUrl, content, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            return result.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.True;
+            response = await httpClients.CreateClient(HttpClientName).PostAsync(service.VerifyUrl, content, cancellationToken);
         }
-        catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (exception is HttpRequestException || (exception is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             LogUnreachable(logger, options.CurrentValue.Provider, exception);
             return true;
+        }
+
+        using (response)
+        {
+            if ((int)response.StatusCode >= 500)
+            {
+                LogUnreachable(logger, options.CurrentValue.Provider, new HttpRequestException($"The provider answered {(int)response.StatusCode}.", null, response.StatusCode));
+                return true;
+            }
+
+            try
+            {
+                var result = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+                return response.IsSuccessStatusCode && result.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.True;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
     }
 

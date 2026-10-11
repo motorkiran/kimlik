@@ -50,16 +50,17 @@ public sealed class SignInPhoneModel(
             return Page();
         }
 
-        if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
-        {
-            ErrorMessage = localizer["Confirm that you are not a robot."];
-            return Page();
-        }
-
+        // The rate limit comes first, so that requests past it never reach the CAPTCHA provider.
         if (!throttle.TryAcquire(ThrottledAction.SignIn, HttpContext))
         {
             Response.StatusCode = StatusCodes.Status429TooManyRequests;
             ErrorMessage = localizer["Too many attempts. Wait a minute and try again."];
+            return Page();
+        }
+
+        if (!await captcha.PassesAsync(CaptchaForm.SignInCode, HttpContext, cancellationToken))
+        {
+            ErrorMessage = localizer["Confirm that you are not a robot."];
             return Page();
         }
 

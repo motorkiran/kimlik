@@ -42,6 +42,27 @@ public sealed class CaptchaTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task OnlyAnOutage_LetsTheFormThrough()
+    {
+        var turnstile = new FakeTurnstile();
+        await using var kimlik = WithCaptcha(turnstile);
+        using var browser = new Browser(kimlik);
+
+        turnstile.Status = HttpStatusCode.BadRequest;
+        (await Browser.ReadPageAsync(await SignUpAsync(browser, answer: "anything"))).Text.ShouldContain("Confirm that you are not a robot.");
+        turnstile.Status = HttpStatusCode.TooManyRequests;
+        (await Browser.ReadPageAsync(await SignUpAsync(browser, answer: "anything"))).Text.ShouldContain("Confirm that you are not a robot.");
+
+        var checks = turnstile.Checked.Count;
+        (await Browser.ReadPageAsync(await SignUpAsync(browser, answer: new string('a', 5000)))).Text.ShouldContain("Confirm that you are not a robot.");
+        turnstile.Checked.Count.ShouldBe(checks, "an oversized answer is not sent on");
+
+        turnstile.Status = HttpStatusCode.ServiceUnavailable;
+        using var duringAnOutage = await SignUpAsync(browser, answer: "anything");
+        duringAnOutage.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
     public async Task SignIn_GuardsTheCodeButNotThePassword_ByDefault()
     {
         await using var kimlik = WithCaptcha(new FakeTurnstile());
@@ -102,7 +123,10 @@ public sealed class CaptchaTests(KimlikServerFixture server)
 
         public bool Down { get; set; }
 
-        public IReadOnlyList<string> Checked => _checked;
+        /// <summary>The status it answers with, instead of checking the answer.</summary>
+        public HttpStatusCode? Status { get; set; }
+
+        public List<string> Checked => _checked;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -114,6 +138,11 @@ public sealed class CaptchaTests(KimlikServerFixture server)
             request.RequestUri.ShouldBe(new Uri("https://challenges.cloudflare.com/turnstile/v0/siteverify"));
             var form = await request.Content!.ReadAsStringAsync(cancellationToken);
             _checked.Add(form);
+            if (Status is { } status)
+            {
+                return new HttpResponseMessage(status) { Content = new StringContent("{}", Encoding.UTF8, "application/json") };
+            }
+
             var success = form.Contains($"response={Good}", StringComparison.Ordinal);
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
