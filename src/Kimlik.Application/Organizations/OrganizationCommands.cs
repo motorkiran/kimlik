@@ -1,4 +1,5 @@
 using Kimlik.Application.Abstractions;
+using Kimlik.Application.Access;
 using Kimlik.Application.Common;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Auditing;
@@ -117,14 +118,30 @@ public sealed class UpdateOrganizationHandler(IKimlikDbContext context, IAuditLo
     }
 }
 
-/// <summary>Deletes an organization with its memberships. Tokens issued for it stop working at their next refresh.</summary>
-public sealed class DeleteOrganizationHandler(IKimlikDbContext context, IAuditLog auditLog)
+/// <summary>
+/// Deletes an organization with its memberships and SSO connections. Tokens issued for it stop working at their next
+/// refresh. Connections lift the sign-in they enforce as they go, so, as deleting them does, deleting an organization
+/// that has some takes every installation-wide system permission.
+/// </summary>
+public sealed class DeleteOrganizationHandler(IKimlikDbContext context, AccessGuard guard, IAuditLog auditLog)
 {
     public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken)
     {
         if (await context.Organizations.SingleOrDefaultAsync(organization => organization.Id == id, cancellationToken) is not { } organization)
         {
             return OrganizationErrors.NotFound;
+        }
+
+        var connections = await context.SsoConnections.Where(connection => connection.OrganizationId == id).ToListAsync(cancellationToken);
+        if (connections.Count > 0 && guard.EnsureHoldsAllSystemPermissions().IsFailure)
+        {
+            return OrganizationErrors.HasSsoConnections;
+        }
+
+        foreach (var connection in connections)
+        {
+            context.SsoConnections.Remove(connection);
+            auditLog.Record(AuditActions.SsoConnectionDeleted, AuditSubject.SsoConnection(connection.Id), connection.AuditData(), organizationId: id);
         }
 
         context.Organizations.Remove(organization);

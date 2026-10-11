@@ -32,6 +32,7 @@ public sealed class AccountErrorMessages(IStringLocalizer<SharedResource> locali
         _ when error == OrganizationErrors.SlugTaken => localizer["Another organization has this short name."],
         _ when error == OrganizationErrors.CreationDisabled => localizer["Only administrators can create organizations here."],
         _ when error == OrganizationErrors.MissingPermission => localizer["Your roles in the organization do not allow this."],
+        _ when error == OrganizationErrors.HasSsoConnections => localizer["Your organization signs in through its own provider. Ask an administrator to delete it."],
         _ when error == OrganizationErrors.PrivilegeEscalation =>
             localizer["You can only give roles whose permissions you hold, and only manage members who hold no more than you."],
         _ when error == OrganizationErrors.LastAdministrator => localizer["Someone else must be able to manage the members before you leave."],

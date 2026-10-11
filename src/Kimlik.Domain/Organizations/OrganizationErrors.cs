@@ -31,6 +31,10 @@ public static class OrganizationErrors
     public static readonly Error MissingPermission = Error.Forbidden(
         "organization.missing_permission", "Your roles in the organization do not allow this.");
 
+    public static readonly Error HasSsoConnections = Error.Forbidden(
+        "organization.has_sso_connections",
+        "The organization's people sign in through its SSO connections, which go with it; deleting it takes every installation-wide system permission, as deleting them does.");
+
     /// <summary>Within an organization, members only hand out what they hold, and only manage members with no more.</summary>
     public static readonly Error PrivilegeEscalation = Error.Forbidden(
         "organization.privilege_escalation", "Granting organization permissions, or managing a member who holds them, requires holding them yourself.");

@@ -1030,6 +1030,9 @@
   <data name="Your roles in the organization do not allow this." xml:space="preserve">
     <value>Organizasyondaki rolleriniz buna izin vermiyor.</value>
   </data>
+  <data name="Your organization signs in through its own provider. Ask an administrator to delete it." xml:space="preserve">
+    <value>Organizasyonunuz kendi kimlik sağlayıcısıyla giriş yapıyor. Silinmesi için bir yöneticiye başvurun.</value>
+  </data>
   <data name="Your roles: {0}" xml:space="preserve">
     <value>Rolleriniz: {0}</value>
   </data>

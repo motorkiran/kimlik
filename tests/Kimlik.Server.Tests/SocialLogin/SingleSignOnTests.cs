@@ -250,6 +250,25 @@ public sealed class SingleSignOnTests(KimlikServerFixture server)
         (await invalid.ReadProblemCodeAsync()).ShouldBe("sso.invalid_issuer");
     }
 
+    [Fact]
+    public async Task DeletingAnOrganizationWithConnections_TakesEveryInstallationWideSystemPermission()
+    {
+        var sso = await ConnectAsync();
+        using var organizationManager = await server.CreateApiClientAsync(
+            await server.CreateRoleWithAsync(SystemPermissions.OrganizationsRead, SystemPermissions.OrganizationsWrite));
+
+        using var refused = await organizationManager.Http.DeleteAsync($"/api/v1/organizations/{sso.OrganizationId}", TestContext.Current.CancellationToken);
+        refused.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await refused.ReadProblemCodeAsync()).ShouldBe("organization.has_sso_connections");
+
+        using var api = await server.CreateApiClientAsync();
+        using var deleted = await api.Http.DeleteAsync($"/api/v1/organizations/{sso.OrganizationId}", TestContext.Current.CancellationToken);
+        deleted.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var connectionId = sso.Connection.Id.ToString();
+        (await server.QueryDatabaseAsync(context => context.AuditEvents.AnyAsync(entry => entry.Action == "sso_connection.deleted" && entry.SubjectId == connectionId)))
+            .ShouldBeTrue();
+    }
+
     private static CreateSsoConnectionRequest Request(Guid organizationId, string domain) => new()
     {
         OrganizationId = organizationId,
