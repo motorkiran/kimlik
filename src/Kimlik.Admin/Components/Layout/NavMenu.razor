@@ -40,4 +40,8 @@
     {
         <MudNavLink Href="/admin/audit" Icon="@Icons.Material.Filled.History">Audit log</MudNavLink>
     }
+    @if (Session.Has(SystemPermissions.SettingsRead))
+    {
+        <MudNavLink Href="/admin/settings" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink>
+    }
 </MudNavMenu>

@@ -22,7 +22,7 @@ public sealed class TwoFactor(
     MfaPolicy policy,
     IKimlikDbContext context,
     IAuditLog auditLog,
-    IOptions<BrandingOptions> branding)
+    IOptionsMonitor<BrandingOptions> branding)
 {
     public const int RecoveryCodeCount = 10;
 
@@ -175,7 +175,7 @@ public sealed class TwoFactor(
     private async Task<AuthenticatorSetupResponse> DescribeKeyAsync(User user)
     {
         var secret = (await userManager.GetAuthenticatorKeyAsync(user))!;
-        var issuer = Uri.EscapeDataString(branding.Value.ProductName);
+        var issuer = Uri.EscapeDataString(branding.CurrentValue.ProductName);
         var account = Uri.EscapeDataString(user.Email ?? user.Id.ToString());
 
         // The otpauth URI format of Google Authenticator, which every authenticator app reads.

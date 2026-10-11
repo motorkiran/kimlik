@@ -33,6 +33,7 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
     [InlineData("/admin/api-keys", "API keys")]
     [InlineData("/admin/webhooks", "Webhooks")]
     [InlineData("/admin/audit", "Audit log")]
+    [InlineData("/admin/settings", "Settings")]
     public async Task Screen_Renders(string path, string title)
     {
         var admin = await server.CreateUserAsync();
@@ -90,6 +91,18 @@ public sealed class AdminScreensTests(KimlikServerFixture server)
         admin.WaitForNotification("The invitation was sent.");
         (await server.QueryDatabaseAsync(context => context.Invitations.AnyAsync(invitation => invitation.OrganizationId == organization.Id && invitation.Email == email)))
             .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Settings_ShowWhereTheirValuesComeFrom()
+    {
+        await using var admin = new AdminComponents(server, Guid.NewGuid());
+
+        var page = admin.Render<Kimlik.Admin.Components.Pages.Settings>();
+
+        page.WaitForAssertion(() => page.Markup.ShouldContain("Fixed by the environment"));
+        page.Find("#setting-Kimlik-Accounts-Registration").ShouldNotBeNull();
+        page.FindAll("#setting-Kimlik-Captcha-SecretKey").ShouldHaveSingleItem().GetAttribute("type").ShouldBe("password");
     }
 
     [Fact]

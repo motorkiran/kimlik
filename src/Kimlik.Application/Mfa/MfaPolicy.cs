@@ -6,14 +6,14 @@ using Microsoft.Extensions.Options;
 namespace Kimlik.Application.Mfa;
 
 /// <summary>Decides who must use a second factor, and who may skip it on a trusted browser.</summary>
-public sealed class MfaPolicy(IKimlikDbContext context, IOptions<MfaOptions> options)
+public sealed class MfaPolicy(IKimlikDbContext context, IOptionsMonitor<MfaOptions> options)
 {
     public async Task<bool> IsRequiredAsync(Guid userId, CancellationToken cancellationToken) =>
-        options.Value.RequireForEveryone || (options.Value.RequireForAdministrators && await IsAdministratorAsync(userId, cancellationToken));
+        options.CurrentValue.RequireForEveryone || (options.CurrentValue.RequireForAdministrators && await IsAdministratorAsync(userId, cancellationToken));
 
     public async Task<bool> MayRememberBrowserAsync(Guid userId, CancellationToken cancellationToken) =>
-        options.Value.RememberBrowserFor > TimeSpan.Zero
-        && (options.Value.RememberBrowserForAdministrators || !await IsAdministratorAsync(userId, cancellationToken));
+        options.CurrentValue.RememberBrowserFor > TimeSpan.Zero
+        && (options.CurrentValue.RememberBrowserForAdministrators || !await IsAdministratorAsync(userId, cancellationToken));
 
     /// <summary>An administrator holds, through global roles, a system permission for the whole installation.</summary>
     private Task<bool> IsAdministratorAsync(Guid userId, CancellationToken cancellationToken) =>

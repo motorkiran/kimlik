@@ -1,6 +1,6 @@
 # 1. Product settings come from configuration
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0002](0002-product-settings-in-the-database.md)
 - **Date:** 2026-10-08
 
 ## Context

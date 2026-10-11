@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Kimlik.Application.Captcha;
 using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Localization;

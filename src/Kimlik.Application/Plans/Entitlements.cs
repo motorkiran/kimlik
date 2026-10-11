@@ -22,7 +22,7 @@ public sealed record EntitlementSource(Plan? Plan, Subscription? Subscription)
 /// effect, with the subscription's add-ons and overrides, otherwise the configured default plan. It checks the period
 /// itself, so it never waits for expiration.
 /// </summary>
-public sealed class Entitlements(IKimlikDbContext context, IOptions<PlanOptions> options, TimeProvider timeProvider)
+public sealed class Entitlements(IKimlikDbContext context, IOptionsMonitor<PlanOptions> options, TimeProvider timeProvider)
 {
     public async Task<EntitlementSource> SourceOfAsync(Subscriber subscriber, CancellationToken cancellationToken)
     {
@@ -40,7 +40,7 @@ public sealed class Entitlements(IKimlikDbContext context, IOptions<PlanOptions>
             return new EntitlementSource(await plans.SingleAsync(plan => plan.Id == current.PlanId, cancellationToken), current);
         }
 
-        var defaultPlan = subscriber.UserId is not null ? options.Value.DefaultUserPlan : options.Value.DefaultOrganizationPlan;
+        var defaultPlan = subscriber.UserId is not null ? options.CurrentValue.DefaultUserPlan : options.CurrentValue.DefaultOrganizationPlan;
         return new EntitlementSource(
             defaultPlan is null ? null : await plans.SingleOrDefaultAsync(plan => plan.Key == defaultPlan && plan.Kind == PlanKind.Base, cancellationToken),
             Subscription: null);

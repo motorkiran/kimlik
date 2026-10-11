@@ -21,7 +21,7 @@ public sealed class PasswordModel(
     SignInFlow signInFlow,
     RequestThrottle throttle,
     AccountErrorMessages errorMessages,
-    IOptions<AccountOptions> accounts,
+    IOptionsMonitor<AccountOptions> accounts,
     IStringLocalizer<SharedResource> localizer) : AccountPageModel
 {
     [BindProperty]
@@ -37,12 +37,12 @@ public sealed class PasswordModel(
     public string? RemovePassword { get; set; }
 
     /// <summary>Whether the password can go: people then sign in with codes sent by email.</summary>
-    public bool CanRemove => HasPassword && accounts.Value.EmailSignIn;
+    public bool CanRemove => HasPassword && accounts.CurrentValue.EmailSignIn;
 
     /// <summary>Whether the account has a password to change, rather than a first one to set.</summary>
     public bool HasPassword { get; private set; }
 
-    public int PasswordMinimumLength => accounts.Value.PasswordMinimumLength;
+    public int PasswordMinimumLength => accounts.CurrentValue.PasswordMinimumLength;
 
     public async Task<IActionResult> OnGetAsync()
     {

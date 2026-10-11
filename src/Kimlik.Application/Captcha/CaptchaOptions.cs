@@ -1,4 +1,4 @@
-namespace Kimlik.Server.Captcha;
+namespace Kimlik.Application.Captcha;
 
 /// <summary>The CAPTCHA service Kimlik puts on its forms, chosen with <c>Kimlik:Captcha:Provider</c>.</summary>
 public enum CaptchaProvider

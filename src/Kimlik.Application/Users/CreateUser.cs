@@ -18,7 +18,7 @@ public sealed class CreateUserHandler(
     IAuditLog auditLog,
     IOutbox outbox,
     DefaultUserRoles defaultRoles,
-    IOptions<AccountOptions> accounts,
+    IOptionsMonitor<AccountOptions> accounts,
     TimeProvider timeProvider)
 {
     public async Task<Result<UserResponse>> HandleAsync(CreateUserRequest request, CancellationToken cancellationToken)
@@ -63,7 +63,7 @@ public sealed class CreateUserHandler(
 
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id));
         var roles = await defaultRoles.AssignAsync(user.Id, cancellationToken);
-        if (!user.EmailConfirmed && accounts.Value.RequireVerifiedEmail)
+        if (!user.EmailConfirmed && accounts.CurrentValue.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification));
         }

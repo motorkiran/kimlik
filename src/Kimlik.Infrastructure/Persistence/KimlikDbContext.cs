@@ -4,6 +4,7 @@ using Kimlik.Domain.ApiKeys;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
+using Kimlik.Domain.Settings;
 using Kimlik.Domain.Users;
 using Kimlik.Domain.Webhooks;
 using Kimlik.Infrastructure.Outbox;
@@ -60,6 +61,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+
+    public DbSet<Setting> Settings => Set<Setting>();
 
     public IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications => Set<OpenIddictEntityFrameworkCoreApplication<Guid>>();
 

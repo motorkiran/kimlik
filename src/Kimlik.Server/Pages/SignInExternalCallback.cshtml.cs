@@ -33,7 +33,7 @@ public sealed class SignInExternalCallbackModel(
     GitHubEmails gitHubEmails,
     IKimlikDbContext context,
     IAuditLog auditLog,
-    IOptions<AccountOptions> accounts,
+    IOptionsMonitor<AccountOptions> accounts,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
     public string? ErrorMessage { get; private set; }
@@ -92,7 +92,7 @@ public sealed class SignInExternalCallbackModel(
             return created.Error == AccountErrors.EmailAlreadyRegistered ? await OfferLinkAsync(identity, returnUrl) : Fail(MessageFor(created.Error));
         }
 
-        if (!created.Value.EmailConfirmed && accounts.Value.RequireVerifiedEmail)
+        if (!created.Value.EmailConfirmed && accounts.CurrentValue.RequireVerifiedEmail)
         {
             return RedirectToPage("/SignUpComplete");
         }

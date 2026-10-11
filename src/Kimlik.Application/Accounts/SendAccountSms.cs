@@ -32,7 +32,7 @@ public interface ISmsThrottle
 [OutboxMessage("account.sms")]
 public sealed record SendAccountSms(Guid UserId, AccountSms Kind, string PhoneNumber);
 
-public sealed class SendAccountSmsHandler(UserManager<User> userManager, IOptions<BrandingOptions> branding, ISmsSender sender)
+public sealed class SendAccountSmsHandler(UserManager<User> userManager, IOptionsMonitor<BrandingOptions> branding, ISmsSender sender)
     : IOutboxMessageHandler<SendAccountSms>
 {
     public async Task HandleAsync(SendAccountSms message, CancellationToken cancellationToken)
@@ -46,7 +46,7 @@ public sealed class SendAccountSmsHandler(UserManager<User> userManager, IOption
 
         var purpose = message.Kind == AccountSms.SignInCode ? OneTimeCodes.SmsSignIn : OneTimeCodes.PhoneVerification(message.PhoneNumber);
         var code = await userManager.GenerateUserTokenAsync(user, OneTimeCodes.TokenProvider, purpose);
-        await sender.SendAsync(new SmsMessage(message.PhoneNumber, Text(message.Kind, user.Locale, code, branding.Value.ProductName)), cancellationToken);
+        await sender.SendAsync(new SmsMessage(message.PhoneNumber, Text(message.Kind, user.Locale, code, branding.CurrentValue.ProductName)), cancellationToken);
     }
 
     /// <summary>A short text in the account's language, which names the product and warns against sharing the code.</summary>

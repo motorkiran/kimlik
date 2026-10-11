@@ -4,10 +4,10 @@
 @using Kimlik.Server.Identity
 @using Kimlik.Server.Ui
 @using Microsoft.Extensions.Options
-@inject IOptions<BrandingOptions> Branding
+@inject IOptionsMonitor<BrandingOptions> Branding
 @inject BrandingStylesheet Stylesheet
 @{
-    var branding = Branding.Value;
+    var branding = Branding.CurrentValue;
     var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
     var currentUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }

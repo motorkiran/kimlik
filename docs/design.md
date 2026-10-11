@@ -230,7 +230,7 @@ The backlog, roughly in priority order:
 1. Developer-hosted sign-in UI through an interaction API.
 2. Embeddable components for organization management, for apps that want them inside their own pages, beyond the hosted pages.
 3. DPoP (RFC 9449), which OpenIddict does not support yet.
-4. Product settings and social providers kept in the database and changed at runtime from the admin panel, the API or the provisioning file.
+4. Social providers kept in the database and changed at runtime, like the product settings that already are.
 5. A JavaScript/TypeScript SDK and a Helm chart.
 6. OpenID Foundation certification.
 
@@ -477,7 +477,7 @@ HybridCache provides an in-memory layer, plus an optional layer on Redis (or a c
 ### 6.8 Configuration
 
 - **Infrastructure configuration** comes from standard .NET configuration: `appsettings.json` and environment variables named `Kimlik__Section__Key`. This covers the connection string, master key, SMTP, social provider credentials and bootstrap admin. Options are validated at startup.
-- **Product settings** come from the same configuration, in their own sections: branding, registration mode, password and MFA policies, token lifetimes and default plans. Changing one takes a restart. Keeping them in the database, to edit them in the admin panel, the API or the provisioning file, is a later phase ([ADR 0001](adr/0001-product-settings-from-configuration.md)).
+- **Product settings** come from the same configuration, in their own sections, as defaults. A curated set of them can be changed at runtime from the admin panel or `/api/v1/settings` ([ADR 0002](adr/0002-product-settings-in-the-database.md)): branding, registration and password policies, MFA requirements, organization creation and invitations, default plans and CAPTCHA. They are stored in a `settings` table that a configuration provider reads between the configuration files and the environment variables, so values set in the environment stay fixed. Changes are validated as at startup, apply at once on the instance that saves them and within 15 seconds on the others. Token lifetimes, rate limits, email, text messages and social providers still take a restart.
 
 ### 6.9 Observability
 
@@ -557,6 +557,7 @@ erDiagram
 | | `webhook_endpoints` | `url`, encrypted secret, `event_types`, `is_enabled` |
 | | `webhook_deliveries` | `endpoint_id`, `event_id`, `status`, `attempts`, `next_attempt_at`, last response |
 | | `audit_events` | `occurred_at`, `action`, actor (type, id), subject (type, id), `organization_id`, `ip_address`, `user_agent`, `correlation_id`, `data` |
+| Settings | `settings` | `key` (a configuration path such as `Kimlik:Accounts:Registration`), `value`, `is_secret` (encrypted with the master key), `updated_at` |
 
 ---
 
@@ -717,6 +718,7 @@ When a session falls short of a requested policy, Kimlik asks for more: a second
 | `/organizations` | List, create, get, update, delete |
 | `/organizations/{id}/members`, `/organizations/{id}/invitations` | Add and remove members, change member roles, invite, resend, revoke |
 | `/sso-connections` | List, create, get, update and delete enterprise SSO connections |
+| `/settings` | Read and change the product settings that can change at runtime |
 | `/permissions`, `/roles` | Manage the catalog, assign permissions to roles |
 | `/features`, `/plans`, `/subscriptions` | Manage the feature catalog and plans; subscribe, change plan, cancel |
 | `/entitlements/{subscriberType}/{id}` | Effective features and limits |
@@ -733,6 +735,7 @@ Every operation requires a system permission, for example:
 - `kimlik.roles:write`, `kimlik.clients:write` and `kimlik.plans:write`
 - `kimlik.subscriptions:write` and `kimlik.organizations:write`
 - `kimlik.usage:read` and `kimlik.usage:write`
+- `kimlik.settings:read` and `kimlik.settings:write`
 - `kimlik.webhooks:read`, `kimlik.webhooks:write` and `kimlik.audit:read`
 - `kimlik.api_keys:read` and `kimlik.api_keys:write`
 - `kimlik.api_keys:verify`
@@ -1118,6 +1121,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M24: Enterprise SSO** | OpenID Connect connections per organization, routed and enforced by email domain, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People with an address in an organization's domain sign in through its provider, join the organization, and cannot sign in another way, in end-to-end tests with a fake provider ✅ |
 | **M25: Organization pages** | Organizations on the hosted account pages: memberships, invitations, creating and leaving organizations, and managing settings, members and invitations as organization roles allow ([§6.4](#64-hosted-ui)) | A member creates an organization, invites someone who accepts, changes their roles and removes them, and members without the permissions cannot, in end-to-end tests ✅ |
 | **M26: SAML connections** | SSO connections over SAML 2.0, with service provider metadata, in the Management API, the SDK and the admin panel ([§10.11](#1011-enterprise-single-sign-on)) | People sign in through a SAML provider whose signed responses answer their own requests, and forged, unsigned, misdirected or unsolicited responses are refused, in end-to-end tests ✅ (M17 to M26 released as v0.3.0, 2026-10-11) |
+| **M27: Settings at runtime** | Product settings in the database, changed from the admin panel and the API without a restart, with environment variables fixed ([ADR 0002](adr/0002-product-settings-in-the-database.md), [§6.8](#68-configuration)) | An administrator opens registration and requires MFA at runtime, invalid values are refused, and values set in the environment cannot change, in end-to-end tests |
 
 ---
 

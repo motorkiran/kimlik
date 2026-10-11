@@ -30,7 +30,7 @@ public sealed class RegisterUserHandler(
     DefaultUserRoles defaultRoles,
     EmailSignIn emailSignIn,
     IAccountEmailThrottle throttle,
-    IOptions<AccountOptions> options,
+    IOptionsMonitor<AccountOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<User>> HandleAsync(RegisterUserCommand command, CancellationToken cancellationToken)
@@ -45,7 +45,7 @@ public sealed class RegisterUserHandler(
             && await FindInvitationHandler.FindOpenAsync(context, token, now, cancellationToken) is { } invitation
             && invitation.NormalizedEmail == userManager.NormalizeEmail(command.Email);
 
-        var registration = options.Value.Registration;
+        var registration = options.CurrentValue.Registration;
         if (registration == RegistrationMode.Disabled || (registration == RegistrationMode.InviteOnly && !invited))
         {
             return AccountErrors.RegistrationClosed;
@@ -63,7 +63,7 @@ public sealed class RegisterUserHandler(
             return user;
         }
 
-        if (error == AccountErrors.EmailAlreadyRegistered && options.Value.RequireVerifiedEmail)
+        if (error == AccountErrors.EmailAlreadyRegistered && options.CurrentValue.RequireVerifiedEmail)
         {
             // Someone without a password just wants in: the owner of the address gets a code, as when signing in.
             await (command.Password is null
@@ -95,7 +95,7 @@ public sealed class RegisterUserHandler(
 
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id), actor: AuditActor.User(user.Id));
         await defaultRoles.AssignAsync(user.Id, cancellationToken);
-        if (!user.EmailConfirmed && options.Value.RequireVerifiedEmail)
+        if (!user.EmailConfirmed && options.CurrentValue.RequireVerifiedEmail)
         {
             // Without a password, the code that signs the person in also verifies the address.
             var email = command.Password is null ? AccountEmail.SignInCode : AccountEmail.EmailVerification;

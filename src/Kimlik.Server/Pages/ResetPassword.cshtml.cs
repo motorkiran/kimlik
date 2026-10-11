@@ -11,7 +11,7 @@ namespace Kimlik.Server.Pages;
 public sealed class ResetPasswordModel(
     ResetPasswordHandler resetPassword,
     AccountErrorMessages errorMessages,
-    IOptions<AccountOptions> accounts) : PageModel
+    IOptionsMonitor<AccountOptions> accounts) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public Guid UserId { get; set; }
@@ -26,7 +26,7 @@ public sealed class ResetPasswordModel(
 
     public bool LinkInvalid { get; private set; }
 
-    public int PasswordMinimumLength => accounts.Value.PasswordMinimumLength;
+    public int PasswordMinimumLength => accounts.CurrentValue.PasswordMinimumLength;
 
     public void OnGet() => LinkInvalid = UserId == Guid.Empty || string.IsNullOrEmpty(Token);
 

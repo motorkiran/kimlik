@@ -1,0 +1,151 @@
+@page "/admin/settings"
+@using Kimlik.Application.Plans
+@using Kimlik.Application.Settings
+@using Kimlik.Domain.Common
+@inherits AdminPageBase
+
+<PageTitle>Settings · Kimlik admin</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Settings</MudText>
+    <MudSpacer />
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_changes.Count == 0" id="save-settings">Save changes</MudButton>
+    }
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">
+    These settings apply at once, without a restart. Values set in the environment are fixed by the deployment and cannot change here;
+    the others override the configuration files.
+</MudText>
+
+@foreach (var group in _settings.GroupBy(setting => setting.Group))
+{
+    <MudPaper Class="pa-4 mb-4" Outlined>
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom>@group.Key</MudText>
+        @foreach (var setting in group)
+        {
+            var id = $"setting-{setting.Key.Replace(':', '-')}";
+            var readOnly = !CanWrite || !setting.Editable;
+            <MudStack Row AlignItems="AlignItems.Center" Class="mb-2">
+                <div style="flex: 1">
+                    @switch (setting.Type)
+                    {
+                        case SettingType.Boolean:
+                            <MudSwitch T="bool" Value="@(ValueOf(setting) == "true")" ValueChanged="@(value => Change(setting, value ? "true" : "false"))"
+                                       Label="@LabelOf(setting)" Color="Color.Primary" ReadOnly="readOnly" id="@id" />
+                            <MudText Typo="Typo.caption">@setting.Description</MudText>
+                            break;
+                        case SettingType.Choice:
+                            <MudSelect T="string" Value="@ValueOf(setting)" ValueChanged="@(value => Change(setting, value))" Label="@LabelOf(setting)"
+                                       HelperText="@setting.Description" ReadOnly="readOnly" id="@id">
+                                @foreach (var choice in setting.Choices)
+                                {
+                                    <MudSelectItem T="string" Value="choice">@choice</MudSelectItem>
+                                }
+                            </MudSelect>
+                            break;
+                        case SettingType.Plan when _plans is not null:
+                            <MudSelect T="string" Value="@(ValueOf(setting) ?? string.Empty)" ValueChanged="@(value => Change(setting, value))" Label="@LabelOf(setting)"
+                                       HelperText="@setting.Description" ReadOnly="readOnly" id="@id">
+                                <MudSelectItem T="string" Value="@string.Empty">None</MudSelectItem>
+                                @foreach (var plan in _plans)
+                                {
+                                    <MudSelectItem T="string" Value="plan">@plan</MudSelectItem>
+                                }
+                            </MudSelect>
+                            break;
+                        case SettingType.Secret:
+                            <MudTextField T="string" Value="@(_changes.GetValueOrDefault(setting.Key) ?? string.Empty)" ValueChanged="@(value => Change(setting, value))"
+                                          Label="@LabelOf(setting)" InputType="InputType.Password" ReadOnly="readOnly" id="@id"
+                                          HelperText="@(setting.IsSet ? $"{setting.Description} It is set; enter a new one to replace it." : setting.Description)" />
+                            break;
+                        default:
+                            <MudTextField T="string" Value="@ValueOf(setting)" ValueChanged="@(value => Change(setting, value))" Label="@LabelOf(setting)"
+                                          HelperText="@setting.Description" ReadOnly="readOnly" id="@id" />
+                            break;
+                    }
+                </div>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(setting.Source == SettingSource.Database ? Color.Primary : Color.Default)">
+                    @SourceOf(setting)
+                </MudChip>
+                @if (!readOnly && setting.Source == SettingSource.Database)
+                {
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Undo" aria-label="Back to the configured value" title="Back to the configured value"
+                                   OnClick="() => ResetAsync(setting)" />
+                }
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<SettingResponse> _settings = [];
+    private IReadOnlyList<string>? _plans;
+    private readonly Dictionary<string, string?> _changes = new(StringComparer.Ordinal);
+
+    private bool CanWrite => Session.Has(SystemPermissions.SettingsWrite);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await Operations.RunAsync<GetSettingsHandler, IReadOnlyList<SettingResponse>>(
+            SystemPermissions.SettingsRead, handler => Task.FromResult(handler.Handle()));
+
+        if (Session.Has(SystemPermissions.PlansRead))
+        {
+            var plans = await Operations.RunAsync<ListPlansHandler, Result<Page<PlanResponse>>>(
+                SystemPermissions.PlansRead, handler => handler.HandleAsync(new ListPlansQuery(Archived: false, null, 200), Aborted));
+            _plans = plans.IsSuccess ? [.. plans.Value.Items.Where(plan => plan.Kind == PlanKind.Base).Select(plan => plan.Key)] : [];
+        }
+    }
+
+    private string? ValueOf(SettingResponse setting) => _changes.TryGetValue(setting.Key, out var changed) ? changed : setting.Value;
+
+    private void Change(SettingResponse setting, string? value) => _changes[setting.Key] = value;
+
+    private async Task SaveAsync()
+    {
+        var request = new UpdateSettingsRequest
+        {
+            // An empty secret field keeps the secret.
+            Values = _changes.Where(change => change.Value is { Length: > 0 } || !IsSecret(change.Key)).ToDictionary(change => change.Key, change => change.Value),
+        };
+
+        if (await ChangeAsync<UpdateSettingsHandler, IReadOnlyList<SettingResponse>>(
+            SystemPermissions.SettingsWrite, handler => handler.HandleAsync(request, Aborted), "The settings were saved.") is { } saved)
+        {
+            _settings = saved;
+            _changes.Clear();
+        }
+    }
+
+    private async Task ResetAsync(SettingResponse setting)
+    {
+        var request = new UpdateSettingsRequest { Values = new Dictionary<string, string?> { [setting.Key] = null } };
+        if (await ChangeAsync<UpdateSettingsHandler, IReadOnlyList<SettingResponse>>(
+            SystemPermissions.SettingsWrite, handler => handler.HandleAsync(request, Aborted), "The setting is back to its configured value.") is { } saved)
+        {
+            _settings = saved;
+            _changes.Remove(setting.Key);
+        }
+    }
+
+    private bool IsSecret(string key) => _settings.Any(setting => setting.Key == key && setting.Type == SettingType.Secret);
+
+    /// <summary>The last part of the key, in words: <c>RequireForEveryone</c> reads "Require for everyone".</summary>
+    private static string LabelOf(SettingResponse setting)
+    {
+        var name = setting.Key[(setting.Key.LastIndexOf(':') + 1)..];
+        var words = System.Text.RegularExpressions.Regex.Replace(name, "(?<!^)([A-Z])", " $1").ToLowerInvariant();
+        return char.ToUpperInvariant(words[0]) + words[1..];
+    }
+
+    private static string SourceOf(SettingResponse setting) => setting.Source switch
+    {
+        SettingSource.Database => "Changed here",
+        SettingSource.Environment => "Fixed by the environment",
+        SettingSource.Configuration => "Configuration file",
+        _ => "Default",
+    };
+}

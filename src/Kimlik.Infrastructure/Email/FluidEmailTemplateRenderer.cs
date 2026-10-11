@@ -11,7 +11,7 @@ namespace Kimlik.Infrastructure.Email;
 /// Renders the email templates embedded in this assembly (<c>Email/Templates</c>). A template sets three
 /// captured blocks: <c>subject</c>, <c>html</c> (wrapped in the shared HTML layout) and <c>text</c>.
 /// </summary>
-internal sealed class FluidEmailTemplateRenderer(IOptions<BrandingOptions> branding) : IEmailTemplateRenderer
+internal sealed class FluidEmailTemplateRenderer(IOptionsMonitor<BrandingOptions> branding) : IEmailTemplateRenderer
 {
     private const string DefaultLanguage = "en";
     private const string ResourcePrefix = "Kimlik.Infrastructure.Email.Templates.";
@@ -30,9 +30,9 @@ internal sealed class FluidEmailTemplateRenderer(IOptions<BrandingOptions> brand
         {
             ["product"] = new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["name"] = branding.Value.ProductName,
-                ["color"] = branding.Value.PrimaryColor,
-                ["logo_url"] = branding.Value.LogoUrl?.AbsoluteUri,
+                ["name"] = branding.CurrentValue.ProductName,
+                ["color"] = branding.CurrentValue.PrimaryColor,
+                ["logo_url"] = branding.CurrentValue.LogoUrl?.AbsoluteUri,
             },
         };
 

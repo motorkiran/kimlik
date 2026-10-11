@@ -14,12 +14,12 @@ namespace Kimlik.Infrastructure.Plans;
 /// </summary>
 internal sealed partial class SubscriptionExpirationService(
     IServiceScopeFactory scopeFactory,
-    IOptions<PlanOptions> options,
+    IOptionsMonitor<PlanOptions> options,
     ILogger<SubscriptionExpirationService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(options.Value.ExpirationInterval);
+        using var timer = new PeriodicTimer(options.CurrentValue.ExpirationInterval);
 
         do
         {

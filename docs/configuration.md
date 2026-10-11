@@ -4,6 +4,19 @@ Kimlik reads standard .NET configuration: `appsettings.json`, then environment v
 
 Kimlik checks its settings at startup and refuses to start with an invalid one, naming the setting in the error.
 
+## Changing settings at runtime
+
+Some product settings can also change while Kimlik runs, from **Settings** in the admin panel or through `PATCH /api/v1/settings`, without a restart:
+
+- branding: `ProductName`, `LogoUrl` and `PrimaryColor`
+- accounts: `Registration`, `RequireVerifiedEmail`, `EmailSignIn`, `BreachedPasswordCheck` and `PasswordMinimumLength`
+- MFA: `RequireForAdministrators` and `RequireForEveryone`
+- organizations: `UsersCanCreate` and `InvitationLifetime`
+- plans: `DefaultUserPlan` and `DefaultOrganizationPlan`
+- CAPTCHA: `Provider`, `SiteKey` and `SecretKey`
+
+A value changed at runtime is stored in the database. It overrides `appsettings.json`, but not environment variables or the command line: a setting set there is fixed, and the admin panel shows it as fixed by the environment. Changes are checked as at startup before they are saved. They apply at once on the instance that saves them, and within 15 seconds on the others. Secrets are encrypted with the master key and never shown again. Changing settings takes `kimlik.settings:write` and every other installation-wide system permission, and is audited as `settings.updated`. See [ADR 0002](adr/0002-product-settings-in-the-database.md).
+
 ## Required
 
 | Setting | Description |

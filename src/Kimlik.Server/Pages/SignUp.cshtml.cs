@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Captcha;
 using Kimlik.Application.Organizations;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Captcha;
@@ -26,7 +27,7 @@ public sealed class SignUpModel(
     CaptchaVerifier captcha,
     RequestThrottle throttle,
     IStringLocalizer<SharedResource> localizer,
-    IOptions<AccountOptions> accounts) : PageModel
+    IOptionsMonitor<AccountOptions> accounts) : PageModel
 {
     [BindProperty]
     public SignUpInput Input { get; set; } = new();
@@ -41,14 +42,14 @@ public sealed class SignUpModel(
     /// <summary>The address of the open invitation; the account is created for it.</summary>
     public string? InvitedEmail { get; private set; }
 
-    public bool CanSignUp => accounts.Value.Registration switch
+    public bool CanSignUp => accounts.CurrentValue.Registration switch
     {
         RegistrationMode.Open => true,
         RegistrationMode.InviteOnly => InvitedEmail is not null,
         _ => false,
     };
 
-    public int PasswordMinimumLength => accounts.Value.PasswordMinimumLength;
+    public int PasswordMinimumLength => accounts.CurrentValue.PasswordMinimumLength;
 
     /// <summary>Without a password, people sign in with codes sent to their address.</summary>
     public bool PasswordOptional => emailSignIn.Enabled;
@@ -106,7 +107,7 @@ public sealed class SignUpModel(
         var passwordless = command.Password is null;
         if (result.IsSuccess)
         {
-            if (!result.Value.EmailConfirmed && accounts.Value.RequireVerifiedEmail)
+            if (!result.Value.EmailConfirmed && accounts.CurrentValue.RequireVerifiedEmail)
             {
                 return passwordless ? AskForCode() : RedirectToPage("/SignUpComplete");
             }
@@ -118,7 +119,7 @@ public sealed class SignUpModel(
 
         // When addresses must be verified, a taken address gets the same answer as a new one,
         // so sign-up cannot be used to find out who has an account.
-        if (result.Error == AccountErrors.EmailAlreadyRegistered && accounts.Value.RequireVerifiedEmail)
+        if (result.Error == AccountErrors.EmailAlreadyRegistered && accounts.CurrentValue.RequireVerifiedEmail)
         {
             return passwordless ? AskForCode() : RedirectToPage("/SignUpComplete");
         }

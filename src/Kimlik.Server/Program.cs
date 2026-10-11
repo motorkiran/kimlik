@@ -2,6 +2,7 @@ using Kimlik.Admin;
 using Kimlik.Application;
 using Kimlik.Infrastructure;
 using Kimlik.Infrastructure.Persistence;
+using Kimlik.Infrastructure.Settings;
 using Kimlik.Server.Admin;
 using Kimlik.Server.Api;
 using Kimlik.Server.Diagnostics;
@@ -13,6 +14,9 @@ using Kimlik.Server.Ui;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Settings changed at runtime sit between the configuration files and the environment (ADR 0002).
+builder.AddStoredSettings();
 
 builder.AddTelemetry();
 builder.Services.AddApplication();
@@ -45,6 +49,8 @@ if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOn
 {
     await app.Services.PrepareDatabaseAsync();
 }
+
+await app.Services.LoadStoredSettingsAsync();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

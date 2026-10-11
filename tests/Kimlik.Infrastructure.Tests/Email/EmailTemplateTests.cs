@@ -1,12 +1,11 @@
 using Kimlik.Application.Branding;
 using Kimlik.Infrastructure.Email;
-using Microsoft.Extensions.Options;
 
 namespace Kimlik.Infrastructure.Tests.Email;
 
 public sealed class EmailTemplateTests
 {
-    private readonly FluidEmailTemplateRenderer _renderer = new(Options.Create(new BrandingOptions { ProductName = "Acme", PrimaryColor = "#123456" }));
+    private readonly FluidEmailTemplateRenderer _renderer = new(new FixedOptionsMonitor<BrandingOptions>(new BrandingOptions { ProductName = "Acme", PrimaryColor = "#123456" }));
 
     [Theory]
     [InlineData("email-verification")]

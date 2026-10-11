@@ -1,11 +1,12 @@
+@using Kimlik.Application.Captcha
 @using Kimlik.Server.Captcha
 @using Kimlik.Server.Hosting
 @using Microsoft.Extensions.Options
 @model CaptchaForm[]
-@inject IOptions<CaptchaOptions> Captcha
+@inject IOptionsMonitor<CaptchaOptions> Captcha
 @* The CAPTCHA widget, when one of the forms is guarded; it puts its answer in a hidden field of the form around it. *@
 @{
-    var options = Captcha.Value;
+    var options = Captcha.CurrentValue;
     if (!Model.Any(options.Guards))
     {
         return;

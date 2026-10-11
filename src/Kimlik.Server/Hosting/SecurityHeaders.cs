@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Kimlik.Application.Captcha;
 using Kimlik.Server.Captcha;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -48,7 +49,7 @@ internal static class SecurityHeaders
                 var nonce = context.HttpContext.GetCspNonce();
                 var metadata = context.ActionDescriptor.EndpointMetadata;
                 var captcha = metadata.OfType<ShowsCaptchaAttribute>().Any()
-                    && context.HttpContext.RequestServices.GetRequiredService<IOptions<CaptchaOptions>>().Value is { Enabled: true } options
+                    && context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<CaptchaOptions>>().CurrentValue is { Enabled: true } options
                     ? CaptchaService.For(options.Provider)
                     : null;
 

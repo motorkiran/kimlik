@@ -9,7 +9,7 @@ namespace Kimlik.Server.Pages.Account;
 
 /// <summary>The user's organizations and the invitations to their address, and creating an organization.</summary>
 public sealed class OrganizationsModel(
-    MyOrganizations organizations, MyInvitations invitations, AccountErrorMessages errorMessages, IOptions<OrganizationOptions> options) : AccountPageModel
+    MyOrganizations organizations, MyInvitations invitations, AccountErrorMessages errorMessages, IOptionsMonitor<OrganizationOptions> options) : AccountPageModel
 {
     [BindProperty]
     public CreateOrganizationInput Input { get; set; } = new();
@@ -18,7 +18,7 @@ public sealed class OrganizationsModel(
 
     public IReadOnlyList<MyInvitationResponse> Invitations { get; private set; } = [];
 
-    public bool CanCreate => options.Value.UsersCanCreate;
+    public bool CanCreate => options.CurrentValue.UsersCanCreate;
 
     public string? ErrorMessage { get; private set; }
 

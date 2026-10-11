@@ -79,7 +79,7 @@ public sealed class CreateInvitationHandler(
     ILookupNormalizer normalizer,
     IOutbox outbox,
     IAuditLog auditLog,
-    IOptions<OrganizationOptions> options,
+    IOptionsMonitor<OrganizationOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<InvitationResponse>> HandleAsync(Guid organizationId, CreateInvitationRequest request, CancellationToken cancellationToken)
@@ -113,7 +113,7 @@ public sealed class CreateInvitationHandler(
             return roles.Error;
         }
 
-        var created = Invitation.Create(organizationId, request.Email, email, roles.Value, now + options.Value.InvitationLifetime, now);
+        var created = Invitation.Create(organizationId, request.Email, email, roles.Value, now + options.CurrentValue.InvitationLifetime, now);
         if (created.IsFailure)
         {
             return created.Error;
@@ -133,7 +133,7 @@ public sealed class CreateInvitationHandler(
 }
 
 /// <summary>Sends a pending invitation again with a new link and a new expiry; the earlier link stops working.</summary>
-public sealed class ResendInvitationHandler(IKimlikDbContext context, IOutbox outbox, IAuditLog auditLog, IOptions<OrganizationOptions> options, TimeProvider timeProvider)
+public sealed class ResendInvitationHandler(IKimlikDbContext context, IOutbox outbox, IAuditLog auditLog, IOptionsMonitor<OrganizationOptions> options, TimeProvider timeProvider)
 {
     public async Task<Result<InvitationResponse>> HandleAsync(Guid organizationId, Guid invitationId, CancellationToken cancellationToken)
     {
@@ -143,7 +143,7 @@ public sealed class ResendInvitationHandler(IKimlikDbContext context, IOutbox ou
         }
 
         var now = timeProvider.GetUtcNow();
-        var renewed = invitation.Renew(now + options.Value.InvitationLifetime, now);
+        var renewed = invitation.Renew(now + options.CurrentValue.InvitationLifetime, now);
         if (renewed.IsFailure)
         {
             return renewed.Error;

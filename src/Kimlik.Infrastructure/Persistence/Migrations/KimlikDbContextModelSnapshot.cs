@@ -996,6 +996,32 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Kimlik.Domain.Settings.Setting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
+                    b.Property<bool>("IsSecret")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_secret");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("value");
+
+                    b.HasKey("Key")
+                        .HasName("pk_settings");
+
+                    b.ToTable("settings", "kimlik");
+                });
+
             modelBuilder.Entity("Kimlik.Domain.Users.SessionClient", b =>
                 {
                     b.Property<string>("SessionId")

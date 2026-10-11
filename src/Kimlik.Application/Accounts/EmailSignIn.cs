@@ -18,10 +18,10 @@ public sealed class EmailSignIn(
     IOutbox outbox,
     IAccountEmailThrottle throttle,
     IAuditLog auditLog,
-    IOptions<AccountOptions> options,
+    IOptionsMonitor<AccountOptions> options,
     TimeProvider timeProvider)
 {
-    public bool Enabled => options.Value.EmailSignIn;
+    public bool Enabled => options.CurrentValue.EmailSignIn;
 
     /// <summary>Sends a code to the account with the address, if one can sign in; at most one a minute.</summary>
     public async Task RequestAsync(string email, CancellationToken cancellationToken)

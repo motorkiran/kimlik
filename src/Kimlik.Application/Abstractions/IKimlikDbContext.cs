@@ -3,6 +3,7 @@ using Kimlik.Domain.ApiKeys;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Organizations;
 using Kimlik.Domain.Plans;
+using Kimlik.Domain.Settings;
 using Kimlik.Domain.Users;
 using Kimlik.Domain.Webhooks;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,8 @@ public interface IKimlikDbContext
     DbSet<WebhookEndpoint> WebhookEndpoints { get; }
 
     DbSet<WebhookDelivery> WebhookDeliveries { get; }
+
+    DbSet<Setting> Settings { get; }
 
     /// <summary>OpenID Connect clients, for queries. Change them through <c>IOpenIddictApplicationManager</c>, which validates them and hashes secrets.</summary>
     IQueryable<OpenIddictEntityFrameworkCoreApplication<Guid>> Applications { get; }

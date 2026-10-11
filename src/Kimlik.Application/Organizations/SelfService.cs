@@ -19,7 +19,7 @@ public sealed class MyOrganizations(
     CreateOrganizationHandler createOrganization,
     RemoveMemberHandler removeMember,
     IAuditLog auditLog,
-    IOptions<OrganizationOptions> options,
+    IOptionsMonitor<OrganizationOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<IReadOnlyList<MyOrganizationResponse>> ListAsync(Guid userId, CancellationToken cancellationToken) =>
@@ -61,12 +61,12 @@ public sealed class MyOrganizations(
     /// <summary>Creates an organization with the user as its first member, holding the creator roles.</summary>
     public async Task<Result<MyOrganizationResponse>> CreateAsync(Guid userId, CreateMyOrganizationRequest request, CancellationToken cancellationToken)
     {
-        if (!options.Value.UsersCanCreate)
+        if (!options.CurrentValue.UsersCanCreate)
         {
             return OrganizationErrors.CreationDisabled;
         }
 
-        var creatorRoles = await RoleSet.ResolveOrganizationAsync(context, options.Value.CreatorRoles, cancellationToken);
+        var creatorRoles = await RoleSet.ResolveOrganizationAsync(context, options.CurrentValue.CreatorRoles, cancellationToken);
         if (creatorRoles.IsFailure)
         {
             throw new InvalidOperationException($"{OrganizationOptions.SectionName}:CreatorRoles must name existing organization roles.");

@@ -63,7 +63,7 @@ internal static class IdentityServiceCollectionExtensions
         return Task.CompletedTask;
     }
 
-    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptions<AccountOptions> accounts, IOptions<MfaOptions> mfa, TimeProvider timeProvider)
+    private sealed class ConfigureSessionCookie(IOptions<ServerOptions> server, IOptionsMonitor<AccountOptions> accounts, IOptionsMonitor<MfaOptions> mfa, TimeProvider timeProvider)
         : IConfigureNamedOptions<CookieAuthenticationOptions>
     {
         public void Configure(string? name, CookieAuthenticationOptions options)
@@ -71,7 +71,7 @@ internal static class IdentityServiceCollectionExtensions
             if (name == IdentityConstants.ApplicationScheme)
             {
                 Secure(options, "session");
-                options.ExpireTimeSpan = accounts.Value.SessionLifetime;
+                options.ExpireTimeSpan = accounts.CurrentValue.SessionLifetime;
                 options.SlidingExpiration = true;
                 options.LoginPath = "/signin";
                 options.LogoutPath = "/signout";
@@ -117,7 +117,7 @@ internal static class IdentityServiceCollectionExtensions
             {
                 // A browser the user trusts to skip the second factor.
                 Secure(options, "mfa-trusted");
-                options.ExpireTimeSpan = mfa.Value.RememberBrowserFor;
+                options.ExpireTimeSpan = mfa.CurrentValue.RememberBrowserFor;
                 options.SlidingExpiration = false;
             }
         }

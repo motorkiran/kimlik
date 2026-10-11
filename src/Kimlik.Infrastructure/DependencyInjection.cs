@@ -11,6 +11,7 @@ using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Plans;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
+using Kimlik.Infrastructure.Settings;
 using Kimlik.Infrastructure.Sms;
 using Kimlik.Infrastructure.Webhooks;
 using Microsoft.AspNetCore.DataProtection;
@@ -45,6 +46,12 @@ public static class DependencyInjection
         services.AddScoped<ProtocolDataPruner>();
         services.AddHostedService<ProtocolDataPruningService>();
         services.AddHostedService<AuditRetentionService>();
+
+        // Settings changed at runtime, which AddStoredSettings put in the configuration; without it they stay out of it.
+        services.TryAddSingleton<StoredSettingsProvider>();
+        services.AddSingleton<StoredSettings>();
+        services.AddSingleton<IStoredSettings>(provider => provider.GetRequiredService<StoredSettings>());
+        services.AddHostedService<StoredSettingsRefresher>();
 
         return services;
     }
@@ -124,6 +131,12 @@ public static class DependencyInjection
         services.AddSingleton<IConfigureOptions<IdentityOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
         services.AddSingleton<IConfigureOptions<PasswordHasherOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
         services.AddSingleton<IConfigureOptions<DataProtectionTokenProviderOptions>>(provider => provider.GetRequiredService<ConfigureIdentity>());
+
+        // Identity reads its options through IOptions, which would keep the first ones for good; the account settings it
+        // follows can change at runtime, so each UserManager and SignInManager gets the current ones.
+        services.AddSingleton<IOptionsChangeTokenSource<IdentityOptions>>(provider =>
+            new ConfigurationChangeTokenSource<IdentityOptions>(provider.GetRequiredService<IConfiguration>().GetSection(AccountOptions.SectionName)));
+        services.AddTransient<IOptions<IdentityOptions>>(provider => Options.Create(provider.GetRequiredService<IOptionsMonitor<IdentityOptions>>().CurrentValue));
 
         services.AddScoped<IUserSessions, UserSessions>();
         services.AddScoped<IUsageCounters, UsageCounters>();

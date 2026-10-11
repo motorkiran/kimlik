@@ -3853,6 +3853,113 @@
         ]
       }
     },
+    "/api/v1/settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "List the settings that can change at runtime",
+        "description": "Each comes with its value in effect, except for secrets, and where that comes from. Settings set in the environment cannot change at runtime.\n\nRequires the `kimlik.settings:read` permission.",
+        "operationId": "ListSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          },
+          "403": {
+            "description": "The access token does not carry `kimlik.settings:read`."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Change settings",
+        "description": "Sets the given settings, by configuration path, and returns them all; `null` returns a setting to its configured or default value. The values are checked as a whole, as at startup, and apply at once, and on other instances within 15 seconds. Changing settings also takes every installation-wide system permission.\n\nRequires the `kimlik.settings:write` permission.",
+        "operationId": "UpdateSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, invalid or revoked."
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/features": {
       "get": {
         "tags": [
@@ -11019,6 +11126,79 @@
         },
         "description": "Replaces the global roles of a user or a client."
       },
+      "SettingResponse": {
+        "required": [
+          "key",
+          "group",
+          "type",
+          "description",
+          "value",
+          "isSet",
+          "source",
+          "editable",
+          "choices"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SettingType"
+          },
+          "description": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSet": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SettingSource"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A product setting that can change at runtime, under its configuration path, such as\n`Kimlik:Accounts:Registration`. `Value` is the value in effect, and is never returned for secrets, whose\n`IsSet` says whether they have one."
+      },
+      "SettingSource": {
+        "enum": [
+          "default",
+          "configuration",
+          "database",
+          "environment"
+        ],
+        "description": "Where a setting's value comes from."
+      },
+      "SettingType": {
+        "enum": [
+          "boolean",
+          "number",
+          "text",
+          "url",
+          "color",
+          "duration",
+          "choice",
+          "plan",
+          "secret"
+        ],
+        "description": "What kind of value a setting takes."
+      },
       "SsoConnectionResponse": {
         "required": [
           "id",
@@ -11563,6 +11743,21 @@
           }
         },
         "description": "Changes a role with JSON Merge Patch semantics: an omitted property keeps its value and `null` clears it."
+      },
+      "UpdateSettingsRequest": {
+        "required": [
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "New values by configuration path; `null` returns a setting to its configured or default value."
       },
       "UpdateSsoConnectionRequest": {
         "type": "object",
@@ -12201,6 +12396,9 @@
     },
     {
       "name": "SSO connections"
+    },
+    {
+      "name": "Settings"
     },
     {
       "name": "Features"

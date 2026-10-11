@@ -15,13 +15,13 @@ namespace Kimlik.Infrastructure.Identity;
 /// outage blocks nobody.
 /// </summary>
 internal sealed partial class BreachedPasswordValidator(
-    IHttpClientFactory httpClients, IOptions<AccountOptions> options, ILogger<BreachedPasswordValidator> logger) : IPasswordValidator<User>
+    IHttpClientFactory httpClients, IOptionsMonitor<AccountOptions> options, ILogger<BreachedPasswordValidator> logger) : IPasswordValidator<User>
 {
     public const string HttpClientName = "Kimlik.PwnedPasswords";
 
     public async Task<IdentityResult> ValidateAsync(UserManager<User> manager, User user, string? password)
     {
-        if (!options.Value.BreachedPasswordCheck || string.IsNullOrEmpty(password))
+        if (!options.CurrentValue.BreachedPasswordCheck || string.IsNullOrEmpty(password))
         {
             return IdentityResult.Success;
         }

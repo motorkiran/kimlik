@@ -16,7 +16,7 @@ public sealed class MyAccount(
     IUserSessions sessions,
     IKimlikDbContext context,
     IAuditLog auditLog,
-    IOptions<AccountOptions> options,
+    IOptionsMonitor<AccountOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken cancellationToken) =>
@@ -84,7 +84,7 @@ public sealed class MyAccount(
     /// </summary>
     public async Task<Result> RemovePasswordAsync(Guid userId, string currentPassword, CancellationToken cancellationToken)
     {
-        if (!options.Value.EmailSignIn)
+        if (!options.CurrentValue.EmailSignIn)
         {
             return AccountErrors.EmailSignInOff;
         }

@@ -65,6 +65,7 @@ internal static class ManagementApi
             .MapClientEndpoints()
             .MapOrganizationEndpoints()
             .MapSsoConnectionEndpoints()
+            .MapSettingEndpoints()
             .MapPlanEndpoints()
             .MapSubscriptionEndpoints()
             .MapApiKeyEndpoints()

@@ -11,18 +11,18 @@ namespace Kimlik.Application.Accounts;
 /// Gives new users the global roles of <see cref="AccountOptions.DefaultRoles"/>: people who sign up, or sign in with a
 /// provider for the first time, and users created through the Management API.
 /// </summary>
-public sealed class DefaultUserRoles(IKimlikDbContext context, IAuditLog auditLog, IOptions<AccountOptions> options, TimeProvider timeProvider)
+public sealed class DefaultUserRoles(IKimlikDbContext context, IAuditLog auditLog, IOptionsMonitor<AccountOptions> options, TimeProvider timeProvider)
 {
     /// <summary>Adds the assignments to the changes being saved, and returns the keys of the roles.</summary>
     public async Task<IReadOnlyList<string>> AssignAsync(Guid userId, CancellationToken cancellationToken)
     {
-        if (options.Value.DefaultRoles.Count == 0)
+        if (options.CurrentValue.DefaultRoles.Count == 0)
         {
             return [];
         }
 
         // Anyone can become a new user, so the roles must not carry Kimlik's own permissions.
-        var roles = await RoleSet.ResolveGlobalAsync(context, options.Value.DefaultRoles, cancellationToken);
+        var roles = await RoleSet.ResolveGlobalAsync(context, options.CurrentValue.DefaultRoles, cancellationToken);
         if (roles.IsFailure || await GrantSystemPermissionsAsync([.. roles.Value.Select(role => role.Id)], cancellationToken))
         {
             throw new InvalidOperationException(

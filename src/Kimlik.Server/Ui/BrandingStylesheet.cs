@@ -13,9 +13,9 @@ internal sealed class BrandingStylesheet
 {
     public const string Path = "/branding.css";
 
-    public BrandingStylesheet(IOptions<BrandingOptions> branding)
+    public BrandingStylesheet(IOptionsMonitor<BrandingOptions> branding)
     {
-        if (branding.Value.StylesheetPath is { Length: > 0 } path)
+        if (branding.CurrentValue.StylesheetPath is { Length: > 0 } path)
         {
             Content = File.ReadAllText(path);
             Url = $"{Path}?v={Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Content)))[..12]}";

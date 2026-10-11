@@ -1,4 +1,5 @@
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Captcha;
 using Kimlik.Server.Captcha;
 using Kimlik.Server.Hosting;
 using Microsoft.AspNetCore.Mvc;

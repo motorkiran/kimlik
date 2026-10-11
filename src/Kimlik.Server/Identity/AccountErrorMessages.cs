@@ -7,13 +7,13 @@ using Microsoft.Extensions.Options;
 namespace Kimlik.Server.Identity;
 
 /// <summary>Turns account and organization errors into localized messages for the hosted pages.</summary>
-public sealed class AccountErrorMessages(IStringLocalizer<SharedResource> localizer, IOptions<AccountOptions> accounts)
+public sealed class AccountErrorMessages(IStringLocalizer<SharedResource> localizer, IOptionsMonitor<AccountOptions> accounts)
 {
     public string For(Error error) => error switch
     {
         _ when error == AccountErrors.EmailAlreadyRegistered => localizer["An account with this email address already exists."],
         _ when error == AccountErrors.InvalidEmail => localizer["Enter a valid email address."],
-        _ when error == AccountErrors.PasswordTooShort => localizer["Use at least {0} characters.", accounts.Value.PasswordMinimumLength],
+        _ when error == AccountErrors.PasswordTooShort => localizer["Use at least {0} characters.", accounts.CurrentValue.PasswordMinimumLength],
         _ when error == AccountErrors.PasswordTooLong => localizer["Use at most {0} characters.", AccountOptions.PasswordMaximumLength],
         _ when error == AccountErrors.PasswordRejected => localizer["Choose a different password."],
         _ when error == AccountErrors.PasswordMissing => localizer["Choose a password."],

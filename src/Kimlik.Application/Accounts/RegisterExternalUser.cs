@@ -35,13 +35,13 @@ public sealed class RegisterExternalUserHandler(
     IAuditLog auditLog,
     IOutbox outbox,
     DefaultUserRoles defaultRoles,
-    IOptions<AccountOptions> options,
+    IOptionsMonitor<AccountOptions> options,
     TimeProvider timeProvider)
 {
     public async Task<Result<User>> HandleAsync(RegisterExternalUserCommand command, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var registration = options.Value.Registration;
+        var registration = options.CurrentValue.Registration;
         if (!command.VouchedByOrganization && (registration == RegistrationMode.Disabled
             || (registration == RegistrationMode.InviteOnly && !(command.EmailVerified && await IsInvitedAsync(command.Email, now, cancellationToken)))))
         {
@@ -76,7 +76,7 @@ public sealed class RegisterExternalUserHandler(
         auditLog.Record(AuditActions.UserCreated, AuditSubject.User(user.Id), provider, AuditActor.User(user.Id));
         auditLog.Record(AuditActions.UserLoginLinked, AuditSubject.User(user.Id), provider, AuditActor.User(user.Id));
         await defaultRoles.AssignAsync(user.Id, cancellationToken);
-        if (!user.EmailConfirmed && options.Value.RequireVerifiedEmail)
+        if (!user.EmailConfirmed && options.CurrentValue.RequireVerifiedEmail)
         {
             outbox.Enqueue(new SendAccountEmail(user.Id, AccountEmail.EmailVerification, command.ReturnUrl));
         }

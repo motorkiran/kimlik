@@ -123,7 +123,7 @@ Settings come from `appsettings.json` and environment variables (`Kimlik__Sectio
 | `Kimlik__Branding__*` | Product name, logo and accent color of the hosted pages and emails |
 | `Kimlik__SocialLogin__*` | Sign-in with Google, Microsoft, Apple and GitHub (see below) |
 
-Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`. [docs/configuration.md](docs/configuration.md) lists every setting, and [docs/deployment.md](docs/deployment.md) covers running Kimlik in production: the image, reverse proxies, migrations, several instances, backups and a hardening checklist.
+Behind a TLS-terminating proxy, set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`. [docs/configuration.md](docs/configuration.md) lists every setting, including the product settings that administrators can change at runtime in the admin panel, and [docs/deployment.md](docs/deployment.md) covers running Kimlik in production: the image, reverse proxies, migrations, several instances, backups and a hardening checklist.
 
 ### Sign-in with other providers
 

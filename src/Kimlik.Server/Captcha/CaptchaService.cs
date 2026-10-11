@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Kimlik.Application.Captcha;
 using Microsoft.Extensions.Options;
 
 namespace Kimlik.Server.Captcha;
@@ -39,11 +40,11 @@ internal sealed record CaptchaService(string ScriptUrl, string WidgetClass, stri
 }
 
 /// <summary>Checks the CAPTCHA answers that the hosted forms post.</summary>
-public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOptions<CaptchaOptions> options, ILogger<CaptchaVerifier> logger)
+public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOptionsMonitor<CaptchaOptions> options, ILogger<CaptchaVerifier> logger)
 {
     public const string HttpClientName = "Kimlik.Captcha";
 
-    public bool Guards(CaptchaForm form) => options.Value.Guards(form);
+    public bool Guards(CaptchaForm form) => options.CurrentValue.Guards(form);
 
     /// <summary>
     /// Whether the request may go on: the form is not guarded, or the provider accepted the widget's answer. A missing
@@ -56,13 +57,13 @@ public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOpt
             return true;
         }
 
-        var service = CaptchaService.For(options.Value.Provider);
+        var service = CaptchaService.For(options.CurrentValue.Provider);
         if (!context.Request.HasFormContentType || context.Request.Form[service.ResponseField].ToString() is not { Length: > 0 } answer)
         {
             return false;
         }
 
-        var fields = new List<KeyValuePair<string, string>> { new("secret", options.Value.SecretKey!), new("response", answer) };
+        var fields = new List<KeyValuePair<string, string>> { new("secret", options.CurrentValue.SecretKey!), new("response", answer) };
         if (context.Connection.RemoteIpAddress is { } address)
         {
             fields.Add(new("remoteip", address.ToString()));
@@ -78,7 +79,7 @@ public sealed partial class CaptchaVerifier(IHttpClientFactory httpClients, IOpt
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            LogUnreachable(logger, options.Value.Provider, exception);
+            LogUnreachable(logger, options.CurrentValue.Provider, exception);
             return true;
         }
     }

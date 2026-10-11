@@ -8,7 +8,7 @@ using MimeKit;
 namespace Kimlik.Infrastructure.Email;
 
 /// <summary>Sends email through an SMTP relay with MailKit.</summary>
-internal sealed class SmtpEmailSender(IOptions<EmailOptions> options, IOptions<BrandingOptions> branding) : IEmailSender
+internal sealed class SmtpEmailSender(IOptions<EmailOptions> options, IOptionsMonitor<BrandingOptions> branding) : IEmailSender
 {
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
     {
@@ -17,7 +17,7 @@ internal sealed class SmtpEmailSender(IOptions<EmailOptions> options, IOptions<B
         var host = settings.Smtp.Host ?? throw new InvalidOperationException("Kimlik:Email:Smtp:Host is not configured.");
 
         using var mime = new MimeMessage();
-        mime.From.Add(new MailboxAddress(settings.FromName ?? branding.Value.ProductName, fromAddress));
+        mime.From.Add(new MailboxAddress(settings.FromName ?? branding.CurrentValue.ProductName, fromAddress));
         mime.To.Add(MailboxAddress.Parse(message.To));
         mime.Subject = message.Subject;
         mime.Body = new BodyBuilder { HtmlBody = message.HtmlBody, TextBody = message.TextBody }.ToMessageBody();

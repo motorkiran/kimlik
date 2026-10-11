@@ -82,4 +82,5 @@ public static class AuditActions
     public const string WebhookEndpointUpdated = "webhook_endpoint.updated";
     public const string WebhookEndpointDeleted = "webhook_endpoint.deleted";
     public const string WebhookEndpointSecretRotated = "webhook_endpoint.secret_rotated";
+    public const string SettingsUpdated = "settings.updated";
 }

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Kimlik.Application.Abstractions;
 using Kimlik.Application.Accounts;
+using Kimlik.Application.Captcha;
 using Kimlik.Domain.Auditing;
 using Kimlik.Domain.Users;
 using Kimlik.Server.Captcha;
@@ -35,7 +36,7 @@ public sealed class SignInModel(
     RequestThrottle throttle,
     IKimlikDbContext context,
     IAuditLog auditLog,
-    IOptions<AccountOptions> accounts,
+    IOptionsMonitor<AccountOptions> accounts,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
     [BindProperty]
@@ -60,7 +61,7 @@ public sealed class SignInModel(
     [BindProperty]
     public string? State { get; set; }
 
-    public bool CanSignUp => accounts.Value.Registration == RegistrationMode.Open;
+    public bool CanSignUp => accounts.CurrentValue.Registration == RegistrationMode.Open;
 
     /// <summary>Whether some organization signs in through its own provider, so the page offers to.</summary>
     public bool OffersSso { get; private set; }
