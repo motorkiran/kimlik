@@ -27,7 +27,8 @@ public sealed class KimlikServerFixture : WebApplicationFactory<Program>, IAsync
 
     private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(30);
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgreSqlImage).Build();
+    // Hosts with a database of their own each keep a pool of connections, more than the 100 PostgreSQL allows by default.
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder(PostgreSqlImage).WithCommand("-c", "max_connections=300").Build();
 
     /// <summary>Every email the server sends during the test run.</summary>
     public CapturingEmailSender Emails { get; } = new();

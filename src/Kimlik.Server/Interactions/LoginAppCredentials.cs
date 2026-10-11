@@ -52,7 +52,7 @@ public sealed class LoginAppCredentials(
             return await RejectAsync(user, "email_not_verified", InteractionErrors.UserCannotSignIn, cancellationToken);
         }
 
-        await userManager.ResetAccessFailedCountAsync(user);
+        await userManager.FirstFactorSucceededAsync(user);
         var secondFactorRequired = user.TwoFactorEnabled || await policy.IsRequiredAsync(user.Id, cancellationToken);
         return new VerifiedUserResponse(user.Id, secondFactorRequired, user.TwoFactorEnabled);
     }
@@ -97,13 +97,7 @@ public sealed class LoginAppCredentials(
             return InteractionErrors.ChallengeNotFound;
         }
 
-        if (!pending.TryAttempt())
-        {
-            return InteractionErrors.TooManyAttempts;
-        }
-
-        await context.SaveChangesAsync(cancellationToken);
-        return null;
+        return await challenges.TryAttemptAsync(pending, cancellationToken) ? null : InteractionErrors.TooManyAttempts;
     }
 
     private async Task<Error> RejectAsync(User? user, string reason, Error error, CancellationToken cancellationToken)

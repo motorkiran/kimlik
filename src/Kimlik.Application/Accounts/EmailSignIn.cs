@@ -57,7 +57,7 @@ public sealed class EmailSignIn(
             return AccountErrors.WrongCode;
         }
 
-        await userManager.ResetAccessFailedCountAsync(user);
+        await userManager.FirstFactorSucceededAsync(user);
         if (!user.EmailConfirmed)
         {
             user.MarkEmailVerified(timeProvider.GetUtcNow());

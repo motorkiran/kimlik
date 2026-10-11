@@ -132,15 +132,48 @@ public sealed class LoginAppTests(KimlikServerFixture server)
         var challenge = ChallengeOf(handedOver);
         var guess = new VerifyPasswordRequest { Email = $"nobody-{Guid.NewGuid():N}@example.com", Password = "a guess at a password" };
 
-        for (var attempt = 0; attempt < 10; attempt++)
+        // Sent at once, as a login app could to get past the limit.
+        var answers = await Task.WhenAll(Enumerable.Range(0, 14).Select(async _ =>
         {
-            using var wrong = await loginApp.Http.PostJsonAsync($"/api/v1/interactions/login/{challenge}/password", guess);
-            (await wrong.ReadProblemCodeAsync()).ShouldBe("interaction.invalid_credentials");
+            using var response = await loginApp.Http.PostJsonAsync($"/api/v1/interactions/login/{challenge}/password", guess);
+            return await response.ReadProblemCodeAsync();
+        }));
+
+        answers.Count(code => code == "interaction.invalid_credentials").ShouldBe(10);
+        answers.Count(code => code == "interaction.too_many_attempts").ShouldBe(4);
+    }
+
+    [Fact]
+    public async Task RightPassword_DoesNotForgetWrongSecondFactorCodes()
+    {
+        var kimlik = await KimlikAsync();
+        var user = await server.CreateUserAsync();
+        await server.EnableMfaAsync(user.Id);
+        var client = await server.CreateWebClientAsync();
+        using var loginApp = await LoginAppAsync();
+        using var browser = new Browser(kimlik);
+        using var handedOver = await browser.GetAsync(new AuthorizationRequest(client.ClientId).Url);
+        var challenge = ChallengeOf(handedOver);
+
+        // Five wrong codes lock the account, with a right password in between.
+        foreach (var wrongCodes in new[] { 4, 1 })
+        {
+            using var password = await VerifyPasswordAsync(loginApp, challenge, user);
+            password.StatusCode.ShouldBe(HttpStatusCode.OK);
+            for (var attempt = 0; attempt < wrongCodes; attempt++)
+            {
+                using var wrong = await loginApp.Http.PostJsonAsync(
+                    $"/api/v1/interactions/login/{challenge}/second-factor", new VerifySecondFactorRequest { UserId = user.Id, Code = "000000" });
+                (await wrong.ReadProblemCodeAsync()).ShouldBe("interaction.wrong_code");
+            }
         }
 
-        using var refused = await loginApp.Http.PostJsonAsync($"/api/v1/interactions/login/{challenge}/password", guess);
-        (await refused.ReadProblemCodeAsync()).ShouldBe("interaction.too_many_attempts");
+        using var locked = await VerifyPasswordAsync(loginApp, challenge, user);
+        (await locked.ReadProblemCodeAsync()).ShouldBe("interaction.invalid_credentials");
     }
+
+    private static Task<HttpResponseMessage> VerifyPasswordAsync(ApiClient loginApp, string challenge, TestUser user) =>
+        loginApp.Http.PostJsonAsync($"/api/v1/interactions/login/{challenge}/password", new VerifyPasswordRequest { Email = user.Email, Password = user.Password });
 
     /// <summary>A Kimlik that hands sign-ins to the login app; it shares the database, and only its configuration differs.</summary>
     private async Task<WebApplicationFactory<Program>> KimlikAsync()

@@ -60,7 +60,7 @@ public sealed class PhoneSignIn(
             return AccountErrors.WrongCode;
         }
 
-        await userManager.ResetAccessFailedCountAsync(user);
+        await userManager.FirstFactorSucceededAsync(user);
         return user;
     }
 

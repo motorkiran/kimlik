@@ -65,6 +65,15 @@ public sealed class LoginChallenges(IKimlikDbContext context, TimeProvider timeP
     }
 
     /// <summary>
+    /// Counts a credential check against the challenge in one statement, so checks sent at the same moment cannot go past
+    /// <see cref="LoginChallenge.MaxAttempts"/>; <see langword="false"/> once it has had them.
+    /// </summary>
+    public async Task<bool> TryAttemptAsync(LoginChallenge challenge, CancellationToken cancellationToken) =>
+        await context.LoginChallenges
+            .Where(candidate => candidate.Id == challenge.Id && candidate.Attempts < LoginChallenge.MaxAttempts)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.Attempts, candidate => candidate.Attempts + 1), cancellationToken) == 1;
+
+    /// <summary>
     /// Whether the user's sign-in must take a second factor: because they set one up, or a policy of Kimlik's asks for
     /// one, as on the hosted pages.
     /// </summary>

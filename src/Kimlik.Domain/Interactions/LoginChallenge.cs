@@ -118,18 +118,6 @@ public sealed class LoginChallenge
     public bool IsHeldBy(string? browserSecret) =>
         browserSecret is not null && CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Hash(browserSecret)), Encoding.ASCII.GetBytes(BrowserHash));
 
-    /// <summary>Counts a credential check; <see langword="false"/> once the challenge has had as many as it gets.</summary>
-    public bool TryAttempt()
-    {
-        if (Attempts >= MaxAttempts)
-        {
-            return false;
-        }
-
-        Attempts++;
-        return true;
-    }
-
     /// <summary>
     /// Accepts the challenge for the user, signed in with <paramref name="methods"/>. They must meet the strength the
     /// request asked for, and a second factor when <paramref name="secondFactorRequired"/>: two methods, or a passkey.
