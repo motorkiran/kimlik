@@ -36,7 +36,9 @@ const en = {
   "invitations.title": "Invitations",
   "invitations.from": "{0} invites you to join.",
   "invitations.accept": "Accept",
+  "invitations.acceptFrom": "Accept the invitation from {0}",
   "invitations.decline": "Decline",
+  "invitations.declineFrom": "Decline the invitation from {0}",
   "invitations.accepted": "You joined {0}.",
   "invitations.declined": "You declined the invitation to {0}.",
   "create.title": "Create an organization",
@@ -46,6 +48,9 @@ const en = {
   "members.title": "Members",
   "members.member": "Member",
   "members.changeRoles": "Change roles",
+  "members.changeRolesOf": "Change the roles of {0}",
+  "members.removeNamed": "Remove {0}",
+  "members.truncated": "Only the first {0} members are shown.",
   "members.rolesOf": "Roles of {0}",
   "members.rolesSaved": "The roles of {0} are saved.",
   "members.remove": "Remove",
@@ -58,6 +63,8 @@ const en = {
   "pending.empty": "No pending invitations.",
   "pending.expires": "Expires {0}",
   "pending.resend": "Send again",
+  "pending.resendTo": "Send the invitation to {0} again",
+  "pending.revokeFor": "Revoke the invitation to {0}",
   "pending.resent": "We sent the invitation to {0} again.",
   "pending.revoke": "Revoke",
   "pending.revoked": "The invitation to {0} is revoked.",
@@ -70,6 +77,7 @@ const en = {
   "leave.title": "Leave the organization",
   "leave.text": "You lose access to {0} until someone invites you again.",
   "leave.submit": "Leave {0}",
+  "leave.confirm": "Leave {0}?",
   "leave.done": "You left {0}.",
   "delete.title": "Delete the organization",
   "delete.text": "This deletes {0} with its memberships and invitations, and cannot be undone. Type its short name, {1}, to confirm.",
@@ -118,7 +126,9 @@ const tr: Record<MessageKey, string> = {
   "invitations.title": "Davetler",
   "invitations.from": "{0} sizi katılmaya davet ediyor.",
   "invitations.accept": "Kabul et",
+  "invitations.acceptFrom": "{0} davetini kabul et",
   "invitations.decline": "Reddet",
+  "invitations.declineFrom": "{0} davetini reddet",
   "invitations.accepted": "{0} organizasyonuna katıldınız.",
   "invitations.declined": "{0} davetini reddettiniz.",
   "create.title": "Organizasyon oluşturun",
@@ -128,6 +138,9 @@ const tr: Record<MessageKey, string> = {
   "members.title": "Üyeler",
   "members.member": "Üye",
   "members.changeRoles": "Rolleri değiştir",
+  "members.changeRolesOf": "{0} kişisinin rollerini değiştir",
+  "members.removeNamed": "{0} kişisini çıkar",
+  "members.truncated": "Yalnızca ilk {0} üye gösteriliyor.",
   "members.rolesOf": "{0} kişisinin rolleri",
   "members.rolesSaved": "{0} kişisinin rolleri kaydedildi.",
   "members.remove": "Çıkar",
@@ -140,6 +153,8 @@ const tr: Record<MessageKey, string> = {
   "pending.empty": "Bekleyen davet yok.",
   "pending.expires": "Son geçerlilik: {0}",
   "pending.resend": "Yeniden gönder",
+  "pending.resendTo": "{0} adresine daveti yeniden gönder",
+  "pending.revokeFor": "{0} adresine giden daveti iptal et",
   "pending.resent": "{0} adresine daveti yeniden gönderdik.",
   "pending.revoke": "İptal et",
   "pending.revoked": "{0} adresine giden davet iptal edildi.",
@@ -152,6 +167,7 @@ const tr: Record<MessageKey, string> = {
   "leave.title": "Organizasyondan ayrılın",
   "leave.text": "Biri sizi yeniden davet edene kadar {0} erişiminizi kaybedersiniz.",
   "leave.submit": "{0} organizasyonundan ayrıl",
+  "leave.confirm": "{0} organizasyonundan ayrılmak istiyor musunuz?",
   "leave.done": "{0} organizasyonundan ayrıldınız.",
   "delete.title": "Organizasyonu silin",
   "delete.text": "Bu işlem {0} organizasyonunu üyelikleri ve davetleriyle birlikte siler ve geri alınamaz. Onaylamak için kısa adını, {1}, yazın.",
@@ -162,10 +178,34 @@ const tr: Record<MessageKey, string> = {
 
 const catalogs = { en, tr };
 
+/** The closest `lang` attribute above the element, looking out of the shadow roots it is in; the page's otherwise. */
+function langOf(element: Element): string {
+  for (let node: Element | null = element; node; ) {
+    const tagged = node.closest("[lang]");
+    if (tagged) {
+      return tagged.getAttribute("lang")!;
+    }
+
+    const root = node.getRootNode();
+    node = root instanceof ShadowRoot ? root.host : null;
+  }
+
+  return document.documentElement.lang;
+}
+
 /** The language of the element: Turkish when the closest `lang` attribute says so, English otherwise. */
 export function languageOf(element: Element): keyof typeof catalogs {
-  const lang = element.closest("[lang]")?.getAttribute("lang") ?? document.documentElement.lang;
-  return lang.toLowerCase().startsWith("tr") ? "tr" : "en";
+  return langOf(element).toLowerCase().startsWith("tr") ? "tr" : "en";
+}
+
+/** The locale that dates are written in: the `lang` attribute's when it is one, so that en-GB is not written as en-US. */
+export function localeOf(element: Element): string {
+  const lang = langOf(element);
+  try {
+    return Intl.DateTimeFormat.supportedLocalesOf([lang])[0] ?? languageOf(element);
+  } catch {
+    return languageOf(element);
+  }
 }
 
 export function translate(language: keyof typeof catalogs, key: MessageKey, ...values: (string | number)[]): string {

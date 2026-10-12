@@ -40,11 +40,15 @@ describe("<kimlik-organization-members>", () => {
     expect(element.shadowRoot!.textContent).toContain("barbara@example.com");
   });
 
-  it("changes the roles of members who hold no more than the user, keeping roles the user cannot give", async () => {
+  it("changes the roles of members who hold no more than the user", async () => {
     const element = await mount("kimlik-organization-members", { organization: acme.id }, "Ada Lovelace");
     expect(element.shadowRoot!.querySelector(`[data-key="edit-${grace.userId}"]`)).toBeNull();
     expect(element.shadowRoot!.querySelector(`[data-key="edit-${me}"]`)).toBeNull();
 
+    query(element, `[data-key="edit-${ada.userId}"]`).click();
+    expect((element.shadowRoot!.activeElement as HTMLElement).dataset["key"], "focus goes into the form that opened").toBe(`save-${ada.userId}`);
+    query(element, `[data-key="cancel-${ada.userId}"]`).click();
+    expect((element.shadowRoot!.activeElement as HTMLElement).dataset["key"], "and back to the button on cancel").toBe(`edit-${ada.userId}`);
     query(element, `[data-key="edit-${ada.userId}"]`).click();
     query<HTMLInputElement>(element, "li[part=member] form input[value=manager]").checked = true;
     submit(query<HTMLFormElement>(element, "li[part=member] form"));
@@ -91,7 +95,6 @@ describe("<kimlik-organization-members>", () => {
     expect(element.shadowRoot!.querySelectorAll("button")).toHaveLength(0);
 
     acme.permissions = [];
-    element.setAttribute("organization", acme.id);
     const other = await mount("kimlik-organization-members", { organization: acme.id }, "Your roles in the organization do not allow this.");
     expect(other.shadowRoot!.textContent).not.toContain("Ada Lovelace");
   });

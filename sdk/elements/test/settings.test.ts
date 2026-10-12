@@ -20,7 +20,10 @@ describe("<kimlik-organization-settings>", () => {
     query<HTMLInputElement>(element, "input[name=requireMfa]").checked = true;
     submit(query<HTMLFormElement>(element, "section[part=settings] form"));
 
+    let updated: unknown;
+    document.addEventListener("kimlik-organization-update", (event) => (updated = (event as CustomEvent).detail), { once: true });
     await shows(element, "The settings of Acme Corp are saved.");
+    expect(updated).toEqual({ id: acme.id, slug: "acme" });
     expect(api.requests.find((request) => request.method === "PATCH")?.body).toEqual({ name: "Acme Corp", slug: "acme", pictureUrl: null, requireMfa: true });
     expect(query<HTMLInputElement>(element, "input[name=name]").value).toBe("Acme Corp");
   });
@@ -31,10 +34,12 @@ describe("<kimlik-organization-settings>", () => {
     document.addEventListener("kimlik-organization-delete", (event) => (deleted = (event as CustomEvent).detail), { once: true });
     const form = query<HTMLFormElement>(element, "section[part=delete] form");
 
+    query<HTMLInputElement>(element, "input[name=name]").value = "Renamed, not saved";
     query<HTMLInputElement>(element, "input[name=confirmation]").value = "acm";
     submit(form);
     await shows(element, "Type the organization's short name to delete it.");
     expect(api.changes()).toEqual([]);
+    expect(query<HTMLInputElement>(element, "input[name=name]").value, "what was typed stays through a warning").toBe("Renamed, not saved");
 
     query<HTMLInputElement>(element, "input[name=confirmation]").value = "acme";
     submit(query<HTMLFormElement>(element, "section[part=delete] form"));
@@ -53,6 +58,10 @@ describe("<kimlik-organization-settings>", () => {
     document.addEventListener("kimlik-organization-leave", (event) => (left = (event as CustomEvent).detail), { once: true });
 
     query(element, "[data-key=leave]").click();
+    await shows(element, "Leave Acme?");
+    expect(api.changes()).toEqual([]);
+    expect((element.shadowRoot!.activeElement as HTMLElement).dataset["key"]).toBe("cancel-leave");
+    query(element, "[data-key=confirm-leave]").click();
 
     await shows(element, "You left Acme.");
     expect(api.changes()).toEqual([`DELETE /organizations/${acme.id}/membership`]);
@@ -65,6 +74,7 @@ describe("<kimlik-organization-settings>", () => {
     const element = await mount("kimlik-organization-settings", { organization: acme.id }, "Leave the organization");
 
     query(element, "[data-key=leave]").click();
+    query(element, "[data-key=confirm-leave]").click();
 
     await shows(element, "Someone else must be able to manage the members first.");
     expect(query(element, "section[part=leave]")).toBeTruthy();

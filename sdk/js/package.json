@@ -23,6 +23,7 @@
   "scripts": {
     "generate": "openapi-typescript ../../tests/Kimlik.Server.Tests/Api/openapi-v1.json -o src/schema.ts",
     "build": "tsc -p tsconfig.build.json",
+    "prepack": "cp ../../LICENSE LICENSE",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

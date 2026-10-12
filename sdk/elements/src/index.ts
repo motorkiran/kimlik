@@ -12,10 +12,13 @@ const elements = {
   "kimlik-organization-settings": KimlikOrganizationSettings,
 };
 
-// Importing the package defines the elements, once, even when two copies of it are loaded.
-for (const [name, element] of Object.entries(elements)) {
-  if (!customElements.get(name)) {
-    customElements.define(name, element);
+// Importing the package in a browser defines the elements, once: a second copy of it on the page leaves them as they
+// are and shares their configuration. Where there are no custom elements, as on a server, importing does nothing.
+if (typeof customElements !== "undefined") {
+  for (const [name, element] of Object.entries(elements)) {
+    if (!customElements.get(name)) {
+      customElements.define(name, element);
+    }
   }
 }
 

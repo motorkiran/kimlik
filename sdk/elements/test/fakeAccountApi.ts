@@ -11,6 +11,7 @@ const token = `e30.${btoa(JSON.stringify({ sub: me })).replace(/=+$/, "")}.signa
 export interface SentRequest {
   method: string;
   path: string;
+  query: string;
   body: unknown;
   authorization: string | null;
 }
@@ -28,6 +29,10 @@ export class FakeAccountApi {
   invitations: Invitation[] = [];
   /** A problem to answer the next change with, instead of making it. */
   refuseNext: { status: number; code: string } | undefined;
+  /** How many members a page holds, to make the components ask for several. */
+  pageSize = 200;
+  /** Answers a request itself, or waits before the fake does, when a test needs to decide what arrives when. */
+  intercept: ((method: string, path: string) => Promise<Response | undefined>) | undefined;
 
   configure(): this {
     configureKimlik({ authority, accessToken: () => token, fetch: this.fetch });
@@ -39,7 +44,11 @@ export class FakeAccountApi {
     const url = new URL(request.url);
     const path = url.pathname.replace(/^\/api\/v1\/me/, "");
     const body = request.method === "GET" || request.method === "DELETE" ? undefined : await request.json().catch(() => undefined);
-    this.requests.push({ method: request.method, path, body, authorization: request.headers.get("authorization") });
+    this.requests.push({ method: request.method, path, query: url.search, body, authorization: request.headers.get("authorization") });
+    const intercepted = await this.intercept?.(request.method, path);
+    if (intercepted) {
+      return intercepted;
+    }
 
     if (request.method !== "GET" && this.refuseNext) {
       const { status, code } = this.refuseNext;
@@ -47,7 +56,7 @@ export class FakeAccountApi {
       return Response.json({ status, code, title: "Refused", detail: `Refused with ${code}.` }, { status });
     }
 
-    return this.answer(request.method, path, body as Record<string, unknown> | undefined);
+    return this.answer(request.method, path, url.searchParams, body as Record<string, unknown> | undefined);
   };
 
   /** The changes the components sent, as `METHOD /path`. */
@@ -55,7 +64,7 @@ export class FakeAccountApi {
     return this.requests.filter((request) => request.method !== "GET").map((request) => `${request.method} ${request.path}`);
   }
 
-  private answer(method: string, path: string, body: Record<string, unknown> | undefined): Response {
+  private answer(method: string, path: string, query: URLSearchParams, body: Record<string, unknown> | undefined): Response {
     const route = `${method} ${path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, "{id}")}`;
     const ids = path.match(/[0-9a-f]{8}-[0-9a-f-]{27}/g) ?? [];
     switch (route) {
@@ -72,8 +81,11 @@ export class FakeAccountApi {
       case "DELETE /organizations/{id}/membership":
         this.organizations = this.organizations.filter((candidate) => candidate.id !== ids[0]);
         return new Response(null, { status: 204 });
-      case "GET /organizations/{id}/members":
-        return Response.json({ items: this.members, nextCursor: null });
+      case "GET /organizations/{id}/members": {
+        const start = Number(query.get("cursor") ?? 0);
+        const end = start + Math.min(this.pageSize, Number(query.get("limit")));
+        return Response.json({ items: this.members.slice(start, end), nextCursor: end < this.members.length ? String(end) : null });
+      }
       case "GET /organizations/{id}/roles":
         return Response.json(this.roles);
       case "PUT /organizations/{id}/members/{id}/roles": {
@@ -85,7 +97,7 @@ export class FakeAccountApi {
         this.members = this.members.filter((candidate) => candidate.userId !== ids[1]);
         return new Response(null, { status: 204 });
       case "GET /organizations/{id}/invitations":
-        return Response.json({ items: this.invitations, nextCursor: null });
+        return Response.json({ items: this.invitations.filter((invitation) => !query.has("status") || invitation.status === query.get("status")), nextCursor: null });
       case "POST /organizations/{id}/invitations": {
         const invitation = pendingInvitation(body!["email"] as string, body!["roles"] as string[]);
         this.invitations.push(invitation);

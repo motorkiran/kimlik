@@ -1,8 +1,8 @@
-import { accountApi, isOrganizationSystemPermission, type Invitation, type Member, type MyOrganization, type Role } from "./api.js";
+import { accountApi, isOrganizationSystemPermission, listLimit, type Invitation, type Listing, type Member, type MyOrganization, type Role } from "./api.js";
 import { holds, KimlikElement } from "./base.js";
 import { currentOptions } from "./config.js";
 import { h } from "./dom.js";
-import { languageOf } from "./i18n.js";
+import { localeOf } from "./i18n.js";
 
 const membersRead = "kimlik.org.members:read";
 const membersWrite = "kimlik.org.members:write";
@@ -14,34 +14,41 @@ const membersWrite = "kimlik.org.members:write";
  */
 export class KimlikOrganizationMembers extends KimlikElement {
   #organization: MyOrganization | undefined;
-  #members: Member[] = [];
+  #members: Listing<Member> = { items: [], truncated: false };
   #roles: Role[] = [];
   #invitations: Invitation[] = [];
   #me: string | undefined;
   #editing: string | undefined;
   #removing: string | undefined;
 
-  protected async load(): Promise<void> {
+  protected async load(): Promise<() => void> {
     const organization = await this.organization();
-    this.#organization = organization;
-    this.#members = [];
-    this.#roles = [];
-    this.#invitations = [];
-    this.#editing = undefined;
-    this.#removing = undefined;
-    if (!holds(organization, membersRead)) {
-      return;
+    let members: Listing<Member> = { items: [], truncated: false };
+    let roles: Role[] = [];
+    let invitations: Invitation[] = [];
+    let me: string | undefined;
+    if (holds(organization, membersRead)) {
+      [members, roles, invitations, me] = await Promise.all([
+        accountApi.members(organization.id),
+        accountApi.roles(organization.id),
+        accountApi.invitations(organization.id),
+        signedInUser(),
+      ]);
     }
 
-    [this.#members, this.#roles, this.#invitations, this.#me] = await Promise.all([
-      accountApi.members(organization.id),
-      accountApi.roles(organization.id),
-      accountApi.invitations(organization.id),
-      signedInUser(),
-    ]);
+    return () => {
+      this.#organization = organization;
+      this.#members = members;
+      this.#roles = roles;
+      this.#invitations = invitations;
+      this.#me = me;
+      this.#editing = undefined;
+      this.#removing = undefined;
+    };
   }
 
   protected view(): Node[] {
+    // Every change below names the organization that is shown, whatever the attribute says by the time it is made.
     const organization = this.#organization!;
     if (!holds(organization, membersRead)) {
       return [h("p", { role: "alert" }, this.t("organization.missing_permission"))];
@@ -53,17 +60,19 @@ export class KimlikOrganizationMembers extends KimlikElement {
         "section",
         { part: "members", "aria-labelledby": "members-title" },
         h("h2", { id: "members-title" }, this.t("members.title")),
-        h("ul", {}, this.#members.map((member) => this.member(member, writable))),
+        h("ul", {}, this.#members.items.map((member) => this.member(organization, member, writable))),
+        this.#members.truncated ? h("p", { class: "muted" }, this.t("members.truncated", listLimit)) : null,
       ),
-      ...(writable ? [this.inviteForm()] : []),
-      this.pending(writable),
+      ...(writable ? [this.inviteForm(organization)] : []),
+      this.pending(organization, writable),
     ];
   }
 
-  private member(member: Member, writable: boolean): Node {
+  private member(organization: MyOrganization, member: Member, writable: boolean): Node {
     const label = member.name ?? member.email ?? member.userId;
     const roleNames = member.roles.map((key) => this.#roles.find((role) => role.key === key)?.name ?? key);
-    const manageable = writable && member.userId !== this.#me && this.canManage(member);
+    const manageable = writable && member.userId !== this.#me && this.canManage(organization, member);
+    const open = this.#editing === member.userId || this.#removing === member.userId;
 
     return h(
       "li",
@@ -80,31 +89,55 @@ export class KimlikOrganizationMembers extends KimlikElement {
           h("br"),
           h("small", {}, roleNames.join(", ") || this.t("noRoles")),
         ),
-        manageable && this.#editing !== member.userId && this.#removing !== member.userId
+        manageable && !open
           ? h(
               "span",
               { class: "actions" },
-              h("button", { type: "button", class: "secondary", "data-key": `edit-${member.userId}`, onclick: () => this.show(() => (this.#editing = member.userId)) }, this.t("members.changeRoles")),
-              h("button", { type: "button", class: "secondary", "data-key": `remove-${member.userId}`, onclick: () => this.show(() => (this.#removing = member.userId)) }, this.t("members.remove")),
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: "secondary",
+                  "data-key": `edit-${member.userId}`,
+                  "aria-label": this.t("members.changeRolesOf", label),
+                  onclick: () => this.open(() => (this.#editing = member.userId), `save-${member.userId}`),
+                },
+                this.t("members.changeRoles"),
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: "secondary",
+                  "data-key": `remove-${member.userId}`,
+                  "aria-label": this.t("members.removeNamed", label),
+                  // Focus goes to "Cancel", so that Enter pressed twice does not remove anyone.
+                  onclick: () => this.open(() => (this.#removing = member.userId), `cancel-${member.userId}`),
+                },
+                this.t("members.remove"),
+              ),
             )
           : null,
       ),
-      this.#editing === member.userId ? this.rolesForm(member, label) : null,
-      this.#removing === member.userId ? this.removal(member, label) : null,
+      this.#editing === member.userId ? this.rolesForm(organization, member, label) : null,
+      this.#removing === member.userId ? this.removal(organization, member, label) : null,
     );
   }
 
-  private rolesForm(member: Member, label: string): Node {
-    const checkboxes = this.assignableRoles().map((role) => h("input", { type: "checkbox", value: role.key, checked: member.roles.includes(role.key) }));
+  private rolesForm(organization: MyOrganization, member: Member, label: string): Node {
+    const checkboxes = this.assignableRoles(organization).map((role) =>
+      h("input", { type: "checkbox", value: role.key, checked: member.roles.includes(role.key), "data-key": `role-${member.userId}-${role.key}` }),
+    );
     return h(
       "form",
       {
         onsubmit: (event) => {
           event.preventDefault();
-          // Roles the user cannot give stay as they are.
-          const kept = member.roles.filter((key) => !this.assignableRoles().some((role) => role.key === key));
           const chosen = checkboxes.filter((box) => box.checked).map((box) => box.value);
-          void this.act(() => accountApi.setRoles(this.#organization!.id, member.userId, [...kept, ...chosen]), () => this.t("members.rolesSaved", label));
+          void this.act(
+            () => accountApi.setRoles(organization.id, member.userId, chosen),
+            () => this.t("members.rolesSaved", label),
+          );
         },
       },
       this.roleChoices(this.t("members.rolesOf", label), checkboxes),
@@ -112,12 +145,16 @@ export class KimlikOrganizationMembers extends KimlikElement {
         "div",
         { class: "actions" },
         h("button", { type: "submit", "data-key": `save-${member.userId}` }, this.t("save")),
-        h("button", { type: "button", class: "secondary", onclick: () => this.show(() => (this.#editing = undefined)) }, this.t("cancel")),
+        h(
+          "button",
+          { type: "button", class: "secondary", "data-key": `cancel-${member.userId}`, onclick: () => this.open(() => undefined, `edit-${member.userId}`) },
+          this.t("cancel"),
+        ),
       ),
     );
   }
 
-  private removal(member: Member, label: string): Node {
+  private removal(organization: MyOrganization, member: Member, label: string): Node {
     return h(
       "div",
       { class: "row", role: "group", "aria-label": this.t("members.confirmRemove", label) },
@@ -131,18 +168,26 @@ export class KimlikOrganizationMembers extends KimlikElement {
             type: "button",
             class: "danger",
             "data-key": `confirm-remove-${member.userId}`,
-            onclick: () => void this.act(() => accountApi.removeMember(this.#organization!.id, member.userId), () => this.t("members.removed", label)),
+            onclick: () =>
+              void this.act(
+                () => accountApi.removeMember(organization.id, member.userId),
+                () => this.t("members.removed", label),
+              ),
           },
           this.t("members.remove"),
         ),
-        h("button", { type: "button", class: "secondary", onclick: () => this.show(() => (this.#removing = undefined)) }, this.t("cancel")),
+        h(
+          "button",
+          { type: "button", class: "secondary", "data-key": `cancel-${member.userId}`, onclick: () => this.open(() => undefined, `remove-${member.userId}`) },
+          this.t("cancel"),
+        ),
       ),
     );
   }
 
-  private inviteForm(): Node {
+  private inviteForm(organization: MyOrganization): Node {
     const email = h("input", { type: "email", name: "email", required: true, maxlength: 256, autocomplete: "off", "data-key": "invite-email" });
-    const checkboxes = this.assignableRoles().map((role) => h("input", { type: "checkbox", value: role.key }));
+    const checkboxes = this.assignableRoles(organization).map((role) => h("input", { type: "checkbox", value: role.key, "data-key": `invite-role-${role.key}` }));
     return h(
       "section",
       { part: "invite", "aria-labelledby": "invite-title" },
@@ -154,7 +199,10 @@ export class KimlikOrganizationMembers extends KimlikElement {
             event.preventDefault();
             const address = email.value.trim();
             const roles = checkboxes.filter((box) => box.checked).map((box) => box.value);
-            void this.act(() => accountApi.invite(this.#organization!.id, address, roles), () => this.t("invite.sent", address));
+            void this.act(
+              () => accountApi.invite(organization.id, address, roles),
+              () => this.t("invite.sent", address),
+            );
           },
         },
         h("label", {}, this.t("email"), email),
@@ -164,8 +212,8 @@ export class KimlikOrganizationMembers extends KimlikElement {
     );
   }
 
-  private pending(writable: boolean): Node {
-    const dates = new Intl.DateTimeFormat(languageOf(this), { dateStyle: "medium" });
+  private pending(organization: MyOrganization, writable: boolean): Node {
+    const dates = new Intl.DateTimeFormat(localeOf(this), { dateStyle: "medium" });
     return h(
       "section",
       { part: "invitations", "aria-labelledby": "pending-title" },
@@ -179,13 +227,7 @@ export class KimlikOrganizationMembers extends KimlikElement {
               h(
                 "li",
                 { class: "row", part: "invitation" },
-                h(
-                  "span",
-                  {},
-                  h("strong", {}, invitation.email),
-                  h("br"),
-                  h("small", {}, this.t("pending.expires", dates.format(new Date(invitation.expiresAt)))),
-                ),
+                h("span", {}, h("strong", {}, invitation.email), h("br"), h("small", {}, this.t("pending.expires", dates.format(new Date(invitation.expiresAt))))),
                 writable
                   ? h(
                       "span",
@@ -196,7 +238,12 @@ export class KimlikOrganizationMembers extends KimlikElement {
                           type: "button",
                           class: "secondary",
                           "data-key": `resend-${invitation.id}`,
-                          onclick: () => void this.act(() => accountApi.resend(this.#organization!.id, invitation.id), () => this.t("pending.resent", invitation.email)),
+                          "aria-label": this.t("pending.resendTo", invitation.email),
+                          onclick: () =>
+                            void this.act(
+                              () => accountApi.resend(organization.id, invitation.id),
+                              () => this.t("pending.resent", invitation.email),
+                            ),
                         },
                         this.t("pending.resend"),
                       ),
@@ -206,7 +253,12 @@ export class KimlikOrganizationMembers extends KimlikElement {
                           type: "button",
                           class: "secondary",
                           "data-key": `revoke-${invitation.id}`,
-                          onclick: () => void this.act(() => accountApi.revoke(this.#organization!.id, invitation.id), () => this.t("pending.revoked", invitation.email)),
+                          "aria-label": this.t("pending.revokeFor", invitation.email),
+                          onclick: () =>
+                            void this.act(
+                              () => accountApi.revoke(organization.id, invitation.id),
+                              () => this.t("pending.revoked", invitation.email),
+                            ),
                         },
                         this.t("pending.revoke"),
                       ),
@@ -231,23 +283,25 @@ export class KimlikOrganizationMembers extends KimlikElement {
   }
 
   /** Roles whose organization system permissions the user holds, which they may give. */
-  private assignableRoles(): Role[] {
-    return this.#roles.filter((role) => role.permissions.filter(isOrganizationSystemPermission).every((permission) => holds(this.#organization!, permission)));
+  private assignableRoles(organization: MyOrganization): Role[] {
+    return this.#roles.filter((role) => role.permissions.filter(isOrganizationSystemPermission).every((permission) => holds(organization, permission)));
   }
 
-  /** Whether the member holds no organization system permission that the user lacks. */
-  private canManage(member: Member): boolean {
-    return member.roles.every((key) => {
-      const role = this.#roles.find((candidate) => candidate.key === key);
-      return role !== undefined && role.permissions.filter(isOrganizationSystemPermission).every((permission) => holds(this.#organization!, permission));
-    });
+  /**
+   * Whether the member holds no organization system permission that the user lacks: then every role the member has is
+   * one the user may give, so the roles form shows them all.
+   */
+  private canManage(organization: MyOrganization, member: Member): boolean {
+    const assignable = this.assignableRoles(organization);
+    return member.roles.every((key) => assignable.some((role) => role.key === key));
   }
 
-  private show(change: () => void): void {
+  /** Opens or closes a member's roles form or removal, one at a time, and puts focus where the user goes on. */
+  private open(change: () => void, focus: string): void {
     this.#editing = undefined;
     this.#removing = undefined;
     change();
-    this.render();
+    this.show(focus);
   }
 }
 

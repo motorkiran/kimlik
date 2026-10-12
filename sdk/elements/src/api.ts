@@ -26,7 +26,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     throw new Error("Call configureKimlik before using Kimlik's components.");
   }
 
-  const base = new URL(options.authority).href.replace(/\/+$/, "");
+  // Without a query or fragment the authority may carry, which do not belong in the middle of a path.
+  const authority = new URL(options.authority);
+  const base = (authority.origin + authority.pathname).replace(/\/+$/, "");
   const headers: Record<string, string> = { Authorization: `Bearer ${await options.accessToken()}` };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -45,12 +47,21 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
 
-/** Every item of a paged list, up to a thousand. */
-async function all<T>(path: string): Promise<T[]> {
+/** The most items of a list the components show. */
+export const listLimit = 1000;
+
+/** The items of a list, and whether it has more than the components show. */
+export interface Listing<T> {
+  items: T[];
+  truncated: boolean;
+}
+
+/** Every item of a paged list, up to `listLimit`. */
+async function all<T>(path: string, filter: Record<string, string> = {}): Promise<Listing<T>> {
   const items: T[] = [];
   let cursor: string | null | undefined;
   do {
-    const query = new URLSearchParams({ limit: "200" });
+    const query = new URLSearchParams({ ...filter, limit: "200" });
     if (cursor) {
       query.set("cursor", cursor);
     }
@@ -58,9 +69,9 @@ async function all<T>(path: string): Promise<T[]> {
     const page = await call<{ items: T[]; nextCursor?: string | null }>("GET", `${path}?${query}`);
     items.push(...page.items);
     cursor = page.nextCursor;
-  } while (cursor && items.length < 1000);
+  } while (cursor && items.length < listLimit);
 
-  return items;
+  return { items: items.slice(0, listLimit), truncated: Boolean(cursor) || items.length > listLimit };
 }
 
 const organization = (id: string) => `/organizations/${encodeURIComponent(id)}`;
@@ -79,7 +90,7 @@ export const accountApi = {
     call<Member>("PUT", `${organization(id)}/members/${encodeURIComponent(userId)}/roles`, { roles }),
   removeMember: (id: string, userId: string) => call<void>("DELETE", `${organization(id)}/members/${encodeURIComponent(userId)}`),
 
-  invitations: async (id: string) => (await all<Invitation>(`${organization(id)}/invitations`)).filter((invitation) => invitation.status === "pending"),
+  invitations: async (id: string) => (await all<Invitation>(`${organization(id)}/invitations`, { status: "pending" })).items,
   invite: (id: string, email: string, roles: string[]) => call<Invitation>("POST", `${organization(id)}/invitations`, { email, roles }),
   resend: (id: string, invitationId: string) => call<Invitation>("POST", `${organization(id)}/invitations/${encodeURIComponent(invitationId)}/resend`),
   revoke: (id: string, invitationId: string) => call<void>("DELETE", `${organization(id)}/invitations/${encodeURIComponent(invitationId)}`),

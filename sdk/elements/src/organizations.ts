@@ -5,7 +5,8 @@ import { h } from "./dom.js";
 /**
  * `<kimlik-organizations>`: the user's organizations and the invitations to them, which they accept or decline there.
  * With `allow-create`, users create organizations too, where the installation lets them. Choosing an organization fires
- * `kimlik-organization-select` with its `id` and `slug`.
+ * `kimlik-organization-select` with its `id` and `slug`; joining one fires `kimlik-organization-join` with its `id`, and
+ * creating one `kimlik-organization-create` with its `id` and `slug`.
  */
 export class KimlikOrganizations extends KimlikElement {
   static override readonly observedAttributes = ["allow-create", "lang"];
@@ -13,8 +14,12 @@ export class KimlikOrganizations extends KimlikElement {
   #organizations: MyOrganization[] = [];
   #invitations: MyInvitation[] = [];
 
-  protected async load(): Promise<void> {
-    [this.#organizations, this.#invitations] = await Promise.all([accountApi.organizations(), accountApi.invitationsToMe()]);
+  protected async load(): Promise<() => void> {
+    const [organizations, invitations] = await Promise.all([accountApi.organizations(), accountApi.invitationsToMe()]);
+    return () => {
+      this.#organizations = organizations;
+      this.#invitations = invitations;
+    };
   }
 
   protected view(): Node[] {
@@ -77,8 +82,8 @@ export class KimlikOrganizations extends KimlikElement {
                 {
                   type: "button",
                   "data-key": `accept-${invitation.id}`,
-                  onclick: () =>
-                    void this.act(() => accountApi.accept(invitation.id), () => this.t("invitations.accepted", invitation.organizationName)),
+                  "aria-label": this.t("invitations.acceptFrom", invitation.organizationName),
+                  onclick: () => void this.accept(invitation),
                 },
                 this.t("invitations.accept"),
               ),
@@ -88,8 +93,12 @@ export class KimlikOrganizations extends KimlikElement {
                   type: "button",
                   class: "secondary",
                   "data-key": `decline-${invitation.id}`,
+                  "aria-label": this.t("invitations.declineFrom", invitation.organizationName),
                   onclick: () =>
-                    void this.act(() => accountApi.decline(invitation.id), () => this.t("invitations.declined", invitation.organizationName)),
+                    void this.act(
+                      () => accountApi.decline(invitation.id),
+                      () => this.t("invitations.declined", invitation.organizationName),
+                    ),
                 },
                 this.t("invitations.decline"),
               ),
@@ -121,8 +130,7 @@ export class KimlikOrganizations extends KimlikElement {
         {
           onsubmit: (event) => {
             event.preventDefault();
-            const created = { name: name.value.trim(), slug: slug.value.trim() };
-            void this.act(() => accountApi.createOrganization(created.name, created.slug), () => this.t("create.done", created.name));
+            void this.create(name.value.trim(), slug.value.trim());
           },
         },
         h("label", {}, this.t("name"), name),
@@ -130,5 +138,18 @@ export class KimlikOrganizations extends KimlikElement {
         h("div", {}, h("button", { type: "submit", "data-key": "create" }, this.t("create.submit"))),
       ),
     );
+  }
+
+  private async accept(invitation: MyInvitation): Promise<void> {
+    if (await this.act(() => accountApi.accept(invitation.id), () => this.t("invitations.accepted", invitation.organizationName))) {
+      this.fire("kimlik-organization-join", { id: invitation.organizationId });
+    }
+  }
+
+  private async create(name: string, slug: string): Promise<void> {
+    let created: MyOrganization | undefined;
+    if (await this.act(async () => (created = await accountApi.createOrganization(name, slug)), () => this.t("create.done", name))) {
+      this.fire("kimlik-organization-create", { id: created!.id, slug: created!.slug });
+    }
   }
 }
