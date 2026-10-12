@@ -982,8 +982,8 @@
   <data name="Short name" xml:space="preserve">
     <value>Kısa ad</value>
   </data>
-  <data name="Someone else must be able to manage the members before you leave." xml:space="preserve">
-    <value>Ayrılmadan önce üyeleri yönetebilecek başka birinin olması gerekir.</value>
+  <data name="Someone else must be able to manage the members first." xml:space="preserve">
+    <value>Önce üyeleri yönetebilecek başka birinin olması gerekir.</value>
   </data>
   <data name="That address already has an open invitation. Send it again instead." xml:space="preserve">
     <value>Bu adrese gönderilmiş açık bir davet zaten var. Onu yeniden gönderin.</value>

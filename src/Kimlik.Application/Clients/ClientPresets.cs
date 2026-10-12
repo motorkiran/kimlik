@@ -66,7 +66,11 @@ public static partial class ClientPresets
     internal static bool ActsForUsersInKimlik(ClientType type, IEnumerable<string> scopes) =>
         SignsInUsers(type) && scopes.Contains(KimlikScopes.Api, StringComparer.Ordinal);
 
-    internal static bool IsValidClientId(string clientId) => ClientIdPattern().IsMatch(clientId);
+    /// <summary>
+    /// Whether a client can have the ID. Kimlik's own names are not for clients: one whose ID is an audience of Kimlik's
+    /// tokens would pass for a party they were issued to.
+    /// </summary>
+    internal static bool IsValidClientId(string clientId) => ClientIdPattern().IsMatch(clientId) && !KimlikScopes.IsReserved(clientId);
 
     /// <summary>A 256-bit secret, which OpenIddict stores hashed.</summary>
     internal static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
@@ -136,7 +140,8 @@ public static partial class ClientPresets
             return ClientErrors.PushedAuthorizationNotSupported;
         }
 
-        if (type is ClientType.Spa or ClientType.Native && !settings.RequirePkce)
+        // Tokens for Kimlik's own API carry an administrator's access when one signs in, so those apps keep PKCE too.
+        if (!settings.RequirePkce && (type is ClientType.Spa or ClientType.Native || ActsForUsersInKimlik(type, settings.Scopes)))
         {
             return ClientErrors.PkceRequired;
         }

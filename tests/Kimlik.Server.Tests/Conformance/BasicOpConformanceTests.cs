@@ -151,16 +151,63 @@ public sealed class BasicOpConformanceTests(KimlikServerFixture server)
         var clock = new ShiftedTimeProvider();
         await using var kimlik = server.WithShiftedClock(clock);
         await KimlikServerFixture.WaitUntilReadyAsync(kimlik);
-        var (client, _) = await CreateClientAsync();
+        var (client, secret) = await CreateClientAsync();
         var user = await server.CreateUserAsync();
         using var browser = new Browser(kimlik);
         using var signedIn = await browser.SignInAsync(user.Email, user.Password);
+        var request = new AuthorizationRequest(client) { Pkce = false, Scope = "openid", Extra = new Dictionary<string, string> { ["max_age"] = "1" } };
+        var first = Payload((await RedeemAsync(browser.Client, client, secret, await CodeAsync(browser, request.Url), basic: true)).GetProperty("id_token").GetString()!);
 
         clock.Offset = TimeSpan.FromSeconds(5);
-        using var authorization = await browser.GetAsync(
-            new AuthorizationRequest(client) { Pkce = false, Scope = "openid", Extra = new Dictionary<string, string> { ["max_age"] = "1" } }.Url);
-
+        using var authorization = await browser.GetAsync(request.Url);
         authorization.Headers.Location!.AbsolutePath.ShouldBe("/signin");
+
+        using var again = await browser.SignInAsync(user.Email, user.Password, request.Url);
+        var second = Payload((await RedeemAsync(browser.Client, client, secret, await CodeAsync(browser, request.Url), basic: true)).GetProperty("id_token").GetString()!);
+        second.GetProperty("auth_time").GetInt64().ShouldBeGreaterThan(first.GetProperty("auth_time").GetInt64());
+    }
+
+    /// <summary>
+    /// Beyond the suite: turning PKCE off for a client does not open a way around it. Only S256 is taken, a code that came
+    /// with a challenge needs its verifier, and one that came without takes none (RFC 9700, section 4.8.2).
+    /// </summary>
+    [Theory]
+    [InlineData("plain challenge")]
+    [InlineData("challenge without a method")]
+    [InlineData("verifier for a code without a challenge")]
+    [InlineData("wrong verifier")]
+    public async Task Pkce_CannotBeWeakenedOrDowngraded(string attempt)
+    {
+        var (client, secret) = await CreateClientAsync();
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signedIn = await browser.SignInAsync(user.Email, user.Password);
+        var request = new AuthorizationRequest(client) { Scope = "openid", Pkce = attempt != "verifier for a code without a challenge" };
+        var parameters = request.Parameters;
+        if (attempt == "plain challenge")
+        {
+            parameters["code_challenge_method"] = "plain";
+        }
+        else if (attempt == "challenge without a method")
+        {
+            parameters.Remove("code_challenge_method");
+        }
+
+        using var authorization = await browser.GetAsync(QueryHelpers.AddQueryString("/connect/authorize", parameters));
+        if (attempt is "plain challenge" or "challenge without a method")
+        {
+            // Refused where it is asked: no code comes back, on a page or with an error for the client.
+            (authorization.Headers.Location is null || AuthorizationRequest.ReadCallback(authorization).ContainsKey("error")).ShouldBeTrue();
+            return;
+        }
+
+        var verifier = attempt == "wrong verifier" ? new AuthorizationRequest(client).CodeVerifier : request.CodeVerifier;
+        using var redeemed = await TokenAsync(
+            browser.Client, client, secret,
+            [new("grant_type", "authorization_code"), new("code", AuthorizationRequest.ReadCallback(authorization)["code"]), new("redirect_uri", request.RedirectUri), new("code_verifier", verifier)]);
+
+        redeemed.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await redeemed.ReadJsonAsync()).GetProperty("error").GetString().ShouldBeOneOf("invalid_request", "invalid_grant");
     }
 
     /// <summary>oidcc-codereuse, oidcc-codereuse-30seconds: a code works once, and using it again revokes what it gave.</summary>

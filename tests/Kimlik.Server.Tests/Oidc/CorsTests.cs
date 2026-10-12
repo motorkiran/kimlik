@@ -58,12 +58,19 @@ public sealed class CorsTests(KimlikServerFixture server)
             ("Access-Control-Request-Method", "DELETE"), ("Access-Control-Request-Headers", "authorization"));
         using var otherApp = await SendAsync(http, HttpMethod.Options, "/api/v1/me/organizations", other, ("Access-Control-Request-Method", "GET"));
         using var account = await SendAsync(http, HttpMethod.Options, "/api/v1/me", allowed, ("Access-Control-Request-Method", "GET"));
+        using var apiKeys = await SendAsync(
+            http, HttpMethod.Options, $"/api/v1/me/organizations/{Guid.NewGuid()}/api-keys", allowed, ("Access-Control-Request-Method", "GET"));
 
         AllowedOrigin(preflight).ShouldBe(allowed);
         preflight.Headers.GetValues("Access-Control-Allow-Methods").ShouldContain(methods => methods.Contains("DELETE", StringComparison.Ordinal));
         preflight.Headers.Contains("Access-Control-Allow-Credentials").ShouldBeFalse("calls carry bearer tokens, not cookies");
         AllowedOrigin(otherApp).ShouldBeNull();
         AllowedOrigin(account).ShouldBeNull();
+        AllowedOrigin(apiKeys).ShouldBeNull("an organization's API keys are not for browsers");
+
+        // Caches must not hand one origin's answer to another.
+        preflight.Headers.Vary.ShouldContain("Origin");
+        otherApp.Headers.Vary.ShouldContain("Origin");
     }
 
     private Task<string> CreateSpaAsync(string? scope = null) =>

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Kimlik.Application.Common;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Access;
@@ -78,7 +79,7 @@ internal static class OrganizationEndpoints
         organizations.MapGet("{id:guid}/invitations", ListInvitationsAsync)
             .WithName("ListOrganizationInvitations")
             .WithSummary("List the invitations of an organization")
-            .WithDescription("Lists invitations newest first, whatever their status.")
+            .WithDescription("Lists invitations newest first, whatever their status unless `status` names one.")
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequirePermission(SystemPermissions.OrganizationsRead);
@@ -158,9 +159,12 @@ internal static class OrganizationEndpoints
         Guid id,
         [Description("The `nextCursor` of the previous page.")] string? cursor,
         [Description("Page size, 50 by default and at most 200.")] int? limit,
+        [Description("Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`.")] string? status,
         ListInvitationsHandler handler,
         CancellationToken cancellationToken) =>
-        (await handler.HandleAsync(new ListInvitationsQuery(id, cursor, limit), cancellationToken)).ToOk();
+        QueryValues.TryParseEnum<InvitationStatus>(status, out var parsedStatus)
+            ? (await handler.HandleAsync(new ListInvitationsQuery(id, cursor, limit, parsedStatus), cancellationToken)).ToOk()
+            : ApiResults.Problem(CommonErrors.InvalidParameter(nameof(status)));
 
     private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> InviteAsync(
         Guid id, CreateInvitationRequest request, CreateInvitationHandler handler, CancellationToken cancellationToken) =>

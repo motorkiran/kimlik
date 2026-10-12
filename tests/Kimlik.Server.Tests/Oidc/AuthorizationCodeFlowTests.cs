@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Kimlik.Server.Tests.Accounts;
+using Kimlik.Server.Tests.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -96,6 +97,35 @@ public sealed class AuthorizationCodeFlowTests(KimlikServerFixture server)
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
 
         using var response = await browser.GetAsync(new AuthorizationRequest(client.ClientId) { Pkce = false }.Url);
+
+        (await Browser.ReadPageAsync(response, HttpStatusCode.BadRequest)).Text.ShouldContain("code_challenge");
+
+        // The same when the request is pushed (RFC 9126).
+        using var pushed = await browser.Client.PostFormAsync(
+            "/connect/par",
+            [.. new AuthorizationRequest(client.ClientId) { Pkce = false }.Parameters.Select(parameter => new KeyValuePair<string, string>(parameter.Key, parameter.Value!))]);
+        pushed.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AppRegisteredThroughTheApi_RequiresPkce_UnlessItIsTurnedOff()
+    {
+        using var api = await server.CreateApiClientAsync();
+        using var created = await api.Http.PostJsonAsync("/api/v1/clients", new Kimlik.Contracts.Management.CreateClientRequest
+        {
+            ClientId = $"portal-{Guid.NewGuid():N}",
+            DisplayName = "Portal",
+            Type = Kimlik.Contracts.Management.ClientType.Web,
+            RedirectUris = [TestWebClient.RedirectUri],
+            Scopes = ["openid"],
+        });
+        created.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+
+        using var response = await browser.GetAsync(
+            new AuthorizationRequest((await created.ReadAsync<Kimlik.Contracts.Management.CreatedClientResponse>()).Client.ClientId) { Pkce = false, Scope = "openid" }.Url);
 
         (await Browser.ReadPageAsync(response, HttpStatusCode.BadRequest)).Text.ShouldContain("code_challenge");
     }

@@ -37,6 +37,28 @@ public sealed class OrganizationGuard(IKimlikDbContext context)
     public async Task<Result> EnsureCanManageAsync(IReadOnlySet<string> callerPermissions, Guid organizationId, Guid memberId, CancellationToken cancellationToken) =>
         Covers(callerPermissions, (await PermissionsOfMemberAsync(organizationId, memberId, cancellationToken)).Where(AccessKeys.IsOrganizationSystemPermission));
 
+    /// <summary>Whether one of the organization roles with <paramref name="roleKeys"/> gives the permission.</summary>
+    internal Task<bool> RolesGiveAsync(IReadOnlyCollection<string> roleKeys, string permission, CancellationToken cancellationToken) =>
+        context.RolePermissions
+            .Where(link => context.Roles.Any(role => role.Id == link.RoleId && roleKeys.Contains(role.Key)))
+            .Join(context.Permissions, link => link.PermissionId, candidate => candidate.Id, (_, candidate) => candidate.Key)
+            .AnyAsync(key => key == permission, cancellationToken);
+
+    /// <summary>
+    /// Whether the organization can do without the user's say over its members: another member can manage them, or nobody
+    /// else is in it.
+    /// </summary>
+    internal async Task<bool> OthersCanManageAsync(Guid organizationId, Guid userId, CancellationToken cancellationToken)
+    {
+        var others = context.Memberships.Where(membership => membership.OrganizationId == organizationId && membership.UserId != userId);
+        return !await others.AnyAsync(cancellationToken)
+            || await context.MembershipRoles
+                .Where(link => others.Any(membership => membership.Id == link.MembershipId))
+                .Join(context.RolePermissions, link => link.RoleId, rolePermission => rolePermission.RoleId, (_, rolePermission) => rolePermission.PermissionId)
+                .Join(context.Permissions, permissionId => permissionId, candidate => candidate.Id, (_, candidate) => candidate.Key)
+                .AnyAsync(key => key == SystemPermissions.OrganizationMembersWrite, cancellationToken);
+    }
+
     /// <summary>The permissions of the member's roles in the organization.</summary>
     internal async Task<HashSet<string>> PermissionsOfMemberAsync(Guid organizationId, Guid userId, CancellationToken cancellationToken) =>
         [.. await context.MembershipRoles

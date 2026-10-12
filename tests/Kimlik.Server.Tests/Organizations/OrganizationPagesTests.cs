@@ -93,7 +93,7 @@ public sealed class OrganizationPagesTests(KimlikServerFixture server)
 
         var page = await browser.GetPageAsync($"/account/organizations/{id}");
         (await Browser.ReadPageAsync(await browser.SubmitAsync(page, formSelector: "#leave")))
-            .Text.ShouldContain("Someone else must be able to manage the members before you leave.");
+            .Text.ShouldContain("Someone else must be able to manage the members first.");
 
         var renamed = await Browser.ReadPageAsync(await browser.SubmitAsync(page, new Dictionary<string, string> { ["Settings.Name"] = "Acme Labs" }, "#settings"));
         renamed.Text.ShouldContain("The organization has been saved.");

@@ -35,7 +35,7 @@ public sealed class AccountErrorMessages(IStringLocalizer<SharedResource> locali
         _ when error == OrganizationErrors.HasSsoConnections => localizer["Your organization signs in through its own provider. Ask an administrator to delete it."],
         _ when error == OrganizationErrors.PrivilegeEscalation =>
             localizer["You can only give roles whose permissions you hold, and only manage members who hold no more than you."],
-        _ when error == OrganizationErrors.LastAdministrator => localizer["Someone else must be able to manage the members before you leave."],
+        _ when error == OrganizationErrors.LastAdministrator => localizer["Someone else must be able to manage the members first."],
         _ when error == OrganizationErrors.AlreadyMember => localizer["That person is already a member."],
         _ when error == OrganizationErrors.InvitationPending => localizer["That address already has an open invitation. Send it again instead."],
         _ when error == OrganizationErrors.InvitationClosed || error == OrganizationErrors.InvitationNotFound =>

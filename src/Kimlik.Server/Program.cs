@@ -74,7 +74,7 @@ app.UseHealthProbes();
 app.UseReadinessGate();
 
 app.UseRequestLocalization();
-app.UseCors();
+app.UseBrowserClientCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -9,7 +9,9 @@ using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Api;
 using Kimlik.Server.Tests.Oidc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using OpenIddict.Abstractions;
 
 namespace Kimlik.Server.Tests.Organizations;
 
@@ -65,6 +67,85 @@ public sealed class OrganizationScopeTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task FirstPartyApp_AsksOnce_BeforeItManagesTheUsersOrganizations()
+    {
+        var user = await server.CreateUserAsync();
+        var client = await server.CreateWebClientAsync();
+        using var browser = new Browser(server);
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+
+        using var first = await browser.GetAsync(new AuthorizationRequest(client.ClientId) { Scope = Scope }.Url);
+        var consent = await Browser.ReadPageAsync(first);
+        consent.Text.ShouldContain("Manage your organizations");
+        using var accepted = await browser.SubmitAsync(consent, submitter: ("consent", "accept"));
+        AuthorizationRequest.ReadCallback(accepted).ShouldContainKey("code");
+
+        using var again = await browser.GetAsync(new AuthorizationRequest(client.ClientId) { Scope = Scope }.Url);
+        AuthorizationRequest.ReadCallback(again).ShouldContainKey("code");
+    }
+
+    [Fact]
+    public async Task ScopeTakenFromTheApp_EndsTheSignInsThatHadIt()
+    {
+        var user = await server.CreateUserAsync();
+        var (browser, client, tokens) = await server.SignInAndRedeemAsync(user, $"openid offline_access {KimlikScopes.Organizations}");
+        using var _ = browser;
+        await server.WithServicesAsync(async services =>
+        {
+            var applications = services.GetRequiredService<IOpenIddictApplicationManager>();
+            var application = (await applications.FindByClientIdAsync(client.ClientId))!;
+            var descriptor = new OpenIddictApplicationDescriptor();
+            await applications.PopulateAsync(descriptor, application);
+            descriptor.Permissions.Remove(OpenIddictConstants.Permissions.Prefixes.Scope + KimlikScopes.Organizations).ShouldBeTrue();
+            await applications.UpdateAsync(application, descriptor);
+        });
+
+        using var refreshed = await OidcFlows.RefreshAsync(browser.Client, client, tokens.GetProperty("refresh_token").GetString()!);
+        refreshed.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await refreshed.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe("invalid_grant");
+    }
+
+    [Fact]
+    public async Task LastManager_CannotGiveUpTheirOwnSayOverTheMembers()
+    {
+        var user = await server.CreateUserAsync();
+        var colleague = await server.CreateUserAsync();
+        var organization = await server.CreateOrganizationAsync(user.Id, colleague.Id);
+        await server.SetMemberRolesAsync(organization.Id, user.Id, SystemRoles.OrganizationAdmin);
+        using var http = server.WithToken(await TokenAsync(user));
+        var roles = $"/api/v1/me/organizations/{organization.Id}/members/{user.Id}/roles";
+
+        using var orphaned = await http.PutJsonAsync(roles, new SetRolesRequest { Roles = [organization.Role] });
+        orphaned.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await orphaned.ReadProblemCodeAsync()).ShouldBe("organization.last_administrator");
+
+        await server.SetMemberRolesAsync(organization.Id, colleague.Id, SystemRoles.OrganizationAdmin);
+        using var handedOver = await http.PutJsonAsync(roles, new SetRolesRequest { Roles = [organization.Role] });
+        handedOver.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Invitations_AreListedByStatus()
+    {
+        var user = await server.CreateUserAsync();
+        var organization = await server.CreateOrganizationAsync(user.Id);
+        await server.SetMemberRolesAsync(organization.Id, user.Id, SystemRoles.OrganizationAdmin);
+        using var http = server.WithToken(await TokenAsync(user));
+        var invitations = $"/api/v1/me/organizations/{organization.Id}/invitations";
+        using var revokedOne = await http.PostJsonAsync(invitations, new CreateInvitationRequest { Email = $"gone-{Guid.NewGuid():N}@example.com" });
+        using var revoke = await http.DeleteAsync($"{invitations}/{(await revokedOne.ReadAsync<InvitationResponse>()).Id}", CancellationToken);
+        using var open = await http.PostJsonAsync(invitations, new CreateInvitationRequest { Email = $"open-{Guid.NewGuid():N}@example.com" });
+        var pending = await open.ReadAsync<InvitationResponse>();
+
+        using var listed = await http.GetAsync($"{invitations}?status=pending", CancellationToken);
+        using var all = await http.GetAsync(invitations, CancellationToken);
+
+        listed.StatusCode.ShouldBe(HttpStatusCode.OK, await listed.Content.ReadAsStringAsync(CancellationToken));
+        (await listed.ReadAsync<Page<InvitationResponse>>()).Items.Select(invitation => invitation.Id).ShouldBe([pending.Id]);
+        (await all.ReadAsync<Page<InvitationResponse>>()).Items.Count.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task KimlikScopes_AreReservedForKimlik()
     {
         using var api = await server.CreateApiClientAsync();
@@ -74,6 +155,8 @@ public sealed class OrganizationScopeTests(KimlikServerFixture server)
         using var audience = await api.Http.PostJsonAsync(
             "/api/v1/api-resources", new CreateApiResourceRequest { Scope = $"shipping-{Guid.NewGuid():N}", Audience = KimlikScopes.Organizations });
         (await audience.ReadProblemCodeAsync()).ShouldBe("api_resource.reserved_audience");
+        using var client = await api.Http.PostJsonAsync("/api/v1/clients", new CreateClientRequest { ClientId = KimlikScopes.Organizations, DisplayName = "Not Kimlik", Type = ClientType.Service });
+        (await client.ReadProblemCodeAsync()).ShouldBe("client.invalid_client_id");
     }
 
     private async Task<string> TokenAsync(TestUser user)

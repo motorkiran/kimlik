@@ -41,6 +41,32 @@ public sealed class BackChannelLogoutTests(KimlikServerFixture server)
         (await server.QueryDatabaseAsync(context => context.SessionClients.AnyAsync(record => record.SessionId == sessionId))).ShouldBeFalse();
     }
 
+    /// <summary>oidcc-backchannel-rp-initiated-logout: a logout the app starts reaches its back channel, and the browser goes back.</summary>
+    [Fact]
+    public async Task LogoutTheAppStarts_SendsItsLogoutToken_AndReturnsTheBrowser()
+    {
+        var endpoint = server.Webhooks.NewEndpoint();
+        var app = await CreateWebAppAsync(endpoint);
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+        var idToken = (await SignInToAsync(browser, app)).GetProperty("id_token").GetString()!;
+
+        using var signedOut = await browser.GetAsync(QueryHelpers.AddQueryString("/connect/endsession", new Dictionary<string, string?>
+        {
+            ["id_token_hint"] = idToken,
+            ["post_logout_redirect_uri"] = TestWebClient.PostLogoutRedirectUri,
+            ["state"] = "after-logout",
+        }));
+
+        signedOut.Headers.Location!.OriginalString.ShouldBe($"{TestWebClient.PostLogoutRedirectUri}?state=after-logout");
+        var validation = await ValidateAsync(await LogoutTokenAsync(endpoint), app.ClientId);
+        validation.IsValid.ShouldBeTrue(validation.Exception?.Message);
+        var token = (JsonWebToken)validation.SecurityToken;
+        token.GetClaim("sid").Value.ShouldBe(Payload(idToken).GetProperty("sid").GetString());
+        JsonDocument.Parse(token.GetClaim("events").Value).RootElement.TryGetProperty(LogoutEvent, out _).ShouldBeTrue();
+    }
+
     [Fact]
     public async Task SigningOutEverywhere_TellsTheAppsOfEverySession()
     {
@@ -103,6 +129,7 @@ public sealed class BackChannelLogoutTests(KimlikServerFixture server)
             DisplayName = "Orders web app",
             Type = ClientType.Web,
             RedirectUris = [TestWebClient.RedirectUri],
+            PostLogoutRedirectUris = [TestWebClient.PostLogoutRedirectUri],
             Scopes = ["openid"],
             BackChannelLogoutUri = backChannelLogoutUri,
         });

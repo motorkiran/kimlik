@@ -108,28 +108,10 @@ public sealed class MyOrganizations(
     /// </summary>
     public async Task<Result> LeaveAsync(Guid userId, Guid organizationId, CancellationToken cancellationToken)
     {
-        var otherMembers = await context.Memberships
-            .Where(membership => membership.OrganizationId == organizationId && membership.UserId != userId)
-            .Select(membership => membership.UserId)
-            .ToListAsync(cancellationToken);
-
-        if (otherMembers.Count > 0
-            && (await guard.PermissionsOfMemberAsync(organizationId, userId, cancellationToken)).Contains(SystemPermissions.OrganizationMembersWrite))
+        if ((await guard.PermissionsOfMemberAsync(organizationId, userId, cancellationToken)).Contains(SystemPermissions.OrganizationMembersWrite)
+            && !await guard.OthersCanManageAsync(organizationId, userId, cancellationToken))
         {
-            var anotherManager = false;
-            foreach (var member in otherMembers)
-            {
-                if ((await guard.PermissionsOfMemberAsync(organizationId, member, cancellationToken)).Contains(SystemPermissions.OrganizationMembersWrite))
-                {
-                    anotherManager = true;
-                    break;
-                }
-            }
-
-            if (!anotherManager)
-            {
-                return OrganizationErrors.LastAdministrator;
-            }
+            return OrganizationErrors.LastAdministrator;
         }
 
         var removed = await removeMember.HandleAsync(organizationId, userId, cancellationToken);

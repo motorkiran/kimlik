@@ -66,7 +66,7 @@ describe("<kimlik-organization-settings>", () => {
 
     query(element, "[data-key=leave]").click();
 
-    await shows(element, "Someone else must be able to manage the members before you leave.");
+    await shows(element, "Someone else must be able to manage the members first.");
     expect(query(element, "section[part=leave]")).toBeTruthy();
   });
 });

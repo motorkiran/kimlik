@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Kimlik.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using OpenIddict.Abstractions;
@@ -38,11 +39,14 @@ internal static class PermissionEndpointExtensions
         string[] accepted = audiences.Length > 0 ? audiences : [KimlikScopes.Api];
         var policy = new AuthorizationPolicyBuilder(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
-            .RequireAssertion(context => AccountCaller.UserId(context.User) is not null && Array.Exists(accepted, context.User.HasAudience))
+            .RequireAssertion(context => AccountCaller.UserId(context.User) is not null && Array.Exists(accepted, audience => IsFor(context.User, audience)))
             .Build();
 
         return builder.RequireAuthorization(policy).WithMetadata(new RequiredSignedInUser(accepted));
     }
+
+    /// <summary>Whether the token is for one of Kimlik's audiences, each of which goes with the scope of the same name.</summary>
+    private static bool IsFor(ClaimsPrincipal principal, string audience) => principal.HasAudience(audience) && principal.HasScope(audience);
 
     /// <summary>Requires an access token for Kimlik's API that carries every one of <paramref name="permissions"/>.</summary>
     public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, params string[] permissions)
@@ -50,7 +54,7 @@ internal static class PermissionEndpointExtensions
     {
         var policy = new AuthorizationPolicyBuilder(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
-            .RequireAssertion(context => context.User.HasAudience(KimlikScopes.Api))
+            .RequireAssertion(context => IsFor(context.User, KimlikScopes.Api))
             .AddRequirements([.. permissions.Select(permission => new PermissionRequirement(permission))])
             .Build();
 

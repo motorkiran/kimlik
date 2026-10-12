@@ -40,7 +40,7 @@ public static class OrganizationErrors
         "organization.privilege_escalation", "Granting organization permissions, or managing a member who holds them, requires holding them yourself.");
 
     public static readonly Error LastAdministrator = Error.Conflict(
-        "organization.last_administrator", "Someone else has to be able to manage the members before you leave.");
+        "organization.last_administrator", "Someone else has to be able to manage the members first.");
 
     public static readonly Error CreationDisabled = Error.Forbidden("organization.creation_disabled", "Users cannot create organizations here.");
 

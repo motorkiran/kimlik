@@ -166,10 +166,11 @@ public sealed class AuthorizeModel(
             case ConsentTypes.External when existingAuthorizations.Count == 0:
                 return ForbidWith(Errors.ConsentRequired, "The user is not allowed to access this application.");
 
-            // First-party apps skip the consent screen, unless they ask for it (prompt=consent) or ask for access to Kimlik
-            // itself the first time, which carries all of the user's access to it.
+            // First-party apps skip the consent screen, unless they ask for it (prompt=consent) or ask for one of Kimlik's own
+            // scopes the first time: `kimlik` carries all of the user's access to Kimlik, and `kimlik.organizations` lets the app
+            // manage their organizations, so whoever may register apps cannot have either without the user's knowing.
             case ConsentTypes.Implicit when !request.HasPromptValue(PromptValues.Consent)
-                && (existingAuthorizations.Count > 0 || !request.HasScope(KimlikScopes.Api)):
+                && (existingAuthorizations.Count > 0 || !request.GetScopes().Any(KimlikScopes.IsReserved)):
             case ConsentTypes.External:
             case ConsentTypes.Explicit when existingAuthorizations.Count > 0 && !request.HasPromptValue(PromptValues.Consent):
                 return await IssueCodeAsync(user, applicationId!, request, session, existingAuthorizations, organizationId, cancellationToken);

@@ -40,23 +40,29 @@ internal sealed class SystemCatalog(KimlikDbContext context, IOpenIddictScopeMan
 
         await context.SaveChangesAsync(cancellationToken);
 
-        if (await scopes.FindByNameAsync(KimlikScopes.Api, cancellationToken) is null)
+        await SystemScopeAsync(KimlikScopes.Api, "Manage this Kimlik installation", cancellationToken);
+        await SystemScopeAsync(KimlikScopes.Organizations, "Manage your organizations", cancellationToken);
+    }
+
+    /// <summary>
+    /// One of Kimlik's own scopes, whose audience is its own name. A scope that took the name before it was reserved, as an
+    /// API resource could, becomes Kimlik's: left with another audience, its tokens would not reach Kimlik's API.
+    /// </summary>
+    private async Task SystemScopeAsync(string name, string displayName, CancellationToken cancellationToken)
+    {
+        if (await scopes.FindByNameAsync(name, cancellationToken) is not { } scope)
         {
-            await scopes.CreateAsync(
-                new OpenIddictScopeDescriptor { Name = KimlikScopes.Api, DisplayName = "Manage this Kimlik installation", Resources = { KimlikScopes.Api } },
-                cancellationToken);
+            await scopes.CreateAsync(new OpenIddictScopeDescriptor { Name = name, DisplayName = displayName, Resources = { name } }, cancellationToken);
+            return;
         }
 
-        if (await scopes.FindByNameAsync(KimlikScopes.Organizations, cancellationToken) is null)
+        if (await scopes.GetResourcesAsync(scope, cancellationToken) is not [var audience] || audience != name)
         {
-            await scopes.CreateAsync(
-                new OpenIddictScopeDescriptor
-                {
-                    Name = KimlikScopes.Organizations,
-                    DisplayName = "Manage your organizations",
-                    Resources = { KimlikScopes.Organizations },
-                },
-                cancellationToken);
+            var descriptor = new OpenIddictScopeDescriptor();
+            await scopes.PopulateAsync(descriptor, scope, cancellationToken);
+            descriptor.Resources.Clear();
+            descriptor.Resources.Add(name);
+            await scopes.UpdateAsync(scope, descriptor, cancellationToken);
         }
     }
 

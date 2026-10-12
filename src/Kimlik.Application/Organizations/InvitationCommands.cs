@@ -43,8 +43,8 @@ internal static class InvitationMapping
     };
 }
 
-/// <summary>Lists an organization's invitations, newest first.</summary>
-public sealed record ListInvitationsQuery(Guid OrganizationId, string? Cursor, int? Limit);
+/// <summary>Lists an organization's invitations, newest first; only those with <c>Status</c> when it is given.</summary>
+public sealed record ListInvitationsQuery(Guid OrganizationId, string? Cursor, int? Limit, InvitationStatus? Status = null);
 
 public sealed class ListInvitationsHandler(IKimlikDbContext context, TimeProvider timeProvider)
 {
@@ -60,7 +60,17 @@ public sealed class ListInvitationsHandler(IKimlikDbContext context, TimeProvide
             return OrganizationErrors.NotFound;
         }
 
+        var now = timeProvider.GetUtcNow();
         var invitations = context.Invitations.AsNoTracking().Where(invitation => invitation.OrganizationId == query.OrganizationId);
+        invitations = query.Status switch
+        {
+            // An invitation nobody answered is pending until it expires.
+            InvitationStatus.Pending => invitations.Where(invitation => invitation.Status == DomainInvitationStatus.Pending && invitation.ExpiresAt > now),
+            InvitationStatus.Expired => invitations.Where(invitation => invitation.Status == DomainInvitationStatus.Pending && invitation.ExpiresAt <= now),
+            InvitationStatus.Accepted => invitations.Where(invitation => invitation.Status == DomainInvitationStatus.Accepted),
+            InvitationStatus.Revoked => invitations.Where(invitation => invitation.Status == DomainInvitationStatus.Revoked),
+            _ => invitations,
+        };
         if (before is { } beforeId)
         {
             invitations = invitations.Where(invitation => invitation.Id < beforeId);
@@ -69,7 +79,7 @@ public sealed class ListInvitationsHandler(IKimlikDbContext context, TimeProvide
         var (page, nextCursor) = await Cursor.ReadPageAsync(
             invitations.OrderByDescending(invitation => invitation.Id), query.Limit, invitation => invitation.Id, cancellationToken);
 
-        return new Page<InvitationResponse>(await context.ToResponsesAsync(page, timeProvider.GetUtcNow(), cancellationToken), nextCursor);
+        return new Page<InvitationResponse>(await context.ToResponsesAsync(page, now, cancellationToken), nextCursor);
     }
 }
 

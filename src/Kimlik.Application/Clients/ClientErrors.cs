@@ -9,7 +9,7 @@ public static class ClientErrors
     public static readonly Error AlreadyExists = Error.Conflict("client.already_exists", "A client with this client ID already exists.");
 
     public static readonly Error InvalidClientId = Error.Validation(
-        "client.invalid_client_id", "Client IDs are letters, digits, '.', '_' and '-', starting with a letter or digit.");
+        "client.invalid_client_id", "Client IDs are letters, digits, '.', '_' and '-', starting with a letter or digit, and not Kimlik's own names.");
 
     public static readonly Error InvalidDisplayName = Error.Validation("client.invalid_display_name", "A display name is required and is at most 100 characters.");
 
@@ -60,7 +60,8 @@ public static class ClientErrors
         "client.pushed_authorization_not_supported", "Service clients do not sign users in, so they make no authorization requests.");
 
     public static readonly Error PkceRequired = Error.Validation(
-        "client.pkce_required", "Browser and native apps always sign in with PKCE; only a web app can be set to sign in without it.");
+        "client.pkce_required",
+        "Browser and native apps, and apps that sign users in to Kimlik's own API, always sign in with PKCE; only other web apps can be set to sign in without it.");
 
     public static readonly Error TokenExchangeNotSupported = Error.Validation(
         "client.token_exchange_not_supported", "Only web and service clients, which keep a secret or keys, may exchange tokens.");

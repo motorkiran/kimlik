@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Security.Claims;
 using Kimlik.Application.Access;
 using Kimlik.Application.Mfa;
@@ -127,6 +128,14 @@ internal static class TokenEndpoint
             return OidcResults.Forbid(Errors.InvalidGrant, "A second factor is required. Sign in again.");
         }
 
+        // A refresh carries the scopes of the sign-in, and OpenIddict only checks the scopes a request names, which a refresh
+        // does not. One that an administrator took away from the client since, or deleted, ends the sign-in's tokens: the app
+        // asks again, for what it may still have.
+        if (request.IsRefreshTokenGrantType() && !await MayStillAskForAsync(services, request.ClientId ?? principal.GetPresenters().FirstOrDefault(), principal.GetScopes(), cancellationToken))
+        {
+            return OidcResults.Forbid(Errors.InvalidGrant, "The application may no longer ask for what this sign-in granted. Sign in again.");
+        }
+
         var identity = await services.GetRequiredService<OidcPrincipalFactory>()
             .CreateAsync(
                 user,
@@ -154,6 +163,27 @@ internal static class TokenEndpoint
         }
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>Whether the client may still ask for every one of <paramref name="scopes"/>; <c>openid</c> and <c>offline_access</c> take no permission.</summary>
+    private static async Task<bool> MayStillAskForAsync(IServiceProvider services, string? clientId, ImmutableArray<string> scopes, CancellationToken cancellationToken)
+    {
+        var applications = services.GetRequiredService<IOpenIddictApplicationManager>();
+        if (clientId is null || await applications.FindByClientIdAsync(clientId, cancellationToken) is not { } application)
+        {
+            // OpenIddict has checked that the token is the client's; without a name there is nothing more to check here.
+            return true;
+        }
+
+        foreach (var scope in scopes)
+        {
+            if (scope is not (Scopes.OpenId or Scopes.OfflineAccess) && !await applications.HasPermissionAsync(application, Permissions.Prefixes.Scope + scope, cancellationToken))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

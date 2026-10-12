@@ -1,6 +1,7 @@
 using Kimlik.Contracts;
 using Kimlik.Infrastructure.Clients;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Net.Http.Headers;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -14,6 +15,21 @@ internal static class BrowserClientCors
         services.AddSingleton<ICorsPolicyProvider, BrowserClientCorsPolicyProvider>();
         return services;
     }
+
+    /// <summary>
+    /// CORS for the endpoints browser apps call. Their answers depend on the origin that asks, so they say so to caches
+    /// (<c>Vary: Origin</c>), whether the origin is allowed or sent at all.
+    /// </summary>
+    public static IApplicationBuilder UseBrowserClientCors(this IApplicationBuilder app) =>
+        app.Use((context, next) =>
+        {
+            if (BrowserClientCorsPolicyProvider.EndpointsOf(context.Request.Path) is not null)
+            {
+                context.Response.Headers.Append(HeaderNames.Vary, HeaderNames.Origin);
+            }
+
+            return next(context);
+        }).UseCors();
 }
 
 /// <summary>
@@ -42,11 +58,18 @@ internal sealed class BrowserClientCorsPolicyProvider(IServiceScopeFactory scope
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
     private volatile KnownOrigins _origins = new([], [], DateTimeOffset.MinValue, Version: -1);
 
+    /// <summary>
+    /// Whether the path is one of the protocol endpoints (<see langword="true"/>), one of the organization endpoints
+    /// (<see langword="false"/>) or neither. An organization's API keys are not for the components, or for browsers.
+    /// </summary>
+    public static bool? EndpointsOf(PathString path) =>
+        Array.Exists(ProtocolEndpoints, path.StartsWithSegments) ? true
+        : Array.Exists(OrganizationEndpoints, path.StartsWithSegments) && !path.Value!.Contains("/api-keys", StringComparison.OrdinalIgnoreCase) ? false
+        : null;
+
     public async Task<CorsPolicy?> GetPolicyAsync(HttpContext context, string? policyName)
     {
-        var path = context.Request.Path;
-        var protocol = Array.Exists(ProtocolEndpoints, path.StartsWithSegments);
-        if ((!protocol && !Array.Exists(OrganizationEndpoints, path.StartsWithSegments))
+        if (EndpointsOf(context.Request.Path) is not { } protocol
             || context.Request.Headers.Origin is not [{ Length: > 0 } origin]
             || !await IsAllowedAsync(origin, protocol, context.RequestAborted))
         {

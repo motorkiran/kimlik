@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Security.Claims;
 using Kimlik.Application.Accounts;
 using Kimlik.Application.ApiKeys;
+using Kimlik.Application.Common;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
@@ -280,9 +281,12 @@ internal static class AccountEndpoints
         Guid id,
         [Description("The `nextCursor` of the previous page.")] string? cursor,
         [Description("Page size, 50 by default and at most 200.")] int? limit,
+        [Description("Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`.")] string? status,
         OrganizationSelfService service,
         CancellationToken cancellationToken) =>
-        (await service.ListInvitationsAsync(Caller(principal), new ListInvitationsQuery(id, cursor, limit), cancellationToken)).ToOk();
+        QueryValues.TryParseEnum<InvitationStatus>(status, out var parsedStatus)
+            ? (await service.ListInvitationsAsync(Caller(principal), new ListInvitationsQuery(id, cursor, limit, parsedStatus), cancellationToken)).ToOk()
+            : ApiResults.Problem(CommonErrors.InvalidParameter(nameof(status)));
 
     private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> InviteAsync(
         ClaimsPrincipal principal, Guid id, CreateInvitationRequest request, OrganizationSelfService service, CancellationToken cancellationToken) =>

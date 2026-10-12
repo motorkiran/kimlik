@@ -793,7 +793,7 @@ export interface paths {
         };
         /**
          * List the invitations of an organization
-         * @description Lists invitations newest first, whatever their status.
+         * @description Lists invitations newest first, whatever their status unless `status` names one.
          *
          *     Requires the `kimlik.organizations:read` permission.
          */
@@ -6232,6 +6232,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Page size, 50 by default and at most 200. */
                 limit?: number | string;
+                /** @description Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`. */
+                status?: string;
             };
             header?: never;
             path: {
@@ -10378,6 +10380,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Page size, 50 by default and at most 200. */
                 limit?: number | string;
+                /** @description Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`. */
+                status?: string;
             };
             header?: never;
             path: {

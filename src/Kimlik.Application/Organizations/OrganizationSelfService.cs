@@ -60,7 +60,7 @@ public sealed class OrganizationSelfService(
         return caller.IsFailure ? caller.Error : await listMembers.HandleAsync(query, cancellationToken);
     }
 
-    /// <summary>The roles members of the organization can hold, at most 200, which members who see the others can give.</summary>
+    /// <summary>The roles members of the organization can hold, which members who see the others can give.</summary>
     public async Task<Result<IReadOnlyList<MyOrganizationRoleResponse>>> ListRolesAsync(Guid callerId, Guid organizationId, CancellationToken cancellationToken)
     {
         var caller = await guard.AuthorizeAsync(callerId, organizationId, SystemPermissions.OrganizationMembersRead, cancellationToken);
@@ -69,10 +69,22 @@ public sealed class OrganizationSelfService(
             return caller.Error;
         }
 
-        var roles = await listRoles.HandleAsync(new ListRolesQuery(Search: null, RoleScope.Organization, Cursor: null, Limit: 200), cancellationToken);
-        return roles.IsFailure
-            ? roles.Error
-            : roles.Value.Items.Select(role => new MyOrganizationRoleResponse(role.Key, role.Name, role.Description, role.Permissions)).ToList();
+        var roles = new List<MyOrganizationRoleResponse>();
+        string? cursor = null;
+        do
+        {
+            var page = await listRoles.HandleAsync(new ListRolesQuery(Search: null, RoleScope.Organization, cursor, Limit: 200), cancellationToken);
+            if (page.IsFailure)
+            {
+                return page.Error;
+            }
+
+            roles.AddRange(page.Value.Items.Select(role => new MyOrganizationRoleResponse(role.Key, role.Name, role.Description, role.Permissions)));
+            cursor = page.Value.NextCursor;
+        }
+        while (cursor is not null);
+
+        return roles;
     }
 
     public async Task<Result<MemberResponse>> GetMemberAsync(Guid callerId, Guid organizationId, Guid memberId, CancellationToken cancellationToken)
@@ -99,7 +111,20 @@ public sealed class OrganizationSelfService(
         }
 
         var check = await EnsureCanAssignAsync(caller.Value, organizationId, memberId, request.Roles, cancellationToken);
-        return check.IsFailure ? check.Error : await setMemberRoles.HandleAsync(organizationId, memberId, request, cancellationToken);
+        if (check.IsFailure)
+        {
+            return check.Error;
+        }
+
+        // Giving up one's own say over the members is like leaving: someone else must have it.
+        if (memberId == callerId
+            && !await guard.RolesGiveAsync(request.Roles, SystemPermissions.OrganizationMembersWrite, cancellationToken)
+            && !await guard.OthersCanManageAsync(organizationId, callerId, cancellationToken))
+        {
+            return OrganizationErrors.LastAdministrator;
+        }
+
+        return await setMemberRoles.HandleAsync(organizationId, memberId, request, cancellationToken);
     }
 
     /// <summary>Removes a member; removing oneself is leaving, which keeps someone able to manage the members.</summary>

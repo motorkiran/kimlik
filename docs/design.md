@@ -579,7 +579,7 @@ erDiagram
 ### 8.2 Grants and client authentication
 
 - **MVP grants:** `authorization_code`, `refresh_token` and `client_credentials`.
-- **PKCE** with S256 is required of browser and native apps, and of web apps unless an administrator turns it off for one (`requirePkce: false`), such as an older app that cannot send it or the OpenID certification tests ([§8.12](#812-openid-certification)), which do not. A web app that sends PKCE is held to it either way, and a code issued without it cannot be redeemed with a verifier.
+- **PKCE** with S256 is required of browser and native apps, and of web apps unless an administrator turns it off for one (`requirePkce: false`), such as an older app that cannot send it or the OpenID certification tests ([§8.12](#812-openid-certification)), which do not. Apps whose tokens reach Kimlik's own API always keep it. A web app that sends PKCE is held to it either way, and a code issued without it cannot be redeemed with a verifier. Turning it off or on is audited as such.
 - **Device authorization** (RFC 8628, `urn:ietf:params:oauth:grant-type:device_code`) for native clients, such as command-line tools and TV apps ([§8.8](#88-device-authorization)).
 - **Token exchange** (RFC 8693, `urn:ietf:params:oauth:grant-type:token-exchange`) for backends that call other APIs on a user's behalf ([§8.9](#89-token-exchange)).
 - **Not supported:** the implicit and resource owner password grants. The OAuth 2.0 Security Best Current Practice (RFC 9700) deprecates both.
@@ -710,12 +710,13 @@ Kimlik prepares for the OpenID Foundation's certification of providers, in the p
   - PKCE takes S256 only.
   - Reusing an authorization code revokes the tokens it gave.
 - **Skipped, as the suite allows:**
-  - Request objects and `request_uri`, since discovery does not offer unsigned ones.
+  - Request objects and `request_uri`, which Kimlik does not support, as discovery says.
   - ID tokens signed with `none`.
   - The `address` scope.
 - **Warned, as the suite allows:** `phone_number`, until the test user verifies a number by text, and `name` asked for through the `claims` parameter, since Kimlik returns claims by scope.
 - **Running the suite.** `conformance/` holds a provisioning file for the suite's two clients and a configuration for its test plans. The configuration includes the browser steps that sign the suite's user in through the hosted pages. [docs/certification.md](certification.md) walks through a run on the hosted suite or a local one. Kimlik must be reachable over HTTPS from wherever the suite runs.
-- **Tests.** `BasicOpConformanceTests` and `LogoutConformanceTests` follow the plans' test modules, each named in the test, against the test server on every change. Applying for certification, which the OpenID Foundation charges non-members for, is the maintainers' decision.
+- **After a run.** The suite's clients sign in without PKCE or consent and send people to an address the suite's host shares among its users, so they belong on a deployment for testing and are deleted when the runs are done, with the test user.
+- **Tests.** `BasicOpConformanceTests` and `LogoutConformanceTests` follow the plans' test modules, each named in the test, against the test server on every change; the back-channel plan's one module is in `BackChannelLogoutTests`. Applying for certification, which the OpenID Foundation charges non-members for, is the maintainers' decision.
 
 ## 9. API design
 
@@ -1055,10 +1056,13 @@ Node.js backends get the same integration as ASP.NET Core APIs, from one package
 
 Apps that want organization management inside their own pages, instead of linking to `/account/organizations/{id}`, put Kimlik's web components there. They are custom elements, so they work in any framework or none, and they call the Account API from the browser with the user's access token.
 
-- **The `kimlik.organizations` scope.** A token with it can reach the Account API's organization endpoints (`/api/v1/me/organizations…`) and nothing else. Within them, the user's organization roles decide what it may do, as on the hosted pages; Kimlik reads those roles at every call. The scope has an audience of its own, also named `kimlik.organizations`, which Kimlik's API accepts on those endpoints only. Its tokens carry no system permissions, since those travel only to the `kimlik` audience. So any app that signs users in can be allowed the scope without the full access that `kimlik` takes to set up. The consent page names it as "Manage your organizations". The scope and its audience are reserved, as are all names that start with `kimlik.`.
+- **The `kimlik.organizations` scope.** A token with it can reach the Account API's organization endpoints (`/api/v1/me/organizations…`) and nothing else. Within them, the user's organization roles decide what it may do, as on the hosted pages; Kimlik reads those roles at every call. The scope has an audience of its own, also named `kimlik.organizations`, which Kimlik's API accepts on those endpoints only. Its tokens carry no system permissions, since those travel only to the `kimlik` audience. So any app that signs users in can be allowed the scope without the full access that `kimlik` takes to set up. The consent page names it as "Manage your organizations", and first-party apps show it too the first time, as for `kimlik`, so that whoever may register apps cannot manage users' organizations without their knowing. The scope and its audience are reserved, as are all names that start with `kimlik.`, for scopes, audiences and client IDs.
+- **Its tokens.** Kimlik's API takes a token for one of its audiences only with the scope of the same name. An app should ask for the components' token on its own: one that also carries an API's scope has both audiences, and that API could use it on the user's organizations.
+- **Taking a scope away.** A refresh token carries the scopes of its sign-in. When an administrator takes one of them from the client, or deletes it, the client's refreshes for those sign-ins are refused, and the app asks again for what it may still have.
 - **The `kimlik` audience** stays required for the Management API and for the rest of the Account API, so a token for the organization endpoints cannot change a password, delete an account or call the Management API.
-- **CORS.** The organization endpoints answer cross-origin requests from the origins of the redirect URIs of clients allowed the scope. They answer without credentials, since calls carry a bearer token rather than cookies. Other origins get no CORS headers.
-- **Roles.** `GET /api/v1/me/organizations/{id}/roles` lists the roles members of the organization can hold, for members with `kimlik.org.members:read`, so that the components can offer them.
+- **CORS.** The organization endpoints answer cross-origin requests from the origins of the redirect URIs of clients allowed the scope. They answer without credentials, since calls carry a bearer token rather than cookies. Other origins get no CORS headers, and neither do an organization's API keys. Answers say `Vary: Origin`, so that caches keep origins apart.
+- **Roles.** `GET /api/v1/me/organizations/{id}/roles` lists the roles members of the organization can hold, for members with `kimlik.org.members:read`, so that the components can offer them. A member who is the last to manage the others cannot give that up by changing their own roles, as they cannot by leaving.
+- **Invitations by status.** `?status=pending` lists only the invitations still open, on the Account API and the Management API.
 - **Components:**
   - `<kimlik-organizations>` lists the user's organizations and the invitations to them. Users accept or decline invitations there, and create organizations when the installation allows it. Choosing an organization fires `kimlik-organization-select` with its ID.
   - `<kimlik-organization-members organization="…">` shows members and pending invitations. With the matching permissions, users invite people, send invitations again, revoke them, change members' roles and remove members, within the roles they hold.

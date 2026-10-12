@@ -98,11 +98,13 @@ public sealed class CreateClientHandler(
         var id = await applications.GetIdentifierAsync(application, cancellationToken);
         var now = timeProvider.GetUtcNow();
         context.ClientRoles.AddRange(roles.Value.Select(role => new ClientRole(id, role.Id, now)));
-        auditLog.Record(AuditActions.ClientCreated, AuditSubject.Client(id), new Dictionary<string, object?>
+        var details = new Dictionary<string, object?> { ["clientId"] = clientId, ["type"] = request.Type.ToString() };
+        if (request.Type == ClientType.Web && !settings.RequirePkce)
         {
-            ["clientId"] = clientId,
-            ["type"] = request.Type.ToString(),
-        });
+            details["requirePkce"] = false;
+        }
+
+        auditLog.Record(AuditActions.ClientCreated, AuditSubject.Client(id), details);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -197,7 +199,12 @@ public sealed class UpdateClientHandler(IKimlikDbContext context, IOpenIddictApp
 
         await using var transaction = await context.BeginTransactionAsync(cancellationToken);
         await applications.UpdateAsync(application, descriptor, cancellationToken);
-        auditLog.Record(AuditActions.ClientUpdated, AuditSubject.Client(id));
+
+        // Turning PKCE off or on changes how well sign-ins are protected, so the record says so.
+        auditLog.Record(
+            AuditActions.ClientUpdated,
+            AuditSubject.Client(id),
+            current.Type == ClientType.Web && settings.RequirePkce != current.RequirePkce ? new Dictionary<string, object?> { ["requirePkce"] = settings.RequirePkce } : null);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

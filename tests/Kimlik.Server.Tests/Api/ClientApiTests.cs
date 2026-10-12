@@ -6,6 +6,7 @@ using Kimlik.Domain.Access;
 using Kimlik.Server.Tests.Access;
 using Kimlik.Server.Tests.Accounts;
 using Kimlik.Server.Tests.Oidc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Kimlik.Server.Tests.Api;
@@ -273,6 +274,33 @@ public sealed class ClientApiTests(KimlikServerFixture server)
 
         using var relaxed = await api.Http.SendJsonAsync(HttpMethod.Patch, $"{Clients}/{client.Id}", """{ "requirePkce": false }""");
         (await relaxed.ReadAsync<ClientResponse>()).RequirePkce.ShouldBeFalse();
+        var subject = client.Id.ToString();
+        (await server.QueryDatabaseAsync(context => context.AuditEvents
+            .Where(entry => entry.Action == "client.updated" && entry.SubjectId == subject)
+            .Select(entry => entry.Data)
+            .SingleAsync())).ShouldNotBeNull().ShouldContain("requirePkce");
+
+        // Browser apps keep PKCE whatever is asked later, and so do apps whose tokens reach Kimlik's own API.
+        using var browserApp = await api.Http.PostJsonAsync(Clients, new CreateClientRequest
+        {
+            ClientId = NewClientId(),
+            DisplayName = "Dashboard",
+            Type = ClientType.Spa,
+            RedirectUris = ["https://dashboard.example.com/callback"],
+        });
+        using var patched = await api.Http.SendJsonAsync(
+            HttpMethod.Patch, $"{Clients}/{(await browserApp.ReadAsync<CreatedClientResponse>()).Client.Id}", """{ "requirePkce": false }""");
+        (await patched.ReadProblemCodeAsync()).ShouldBe("client.pkce_required");
+        using var console = await api.Http.PostJsonAsync(Clients, new CreateClientRequest
+        {
+            ClientId = NewClientId(),
+            DisplayName = "Console",
+            Type = ClientType.Web,
+            RedirectUris = ["https://console.example.com/callback"],
+            Scopes = ["openid", KimlikScopes.Api],
+            RequirePkce = false,
+        });
+        (await console.ReadProblemCodeAsync()).ShouldBe("client.pkce_required");
     }
 
     [Fact]

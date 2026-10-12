@@ -17,6 +17,8 @@ Kimlik does not support the implicit and hybrid flows or dynamic client registra
 
 ## Before you start
 
+- Use a deployment set up for testing, not the one your users sign in to. The suite's clients sign in without PKCE and without a consent page, and their redirect address is on a host that every user of the suite shares.
+- The client secrets and the test user's password go into the suite's configuration, so the suite's operators can see them. Use values made for this run and nothing else.
 - Kimlik must be reachable over HTTPS from wherever the suite runs: from the internet for the hosted suite at [certification.openid.net](https://www.certification.openid.net/), or from the suite's own network if you run it yourself. `Kimlik:Server:PublicUrl` must be the address the suite uses.
 - The suite's runs sign a test user in again and again. Raise `Kimlik:RateLimits:SignInsPerMinute` for the duration of the runs if the sign-in rate limit gets in the way.
 
@@ -68,15 +70,23 @@ Kimlik shows an error page or asks the user to confirm signing out. Upload a scr
 These results are expected:
 
 - **Skipped:**
-  - request objects and `request_uri`, since discovery does not offer unsigned ones;
+  - request objects and `request_uri`, which Kimlik does not support, as its discovery document says;
   - ID tokens signed with `none`;
   - the `address` scope.
 - **Warnings:**
   - `phone_number` is missing until the test user verifies a number;
   - `oidcc-claims-essential` warns that `name` is missing, since Kimlik returns claims by scope, not through the `claims` parameter.
 
-Kimlik's own tests check what these plans check, on every change: `BasicOpConformanceTests` and `LogoutConformanceTests`. If the suite reports a failure they do not, add a test that reproduces it.
+Kimlik's own tests check what these plans check, on every change: `BasicOpConformanceTests`, `LogoutConformanceTests` and, for the back channel, `BackChannelLogoutTests`. If the suite reports a failure they do not, add a test that reproduces it.
 
-## 5. Certification
+## 5. Clean up
+
+When the runs are done, remove what they needed. Provisioning never deletes, so taking the file away is not enough.
+
+1. Delete the clients `conformance` and `conformance-2`, in the admin panel or with `DELETE /api/v1/clients/{id}`.
+2. Delete the test user.
+3. Unset `Conformance__ClientSecret`, `Conformance__Client2Secret` and the provisioning file path, and put the sign-in rate limit back.
+
+## 6. Certification
 
 Once every plan passes, the results can be submitted to the OpenID Foundation for certification, which it charges non-members for. Submitting is the maintainers' decision.

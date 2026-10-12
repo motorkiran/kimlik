@@ -16,6 +16,12 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - Scopes and audiences that start with `kimlik.` are reserved for Kimlik.
 - PKCE takes S256 only; `plain` is no longer accepted.
 - `prompt=consent` shows the consent page to first-party apps too.
+- A refresh is refused once the client has lost one of the scopes the sign-in granted, such as one an administrator took away or deleted. The app signs the user in again for what it may still have.
+- Kimlik's API takes a token for one of its audiences only with the scope of the same name.
+- Client IDs cannot be `kimlik` or start with `kimlik.`.
+- A member who is the last to manage an organization's members cannot give that up by changing their own roles.
+- Invitations can be listed by status (`?status=pending`), on the Account API and the Management API.
+- Answers of the endpoints that browser apps call say `Vary: Origin`.
 
 ## [0.5.0] - 2026-10-11
 

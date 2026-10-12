@@ -3205,7 +3205,7 @@
           "Organizations"
         ],
         "summary": "List the invitations of an organization",
-        "description": "Lists invitations newest first, whatever their status.\n\nRequires the `kimlik.organizations:read` permission.",
+        "description": "Lists invitations newest first, whatever their status unless `status` names one.\n\nRequires the `kimlik.organizations:read` permission.",
         "operationId": "ListOrganizationInvitations",
         "parameters": [
           {
@@ -3236,6 +3236,14 @@
                 "string"
               ],
               "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8288,6 +8296,14 @@
                 "string"
               ],
               "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Only invitations with this status: `pending`, `accepted`, `revoked` or `expired`.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
