@@ -1,6 +1,6 @@
 {
   "name": "@kimlik/elements",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Web components that put organization management from Kimlik, an open-source, self-hosted identity and access management server, inside your own pages.",
   "license": "Apache-2.0",
   "repository": {

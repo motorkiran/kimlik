@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-14
+
+Organization management inside apps' own pages, and readiness for OpenID certification.
+
 ### Added
 
 - The `kimlik.organizations` scope: its tokens reach only the Account API's organization and invitation endpoints, with an audience of their own and no system permissions, so any app that signs users in can be allowed it. Those endpoints answer cross-origin calls from the apps allowed the scope. `GET /api/v1/me/organizations/{id}/roles` lists the roles members can hold.
