@@ -1,0 +1,16 @@
+apiVersion: v2
+name: kimlik
+description: Kimlik, an open-source, self-hosted identity and access management server, with your own PostgreSQL.
+type: application
+# The chart is versioned with Kimlik: releases set both.
+version: 0.6.0
+appVersion: "0.6.0"
+home: https://github.com/motorkiran/kimlik
+sources:
+  - https://github.com/motorkiran/kimlik
+keywords:
+  - identity
+  - oidc
+  - oauth2
+  - iam
+kubeVersion: ">=1.25.0-0"

@@ -36,6 +36,18 @@ docker run -d --name kimlik -p 8080:8080 \
 
 On the first start Kimlik creates its tables, its signing and encryption keys and the bootstrap administrator. Sign in at `https://id.example.com/admin`: administrators set up two-factor authentication first. Then remove the bootstrap password from the configuration.
 
+## On Kubernetes
+
+The Helm chart in [`charts/kimlik`](../charts/kimlik) installs Kimlik against a PostgreSQL that you run. Each release carries it as a package, `kimlik-<version>.tgz`.
+
+```bash
+helm install kimlik kimlik-<version>.tgz \
+  --set publicUrl=https://id.example.com/ \
+  --set secret.existingSecret=kimlik-secrets
+```
+
+The Secret holds the connection string and the master key. The chart's [README](../charts/kimlik/README.md) covers settings, the ingress, several instances and running migrations in a Job before each rollout. The rest of this guide applies there too.
+
 ## Behind a reverse proxy
 
 Terminate TLS at the proxy and forward to port 8080. With `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, Kimlik takes the client address and scheme from the `X-Forwarded-For` and `X-Forwarded-Proto` headers; only let your proxy set them. Rate limits, the audit log and the secure cookies depend on them.

@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+
+- A Helm chart in `charts/kimlik`, which installs Kimlik on Kubernetes against your own PostgreSQL: secrets from a Secret you name or one the chart keeps, settings as values, an optional ingress, a migration Job before each rollout, and pods that run without root, capabilities or a writable root file system. Releases carry it as a package.
+
 ## [0.6.0] - 2026-10-14
 
 Organization management inside apps' own pages, and readiness for OpenID certification.

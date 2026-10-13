@@ -1,0 +1,17 @@
+{{- if .Values.provisioning }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kimlik.fullname" . }}-provisioning
+  labels:
+    {{- include "kimlik.labels" . | nindent 4 }}
+  {{- if include "kimlik.migrates" . }}
+  # Only the migration Job reads it, so it is made before the Job, and again before the next one.
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+  {{- end }}
+data:
+  provisioning.json: {{ .Values.provisioning | toJson | quote }}
+{{- end }}

@@ -1,0 +1,137 @@
+# The address people and applications reach Kimlik at, such as https://id.example.com/. Required: it is the token issuer
+# and the base of every link in emails, and Kimlik never takes it from request headers.
+publicUrl: ""
+
+# How many instances run. They share everything through PostgreSQL. With more than one, see `admin` and `ingress` about
+# the admin panel's sticky sessions.
+replicaCount: 1
+
+image:
+  repository: ghcr.io/motorkiran/kimlik
+  # The image tag; the chart's appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# What Kimlik must keep secret. Either name a Secret you made, or give the values and let the chart make one, which suits
+# trying Kimlik out; in production, keep them in your secret manager and name the Secret it fills.
+secret:
+  # A Secret that exists already, with the keys under `keys`. The migration Job needs one.
+  existingSecret: ""
+  # The keys of the Secret. The connection string and the master key are required; the others are read when present.
+  keys:
+    connectionString: connection-string
+    masterKey: master-key
+    smtpPassword: smtp-password
+    bootstrapAdminPassword: bootstrap-admin-password
+  # Used only without `existingSecret`.
+  values:
+    # Such as Host=postgres;Database=kimlik;Username=kimlik;Password=…  PostgreSQL 16 or later.
+    connectionString: ""
+    # 256 bits in base64: `openssl rand -base64 32`. Back it up apart from the database; the chart never makes one up,
+    # because without it the installation's keys and secrets cannot be read.
+    masterKey: ""
+    smtpPassword: ""
+    bootstrapAdminPassword: ""
+
+# Any other setting, by the name of its environment variable (docs/configuration.md): `__` separates the levels.
+settings: {}
+  # Kimlik__Email__FromAddress: no-reply@example.com
+  # Kimlik__Email__Smtp__Host: smtp.example.com
+  # Kimlik__Email__Smtp__Username: kimlik
+  # Kimlik__Bootstrap__AdminEmail: you@example.com
+  # Kimlik__Accounts__Registration: InviteOnly
+  # OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+
+# More environment variables, in the form of a container's `env` and `envFrom`.
+extraEnv: []
+extraEnvFrom: []
+
+# A provisioning document (permissions, roles, plans, API resources, clients), applied whenever the database is prepared.
+# Secrets in it can refer to settings, as in clientSecret: "${Workers:ReportSecret}" with the variable Workers__ReportSecret in `extraEnv`.
+provisioning: {}
+
+admin:
+  # Whether these instances serve the admin panel under /admin. The panel keeps a live connection per browser, so with
+  # several instances the ingress needs sticky sessions for /admin and /_blazor, or the panel runs from another release
+  # with one instance and this is false here.
+  enabled: true
+
+migration:
+  job:
+    # Runs `migrate` in a Job before each install and upgrade, instead of at startup. The Job also creates the bootstrap
+    # administrator and applies the provisioning document. It needs `secret.existingSecret`.
+    enabled: false
+    backoffLimit: 3
+    # Seconds a finished Job is kept when Helm does not delete it.
+    ttlSecondsAfterFinished: 3600
+
+# Kimlik sits behind a proxy that terminates TLS, such as an ingress controller: it takes the client's address and the
+# scheme from X-Forwarded-For and X-Forwarded-Proto. Only let your proxy set them.
+forwardedHeaders: true
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  # With several instances and the admin panel on, make sessions sticky; for ingress-nginx:
+  #   nginx.ingress.kubernetes.io/affinity: cookie
+  #   nginx.ingress.kubernetes.io/session-cookie-name: kimlik-instance
+  # Passkey and SAML requests can be large; ingress-nginx may also need
+  #   nginx.ingress.kubernetes.io/proxy-buffer-size: 16k
+  annotations: {}
+  # The host name; that of `publicUrl` when empty.
+  host: ""
+  tls:
+    enabled: true
+    # The Secret with the host's certificate, such as one cert-manager fills. Without it, the ingress controller's
+    # default certificate serves the host.
+    secretName: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+# The image runs as its own non-root user (1654) and writes nothing outside /tmp.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1654
+  runAsGroup: 1654
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources: {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 256Mi
+  # limits:
+  #   memory: 512Mi
+
+# Kept in place while nodes are drained, when there is more than one instance.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Seconds an instance gets to finish its requests when it is stopped.
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []

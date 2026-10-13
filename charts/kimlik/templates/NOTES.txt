@@ -1,0 +1,24 @@
+Kimlik {{ .Values.image.tag | default .Chart.AppVersion }} is starting at {{ .Values.publicUrl }}
+
+{{- if not .Values.ingress.enabled }}
+
+No ingress was asked for. Route {{ .Values.publicUrl }} to the service {{ include "kimlik.fullname" . }} (port {{ .Values.service.port }}), with TLS, or look at it from your machine:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "kimlik.fullname" . }} 8080:{{ .Values.service.port }}
+{{- end }}
+
+Watch it become ready:
+
+  kubectl --namespace {{ .Release.Namespace }} rollout status deployment/{{ include "kimlik.fullname" . }}
+
+The admin panel is at {{ .Values.publicUrl | trimSuffix "/" }}/admin. The first administrator comes from Kimlik__Bootstrap__AdminEmail in
+`settings` and the bootstrap password in the Secret; remove the password once they have signed in.
+{{- if and (gt (int .Values.replicaCount) 1) .Values.admin.enabled }}
+
+With {{ .Values.replicaCount }} instances, the admin panel needs sticky sessions at the ingress for /admin and /_blazor.
+{{- end }}
+{{- if not .Values.secret.existingSecret }}
+
+The master key is in the Secret {{ include "kimlik.fullname" . }}, which goes when this release is uninstalled. Keep a copy somewhere
+safe: without it, a restored database cannot be read.
+{{- end }}

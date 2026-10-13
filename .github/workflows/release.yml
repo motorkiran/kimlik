@@ -84,6 +84,12 @@ jobs:
             )
           done
 
+      # The chart is versioned with Kimlik and goes with the release as a package.
+      - name: Package the Helm chart
+        run: |
+          charts/kimlik/ci/check.sh
+          helm package charts/kimlik --version "$VERSION" --app-version "$VERSION" --destination artifacts
+
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

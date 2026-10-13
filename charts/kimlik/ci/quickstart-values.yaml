@@ -1,0 +1,11 @@
+# Trying Kimlik out: one instance, the chart keeps the secrets, migrations run at startup.
+publicUrl: https://id.example.com/
+secret:
+  values:
+    connectionString: Host=postgres;Database=kimlik;Username=kimlik;Password=example
+    masterKey: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    bootstrapAdminPassword: change me after signing in
+settings:
+  Kimlik__Bootstrap__AdminEmail: you@example.com
+  Kimlik__Email__FromAddress: no-reply@example.com
+  Kimlik__Email__Smtp__Host: smtp.example.com

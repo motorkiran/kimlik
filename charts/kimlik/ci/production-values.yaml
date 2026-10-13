@@ -1,0 +1,54 @@
+# A production shape: secrets from a Secret that exists, three instances behind ingress-nginx with sticky sessions for the
+# admin panel, migrations in a Job before each rollout, and a provisioning document.
+publicUrl: https://id.example.com/
+replicaCount: 3
+secret:
+  existingSecret: kimlik-secrets
+migration:
+  job:
+    enabled: true
+settings:
+  Kimlik__Email__FromAddress: no-reply@example.com
+  Kimlik__Email__Smtp__Host: smtp.example.com
+  Kimlik__Email__Smtp__Username: kimlik
+  Kimlik__Accounts__Registration: InviteOnly
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability:4317
+extraEnv:
+  - name: Workers__ReportSecret
+    valueFrom:
+      secretKeyRef:
+        name: report-worker
+        key: client-secret
+provisioning:
+  apiResources:
+    - scope: reports
+      displayName: Read your reports
+  clients:
+    - clientId: report-worker
+      displayName: Report worker
+      type: service
+      scopes: [reports]
+      clientSecret: ${Workers:ReportSecret}
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: kimlik-instance
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 16k
+  tls:
+    secretName: kimlik-tls
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: kimlik
