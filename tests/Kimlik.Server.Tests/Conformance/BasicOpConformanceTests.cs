@@ -155,10 +155,11 @@ public sealed class BasicOpConformanceTests(KimlikServerFixture server)
         var user = await server.CreateUserAsync();
         using var browser = new Browser(kimlik);
         using var signedIn = await browser.SignInAsync(user.Email, user.Password);
-        var request = new AuthorizationRequest(client) { Pkce = false, Scope = "openid", Extra = new Dictionary<string, string> { ["max_age"] = "1" } };
+        var request = new AuthorizationRequest(client) { Pkce = false, Scope = "openid", Extra = new Dictionary<string, string> { ["max_age"] = "300" } };
         var first = Payload((await RedeemAsync(browser.Client, client, secret, await CodeAsync(browser, request.Url), basic: true)).GetProperty("id_token").GetString()!);
 
-        clock.Offset = TimeSpan.FromSeconds(5);
+        // Minutes rather than the suite's one second, so that a slow machine does not make the first sign-in old as well.
+        clock.Offset = TimeSpan.FromMinutes(10);
         using var authorization = await browser.GetAsync(request.Url);
         authorization.Headers.Location!.AbsolutePath.ShouldBe("/signin");
 
