@@ -698,11 +698,11 @@ When a session falls short of a requested policy, Kimlik asks for more: a second
 
 Kimlik prepares for the OpenID Foundation's certification of providers, in the profiles that match what it does.
 
-- **Profiles:** Basic OP (the authorization code flow, with `client_secret_basic` and `client_secret_post`), Config OP (discovery), RP-Initiated Logout OP and Back-Channel Logout OP.
+- **Profiles:** Basic OP (the authorization code flow, with `client_secret_basic` and `client_secret_post`), Form Post OP (the same flow with `response_mode=form_post`), Config OP (discovery), RP-Initiated Logout OP and Back-Channel Logout OP.
 - **Not targeted:**
   - Implicit and Hybrid OP, since Kimlik does not support those flows (RFC 9700).
   - Dynamic OP, since Kimlik has no dynamic client registration.
-  - Form Post, Front-Channel Logout and Session Management.
+  - Front-Channel Logout and Session Management.
 - **What the tests need from Kimlik.**
   - The suite's requests carry no PKCE, so its clients are web clients with PKCE turned off ([§8.2](#82-grants-and-client-authentication)).
   - Requests the suite does not expect to be understood must not fail: `display`, `ui_locales`, `claims_locales`, unknown `acr_values`, the `claims` parameter and unknown parameters are ignored.
@@ -1197,7 +1197,7 @@ Each milestone is independently shippable. The admin panel grows alongside the f
 | **M29: Login apps** | Sign-in pages of developers' own, through login challenges that a login app accepts or rejects through the Management API and the SDK ([§10.12](#1012-login-apps)) | A login app signs a person in, with their Kimlik password and second factor, and the app gets tokens with the accepted methods; challenges cannot be completed by another browser or below the required factors, in end-to-end tests ✅ (M27 to M29 released as v0.4.0, 2026-10-11) |
 | **M30: JavaScript SDK** | `@kimlik/node` for Node.js backends: token and API key validation, permission middleware, entitlements, a typed Management API client and webhook verification ([§12.6](#126-javascript-and-typescript-kimliknode)) | A Node.js API validates Kimlik tokens and permissions and verifies webhooks, in tests that run in CI ✅ (released as v0.5.0, 2026-10-11) |
 | **M31: Organization components** | Web components that put organization management inside apps' own pages, calling the Account API with tokens for the `kimlik.organizations` scope ([§12.7](#127-organization-components-kimlikelements)) | An app's page lists the user's organizations, invites a member and changes their roles through the components, which show only what the user may do; tokens for the scope reach no other endpoint, in server and component tests ✅ |
-| **M32: Certification readiness** | What the OpenID Foundation's Basic, Config, RP-Initiated Logout and Back-Channel Logout OP plans test, and what a run needs ([§8.12](#812-openid-certification)) | The plans' checks pass against the test server in CI, and `conformance/` sets up a run of the suite ✅ |
+| **M32: Certification readiness** | What the OpenID Foundation's Basic, Form Post, Config, RP-Initiated Logout and Back-Channel Logout OP plans test, and what a run needs ([§8.12](#812-openid-certification)) | The plans' checks pass against the test server in CI, and `conformance/` sets up a run of the suite ✅ |
 
 ---
 

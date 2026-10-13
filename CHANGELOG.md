@@ -10,7 +10,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 - `@kimlik/elements`, web components that put organization management inside apps' own pages: `<kimlik-organizations>`, `<kimlik-organization-members>` and `<kimlik-organization-settings>`, in English and Turkish, styled through CSS custom properties and `::part()`. Releases carry it as a tarball until it is on npm.
 - The JavaScript packages' tarballs carry the license and their sources for source maps.
 - `requirePkce` on clients: PKCE stays required of browser and native apps, and of web apps by default, but an administrator can turn it off for a web app that cannot send it, such as the OpenID conformance suite.
-- `conformance/` and [docs/certification.md](docs/certification.md) set up a run of the OpenID Foundation's conformance suite for the Basic, Config, RP-Initiated Logout and Back-Channel Logout OP profiles, and tests follow those plans' checks on every change.
+- `conformance/` and [docs/certification.md](docs/certification.md) set up a run of the OpenID Foundation's conformance suite for the Basic, Form Post, Config, RP-Initiated Logout and Back-Channel Logout OP profiles, and tests follow those plans' checks on every change.
 
 ### Changed
 

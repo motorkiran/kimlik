@@ -248,6 +248,30 @@ public sealed class BasicOpConformanceTests(KimlikServerFixture server)
         (await RedeemAsync(browser.Client, client, secret, callback["code"], basic: true)).GetProperty("id_token").GetString().ShouldNotBeNullOrEmpty();
     }
 
+    /// <summary>The Form Post OP plan: the Basic plan's flow with <c>response_mode=form_post</c>, where the browser posts the code to the client.</summary>
+    [Fact]
+    public async Task FormPost_SendsTheCodeInAFormTheBrowserPosts()
+    {
+        var (client, secret) = await CreateClientAsync();
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signedIn = await browser.SignInAsync(user.Email, user.Password);
+        var request = new AuthorizationRequest(client) { Pkce = false, Scope = "openid", Extra = new Dictionary<string, string> { ["response_mode"] = "form_post" } };
+
+        var page = await browser.GetPageAsync(request.Url);
+
+        var form = page.Document.QuerySelector("form").ShouldNotBeNull();
+        form.GetAttribute("method")!.ShouldBe("post", StringCompareShould.IgnoreCase);
+        form.GetAttribute("action").ShouldBe(TestWebClient.RedirectUri);
+        string Field(string name) => form.QuerySelector($"input[name={name}]")!.GetAttribute("value")!;
+        Field("state").ShouldBe(request.State);
+        (await RedeemAsync(browser.Client, client, secret, Field("code"), basic: true)).GetProperty("id_token").GetString().ShouldNotBeNullOrEmpty();
+
+        using var http = server.CreateClient();
+        using var discovery = await http.GetAsync("/.well-known/openid-configuration", CancellationToken);
+        (await discovery.ReadJsonAsync()).GetProperty("response_modes_supported").EnumerateArray().Select(mode => mode.GetString()).ShouldContain("form_post");
+    }
+
     /// <summary>oidcc-response-type-missing: the error goes back to the client.</summary>
     [Fact]
     public async Task MissingResponseType_IsAnError()

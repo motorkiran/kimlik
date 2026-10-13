@@ -7,6 +7,7 @@ This guide runs the OpenID Foundation's conformance suite against a Kimlik deplo
 | Test plan | Profile | Notes |
 | --- | --- | --- |
 | `oidcc-basic-certification-test-plan` | Basic OP | Run it twice: with `client_secret_basic`, then with `client_secret_post`. |
+| `oidcc-formpost-basic-certification-test-plan` | Form Post OP | The Basic plan again, with the code posted to the client by a form. |
 | `oidcc-config-certification-test-plan` | Config OP | Checks the discovery document. |
 | `oidcc-rp-initiated-logout-certification-test-plan` | RP-Initiated Logout OP | |
 | `oidcc-backchannel-rp-initiated-logout-certification-test-plan` | Back-Channel Logout OP | Kimlik must reach the suite to deliver the logout token. |
