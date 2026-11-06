@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using Kimlik.Application.Accounts;
 using Kimlik.Infrastructure.Security.TokenKeys;
@@ -40,7 +41,11 @@ internal static class SocialLoginServiceCollectionExtensions
             // State tokens are protected with ASP.NET Core Data Protection, whose keys every instance shares; the
             // client still needs keys of its own, which come from the token keys (see AddTokenKeysToClient).
             options.UseDataProtection();
-            options.UseSystemNetHttp().SetProductInformation(typeof(SocialLoginServiceCollectionExtensions).Assembly);
+            // Responses from providers, which an organization or a social login brings, are decompressed from gzip and
+            // deflate only: Brotli is left out, as a runtime without the fix of CVE-2026-111497 would decode it unsafely.
+            options.UseSystemNetHttp()
+                .SetProductInformation(typeof(SocialLoginServiceCollectionExtensions).Assembly)
+                .SetAllowedDecompressionMethods(DecompressionMethods.GZip | DecompressionMethods.Deflate);
             options.UseAspNetCore()
                 .EnableRedirectionEndpointPassthrough()
                 .EnableErrorPassthrough()

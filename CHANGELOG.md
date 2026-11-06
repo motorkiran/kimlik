@@ -4,12 +4,17 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Security
+
+- OpenIddict 7.8.0. It no longer logs the raw responses of providers on errors, which can hold tokens. Responses from SSO and social login providers are decompressed from gzip and deflate only: Brotli stays off whatever runtime Kimlik runs on, for CVE-2026-111497.
+
 ## [0.7.0] - 2026-11-06
 
 A Helm chart for Kubernetes, and security updates. Upgrade installations that use SAML connections soon.
 
 ### Security
 
+- The image runs .NET 10.0.14, which fixes CVE-2026-111497, a Brotli decoder flaw that OpenIddict's requests to SSO and social login providers reached in 0.6.0 and earlier.
 - System.Security.Cryptography.Xml and System.Security.Cryptography.Pkcs are pinned to 10.0.14, for the denial-of-service fixes of CVE-2026-96958 and CVE-2026-84008. SAML responses and certificates reach them, so a crafted response could tie up an instance running 0.6.0 or earlier.
 
 ### Changed
