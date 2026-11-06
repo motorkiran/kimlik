@@ -83,7 +83,7 @@ public sealed class ResourceServerTests(KimlikServerFixture server)
         using var key = new DpopKey();
         using var kimlik = server.CreateClient();
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/connect/token") { Content = new FormUrlEncodedContent([new("grant_type", "client_credentials"), new("scope", TestClients.ApiScope)]) };
-        tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{serviceClient.ClientId}:{serviceClient.ClientSecret}")));
+        tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Uri.EscapeDataString(serviceClient.ClientId)}:{Uri.EscapeDataString(serviceClient.ClientSecret)}")));
         tokenRequest.Headers.Add("DPoP", key.Proof("POST", "/connect/token"));
         using var issued = await kimlik.SendAsync(tokenRequest, CancellationToken);
         var token = (await issued.ReadJsonAsync()).GetProperty("access_token").GetString()!;
