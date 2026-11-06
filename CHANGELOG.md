@@ -4,6 +4,10 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+
+- DPoP (RFC 9449). A token request with a proof gets an access token bound to the client's key, and the refresh tokens of public clients are bound too. `dpop_jkt` binds the authorization code, and `requireDpop` makes a client send proofs with every token request. Kimlik's API and UserInfo take bound tokens as `Authorization: DPoP` with a proof, and refuse them as bearer tokens. Proofs are used once, across instances.
+
 ### Security
 
 - OpenIddict 7.8.0. It no longer logs the raw responses of providers on errors, which can hold tokens. Responses from SSO and social login providers are decompressed from gzip and deflate only: Brotli stays off whatever runtime Kimlik runs on, for CVE-2026-111497.

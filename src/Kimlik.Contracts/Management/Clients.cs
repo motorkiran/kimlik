@@ -38,6 +38,7 @@ public sealed record ClientResponse(
     bool RequireOrganization,
     bool RequirePushedAuthorization,
     bool RequirePkce,
+    bool RequireDpop,
     JsonObject? JsonWebKeySet,
     bool AllowTokenExchange,
     string? BackChannelLogoutUri,
@@ -96,6 +97,12 @@ public sealed record CreateClientRequest
     /// to sign in without it, such as an older app that cannot send it; one that sends it is held to it either way.
     /// </summary>
     public bool RequirePkce { get; init; } = true;
+
+    /// <summary>
+    /// Whether every token request must carry a DPoP proof (RFC 9449), so that every access token the client gets is bound
+    /// to its key.
+    /// </summary>
+    public bool RequireDpop { get; init; }
 
     /// <summary>
     /// For a web or service client that authenticates with keys rather than a secret (<c>private_key_jwt</c>, RFC 7523):
@@ -166,6 +173,8 @@ public sealed record UpdateClientRequest
     public bool? RequirePushedAuthorization { get; init; }
 
     public bool? RequirePkce { get; init; }
+
+    public bool? RequireDpop { get; init; }
 
     public bool? AllowTokenExchange { get; init; }
 

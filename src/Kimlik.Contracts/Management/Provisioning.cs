@@ -154,6 +154,9 @@ public sealed record ProvisionedClient
     /// <summary>Whether sign-ins must use PKCE; only a web client can be set not to.</summary>
     public bool RequirePkce { get; init; } = true;
 
+    /// <summary>Whether every token request must carry a DPoP proof (RFC 9449).</summary>
+    public bool RequireDpop { get; init; }
+
     /// <summary>Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693).</summary>
     public bool AllowTokenExchange { get; init; }
 

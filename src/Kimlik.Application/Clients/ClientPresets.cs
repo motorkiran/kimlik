@@ -25,6 +25,7 @@ internal sealed record ClientSettings(
     bool RequireOrganization,
     bool RequirePushedAuthorization,
     bool RequirePkce,
+    bool RequireDpop,
     bool AllowTokenExchange,
     string? BackChannelLogoutUri);
 
@@ -36,6 +37,9 @@ public static partial class ClientPresets
 {
     /// <summary>The application property, in OpenIddict's custom properties, that makes sign-ins require an organization.</summary>
     public const string RequireOrganizationProperty = "kimlik_require_organization";
+
+    /// <summary>The application property, in OpenIddict's custom properties, that makes token requests require a DPoP proof (RFC 9449).</summary>
+    public const string RequireDpopProperty = "kimlik_require_dpop";
 
     /// <summary>The application property with the URI that receives logout tokens (OpenID Connect Back-Channel Logout).</summary>
     public const string BackChannelLogoutUriProperty = "kimlik_backchannel_logout_uri";
@@ -246,11 +250,21 @@ public static partial class ClientPresets
         {
             descriptor.Properties[RequireOrganizationProperty] = JsonSerializer.SerializeToElement(true);
         }
+
+        descriptor.Properties.Remove(RequireDpopProperty);
+        if (settings.RequireDpop)
+        {
+            descriptor.Properties[RequireDpopProperty] = JsonSerializer.SerializeToElement(true);
+        }
     }
 
     /// <summary>Whether sign-ins to the client must happen in an organization.</summary>
     public static bool RequiresOrganization(IReadOnlyDictionary<string, JsonElement> properties) =>
         properties.TryGetValue(RequireOrganizationProperty, out var value) && value.ValueKind == JsonValueKind.True;
+
+    /// <summary>Whether the client's token requests must carry a DPoP proof.</summary>
+    public static bool RequiresDpop(IReadOnlyDictionary<string, JsonElement> properties) =>
+        properties.TryGetValue(RequireDpopProperty, out var value) && value.ValueKind == JsonValueKind.True;
 
     /// <summary>The hash of the client's previous secret, which works until <c>ExpiresAt</c>, if it has one.</summary>
     public static (string Hash, DateTimeOffset ExpiresAt)? PreviousSecretOf(IReadOnlyDictionary<string, JsonElement> properties) =>

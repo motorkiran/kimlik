@@ -76,11 +76,11 @@ internal sealed class BrowserClientCorsPolicyProvider(IServiceScopeFactory scope
             return null;
         }
 
-        // Calls carry bearer tokens, never cookies, so no credentials are allowed.
+        // Calls carry access tokens, with DPoP proofs for bound ones, never cookies, so no credentials are allowed.
         return new CorsPolicyBuilder()
             .WithOrigins(origin)
             .WithMethods(protocol ? [HttpMethods.Get, HttpMethods.Post] : [HttpMethods.Get, HttpMethods.Post, HttpMethods.Put, HttpMethods.Patch, HttpMethods.Delete])
-            .WithHeaders("Authorization", "Content-Type")
+            .WithHeaders("Authorization", "Content-Type", "DPoP")
             .SetPreflightMaxAge(TimeSpan.FromHours(1))
             .Build();
     }

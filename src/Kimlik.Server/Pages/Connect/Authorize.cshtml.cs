@@ -13,6 +13,7 @@ using Kimlik.Server.Hosting;
 using Kimlik.Server.Identity;
 using Kimlik.Server.Interactions;
 using Kimlik.Server.Oidc;
+using Kimlik.Server.Oidc.Dpop;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -95,6 +96,13 @@ public sealed class AuthorizeModel(
 
         var request = HttpContext.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
+        // A code bound to something other than a key's thumbprint could never be redeemed (RFC 9449, section 10). OpenIddict would
+        // show the error instead of sending it back, as it does for requests it cannot trust.
+        if (request.GetParameter(DpopBinding.ThumbprintParameter) is { } thumbprint && !DpopBinding.IsThumbprint((string?)thumbprint))
+        {
+            return ForbidWith(Errors.InvalidRequest, DpopBinding.InvalidThumbprint);
+        }
 
         // The login app refused the sign-in it was handed.
         if (LoginApps.RejectionIn(RequestParameters, dataProtection) is { } rejection)
@@ -227,6 +235,12 @@ public sealed class AuthorizeModel(
         if (SignInFlow.SessionIdOf(session.Principal!) is { } sessionId)
         {
             await backChannelLogout.RecordAsync(sessionId, user.Id, request.ClientId!, cancellationToken);
+        }
+
+        // A code bound to the client's key is redeemed only with a proof by that key (RFC 9449, section 10).
+        if ((string?)request.GetParameter(DpopBinding.ThumbprintParameter) is { Length: > 0 } thumbprint)
+        {
+            identity.SetClaim(DpopBinding.ThumbprintClaim, thumbprint);
         }
 
         return SignIn(new System.Security.Claims.ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

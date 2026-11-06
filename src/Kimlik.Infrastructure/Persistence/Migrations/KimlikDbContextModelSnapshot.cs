@@ -20,7 +20,7 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("kimlik")
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1488,6 +1488,26 @@ namespace Kimlik.Infrastructure.Persistence.Migrations
                         .HasFilter("status = 'Pending'");
 
                     b.ToTable("outbox_messages", "kimlik");
+                });
+
+            modelBuilder.Entity("Kimlik.Infrastructure.Security.Dpop.UsedDpopProof", b =>
+                {
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.HasKey("Hash")
+                        .HasName("pk_used_dpop_proofs");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_used_dpop_proofs_expires_at");
+
+                    b.ToTable("used_dpop_proofs", "kimlik");
                 });
 
             modelBuilder.Entity("Kimlik.Infrastructure.Security.TokenKeys.TokenKey", b =>

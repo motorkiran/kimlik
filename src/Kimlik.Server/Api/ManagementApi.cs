@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Kimlik.Contracts;
+using Kimlik.Server.Oidc.Dpop;
 using Microsoft.AspNetCore.Authorization;
 using Scalar.AspNetCore;
 
@@ -28,6 +29,9 @@ internal static class ManagementApi
             options.EnableAuthorizationEntryValidation();
 
             options.UseAspNetCore();
+
+            // Tokens bound to a client's key come as DPoP tokens, with a proof (RFC 9449).
+            options.AddDpop();
         });
 
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();

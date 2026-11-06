@@ -11,6 +11,7 @@ using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Plans;
 using Kimlik.Infrastructure.Provisioning;
 using Kimlik.Infrastructure.Security;
+using Kimlik.Infrastructure.Security.Dpop;
 using Kimlik.Infrastructure.Settings;
 using Kimlik.Infrastructure.Sms;
 using Kimlik.Infrastructure.Webhooks;
@@ -99,6 +100,7 @@ public static class DependencyInjection
 
         services.AddSingleton<ISecretProtector, SecretProtector>();
         services.AddSingleton<ISecretEncryption, SecretEncryption>();
+        services.AddScoped<IDpopProofReplay, DpopProofReplay>();
 
         // Every instance shares one key ring, stored in PostgreSQL and encrypted with the master key.
         services.AddDataProtection()

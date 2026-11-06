@@ -12,8 +12,8 @@ namespace Kimlik.Infrastructure.Persistence;
 /// Deletes the protocol data that can no longer be used once it is two weeks old: expired, redeemed and revoked
 /// tokens (social login state tokens among them), and the authorizations of revoked sessions. Until then, a reused
 /// refresh token is still recognized and revokes its session. Records of the clients a browser session signed in to
-/// go after 90 days, usage counters after 13 months and usage idempotency keys after a day. One instance prunes at a
-/// time.
+/// go after 90 days, usage counters after 13 months, usage idempotency keys after a day, and used DPoP proofs once they
+/// are too old to be accepted. One instance prunes at a time.
 /// </summary>
 internal sealed partial class ProtocolDataPruner(
     KimlikDbContext context,
@@ -55,6 +55,7 @@ internal sealed partial class ProtocolDataPruner(
 
                 // Login challenges are kept a day past their expiry, for looking into a sign-in that went wrong.
                 await context.LoginChallenges.Where(challenge => challenge.ExpiresAt < now.AddDays(-1)).ExecuteDeleteAsync(cancellationToken);
+                await context.UsedDpopProofs.Where(proof => proof.ExpiresAt < now).ExecuteDeleteAsync(cancellationToken);
 
                 if (prunedTokens > 0 || prunedAuthorizations > 0)
                 {

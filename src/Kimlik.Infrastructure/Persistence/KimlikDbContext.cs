@@ -9,6 +9,7 @@ using Kimlik.Domain.Settings;
 using Kimlik.Domain.Users;
 using Kimlik.Domain.Webhooks;
 using Kimlik.Infrastructure.Outbox;
+using Kimlik.Infrastructure.Security.Dpop;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -78,6 +79,8 @@ public sealed class KimlikDbContext(DbContextOptions<KimlikDbContext> options)
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public DbSet<TokenKey> TokenKeys => Set<TokenKey>();
+
+    public DbSet<UsedDpopProof> UsedDpopProofs => Set<UsedDpopProof>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

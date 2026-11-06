@@ -38,6 +38,7 @@ public sealed class ClientProvisioner(
                     RequireOrganization = declared.RequireOrganization,
                     RequirePushedAuthorization = declared.RequirePushedAuthorization,
                     RequirePkce = declared.RequirePkce,
+                    RequireDpop = declared.RequireDpop,
                     JsonWebKeySet = declared.JsonWebKeySet,
                     AllowTokenExchange = declared.AllowTokenExchange,
                     BackChannelLogoutUri = declared.BackChannelLogoutUri,
@@ -67,6 +68,7 @@ public sealed class ClientProvisioner(
                 RequireOrganization = declared.RequireOrganization,
                 RequirePushedAuthorization = declared.RequirePushedAuthorization,
                 RequirePkce = declared.RequirePkce,
+                RequireDpop = declared.RequireDpop,
                 AllowTokenExchange = declared.AllowTokenExchange,
                 BackChannelLogoutUri = declared.BackChannelLogoutUri,
             };
@@ -115,6 +117,7 @@ public sealed class ClientProvisioner(
         && existing.RequireOrganization == declared.RequireOrganization
         && existing.RequirePushedAuthorization == declared.RequirePushedAuthorization
         && (existing.Type == ClientType.Service || existing.RequirePkce == declared.RequirePkce)
+        && existing.RequireDpop == declared.RequireDpop
         && existing.AllowTokenExchange == declared.AllowTokenExchange
         && existing.BackChannelLogoutUri == (declared.BackChannelLogoutUri is { } uri && Uri.TryCreate(uri, UriKind.Absolute, out var parsed) ? parsed.AbsoluteUri : declared.BackChannelLogoutUri)
         && (declared.JsonWebKeySet is null || ClientKeys.AreSame(existing.JsonWebKeySet, declared.JsonWebKeySet))

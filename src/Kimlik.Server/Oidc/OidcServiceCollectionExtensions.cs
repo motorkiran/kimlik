@@ -4,6 +4,7 @@ using Kimlik.Infrastructure.Persistence;
 using Kimlik.Infrastructure.Security.TokenKeys;
 using Kimlik.Server.Diagnostics;
 using Kimlik.Server.Hosting;
+using Kimlik.Server.Oidc.Dpop;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
@@ -80,6 +81,9 @@ internal static class OidcServiceCollectionExtensions
                     return default;
                 }));
 
+                // Tokens bound to clients' keys (RFC 9449), which OpenIddict does not implement.
+                options.AddDpop();
+
                 options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
                     .EnableTokenEndpointPassthrough()
@@ -95,6 +99,7 @@ internal static class OidcServiceCollectionExtensions
         services.AddSingleton<IConfigureOptions<OpenIddictServerAspNetCoreOptions>>(provider => provider.GetRequiredService<ConfigureOpenIddictServer>());
 
         services.AddScoped<OidcPrincipalFactory>();
+        services.AddScoped<DpopProofValidator>();
         services.AddScoped<ScopeDescriptions>();
         services.AddSingleton<IBackChannelLogoutSender, BackChannelLogoutSender>();
         services.AddHttpClient(BackChannelLogoutSender.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10))

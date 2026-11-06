@@ -39,6 +39,7 @@ else if (_client is { } client)
                                       HelperText="Receives a logout token when a user's session ends. Optional." />
                     }
                 }
+                <MudCheckBox @bind-Value="_requireDpop" Label="Require DPoP: bind every access token to the app's key" ReadOnly="!CanWrite" id="require-dpop" />
                 @if (client.Type is ClientType.Web or ClientType.Service)
                 {
                     <MudCheckBox @bind-Value="_allowTokenExchange" Label="Exchange users' tokens for other APIs (token exchange)" ReadOnly="!CanWrite" />
@@ -124,6 +125,7 @@ else if (_client is { } client)
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
     private bool _requirePushedAuthorization;
     private bool _requirePkce = true;
+    private bool _requireDpop;
     private bool _allowTokenExchange;
     private string? _backChannelLogoutUri;
     private string? _keys;
@@ -164,6 +166,7 @@ else if (_client is { } client)
         _requireOrganization = client.RequireOrganization;
         _requirePushedAuthorization = client.RequirePushedAuthorization;
         _requirePkce = client.RequirePkce;
+        _requireDpop = client.RequireDpop;
         _allowTokenExchange = client.AllowTokenExchange;
         _backChannelLogoutUri = client.BackChannelLogoutUri;
         _keys = client.JsonWebKeySet?.ToJsonString(Indented);
@@ -176,7 +179,7 @@ else if (_client is { } client)
     private async Task SaveAsync()
     {
         var request = _client!.Type == ClientType.Service
-            ? new UpdateClientRequest { DisplayName = _displayName, Scopes = [.. _scopes], AllowTokenExchange = _allowTokenExchange }
+            ? new UpdateClientRequest { DisplayName = _displayName, Scopes = [.. _scopes], RequireDpop = _requireDpop, AllowTokenExchange = _allowTokenExchange }
             : new UpdateClientRequest
             {
                 DisplayName = _displayName,
@@ -186,6 +189,7 @@ else if (_client is { } client)
                 RequireOrganization = _requireOrganization,
                 RequirePushedAuthorization = _requirePushedAuthorization,
                 RequirePkce = _client.Type == ClientType.Web ? _requirePkce : null,
+                RequireDpop = _requireDpop,
                 AllowTokenExchange = _client.Type == ClientType.Web ? _allowTokenExchange : null,
                 BackChannelLogoutUri = _client.Type == ClientType.Web && !string.IsNullOrWhiteSpace(_backChannelLogoutUri) ? _backChannelLogoutUri.Trim() : null,
                 Scopes = [.. _scopes],

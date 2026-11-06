@@ -9053,6 +9053,7 @@
           "requireOrganization",
           "requirePushedAuthorization",
           "requirePkce",
+          "requireDpop",
           "jsonWebKeySet",
           "allowTokenExchange",
           "backChannelLogoutUri",
@@ -9110,6 +9111,9 @@
             "type": "boolean"
           },
           "requirePkce": {
+            "type": "boolean"
+          },
+          "requireDpop": {
             "type": "boolean"
           },
           "jsonWebKeySet": {
@@ -9308,6 +9312,10 @@
           "requirePkce": {
             "type": "boolean",
             "description": "Whether sign-ins must use PKCE (RFC 7636), as they always do for browser and native apps. Only a web app can be set\nto sign in without it, such as an older app that cannot send it; one that sends it is held to it either way."
+          },
+          "requireDpop": {
+            "type": "boolean",
+            "description": "Whether every token request must carry a DPoP proof (RFC 9449), so that every access token the client gets is bound\nto its key."
           },
           "jsonWebKeySet": {
             "oneOf": [
@@ -11161,6 +11169,10 @@
             "type": "boolean",
             "description": "Whether sign-ins must use PKCE; only a web client can be set not to."
           },
+          "requireDpop": {
+            "type": "boolean",
+            "description": "Whether every token request must carry a DPoP proof (RFC 9449)."
+          },
           "allowTokenExchange": {
             "type": "boolean",
             "description": "Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693)."
@@ -12004,6 +12016,12 @@
             ]
           },
           "requirePkce": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "requireDpop": {
             "type": [
               "null",
               "boolean"

@@ -1,13 +1,16 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
 using Kimlik.Application.Access;
+using Kimlik.Application.Clients;
 using Kimlik.Application.Mfa;
 using Kimlik.Application.Organizations;
 using Kimlik.Contracts;
 using Kimlik.Contracts.Management;
 using Kimlik.Domain.Common;
 using Kimlik.Domain.Users;
+using Kimlik.Security;
 using Kimlik.Server.Identity;
+using Kimlik.Server.Oidc.Dpop;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -37,27 +40,40 @@ internal static class TokenEndpoint
         var request = context.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
+        // A proof binds the tokens to the client's key (RFC 9449), and one that fails a check fails the request.
+        var (proof, error) = await context.RequestServices.GetRequiredService<DpopProofValidator>().ValidateAsync(context.Request, accessToken: null, cancellationToken);
+        if (error is not null)
+        {
+            return OidcResults.Forbid(DpopProof.InvalidProofError, error);
+        }
+
         if (request.IsClientCredentialsGrantType())
         {
-            return await IssueClientTokenAsync(request, context.RequestServices, cancellationToken);
+            return await IssueClientTokenAsync(context, request, proof, cancellationToken);
         }
 
         if (request.IsAuthorizationCodeGrantType() || request.IsDeviceCodeGrantType() || request.IsRefreshTokenGrantType() || request.IsTokenExchangeGrantType())
         {
-            return await IssueUserTokenAsync(context, request, cancellationToken);
+            return await IssueUserTokenAsync(context, request, proof, cancellationToken);
         }
 
         throw new InvalidOperationException($"The grant type '{request.GrantType}' is not supported.");
     }
 
     /// <summary>A service client acts on its own behalf, so the token's subject is the client itself.</summary>
-    private static async Task<IResult> IssueClientTokenAsync(OpenIddictRequest request, IServiceProvider services, CancellationToken cancellationToken)
+    private static async Task<IResult> IssueClientTokenAsync(HttpContext context, OpenIddictRequest request, DpopProof? proof, CancellationToken cancellationToken)
     {
+        var services = context.RequestServices;
         var applications = services.GetRequiredService<IOpenIddictApplicationManager>();
         var scopes = services.GetRequiredService<IOpenIddictScopeManager>();
 
         var application = await applications.FindByClientIdAsync(request.ClientId!, cancellationToken)
             ?? throw new InvalidOperationException("The authenticated client cannot be found.");
+
+        if (proof is null && ClientPresets.RequiresDpop(await applications.GetPropertiesAsync(application, cancellationToken)))
+        {
+            return DpopRequired();
+        }
 
         var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
         identity.SetClaim(Claims.Subject, await applications.GetClientIdAsync(application, cancellationToken));
@@ -70,6 +86,11 @@ internal static class TokenEndpoint
         OidcPrincipalFactory.AddAccess(identity, await services.GetRequiredService<AccessResolver>().ForClientAsync(applicationId, cancellationToken));
         identity.SetDestinations(static _ => [Destinations.AccessToken]);
 
+        if (proof is not null)
+        {
+            BindAccessToken(context, proof);
+        }
+
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
@@ -78,7 +99,7 @@ internal static class TokenEndpoint
     /// behalf, a user's access token (RFC 8693). The account is checked again on every exchange, so suspended, locked-out
     /// or deleted users lose access as soon as their access token expires.
     /// </summary>
-    private static async Task<IResult> IssueUserTokenAsync(HttpContext context, OpenIddictRequest request, CancellationToken cancellationToken)
+    private static async Task<IResult> IssueUserTokenAsync(HttpContext context, OpenIddictRequest request, DpopProof? proof, CancellationToken cancellationToken)
     {
         var services = context.RequestServices;
         var userManager = services.GetRequiredService<UserManager<User>>();
@@ -90,6 +111,20 @@ internal static class TokenEndpoint
         if (exchange && RefuseExchange(request, principal) is { } refusal)
         {
             return refusal;
+        }
+
+        // A code or refresh token bound to a key is good only with a proof by it.
+        if (principal.GetClaim(DpopBinding.ThumbprintClaim) is { } boundTo && !string.Equals(proof?.Thumbprint, boundTo, StringComparison.Ordinal))
+        {
+            return OidcResults.Forbid(DpopProof.InvalidProofError, "Send a DPoP proof by the key the code or refresh token is bound to.");
+        }
+
+        var applications = services.GetRequiredService<IOpenIddictApplicationManager>();
+        var application = await applications.FindByClientIdAsync(request.ClientId!, cancellationToken)
+            ?? throw new InvalidOperationException("The authenticated client cannot be found.");
+        if (proof is null && ClientPresets.RequiresDpop(await applications.GetPropertiesAsync(application, cancellationToken)))
+        {
+            return DpopRequired();
         }
 
         var user = await userManager.FindByIdAsync(principal.GetClaim(Claims.Subject)!);
@@ -131,7 +166,7 @@ internal static class TokenEndpoint
         // A refresh carries the scopes of the sign-in, and OpenIddict only checks the scopes a request names, which a refresh
         // does not. One that an administrator took away from the client since, or deleted, ends the sign-in's tokens: the app
         // asks again, for what it may still have.
-        if (request.IsRefreshTokenGrantType() && !await MayStillAskForAsync(services, request.ClientId ?? principal.GetPresenters().FirstOrDefault(), principal.GetScopes(), cancellationToken))
+        if (request.IsRefreshTokenGrantType() && !await MayStillAskForAsync(applications, application, principal.GetScopes(), cancellationToken))
         {
             return OidcResults.Forbid(Errors.InvalidGrant, "The application may no longer ask for what this sign-in granted. Sign in again.");
         }
@@ -162,19 +197,29 @@ internal static class TokenEndpoint
             OidcPrincipalFactory.AddActor(identity, actor, principal.GetAccessTokenLifetime() ?? SignInFlow.ImpersonationLifetime);
         }
 
+        if (proof is not null)
+        {
+            BindAccessToken(context, proof);
+
+            // The refresh tokens of public clients are bound too; confidential clients authenticate to refresh (RFC 9449, section 5).
+            if (await applications.HasClientTypeAsync(application, ClientTypes.Public, cancellationToken))
+            {
+                identity.SetClaim(DpopBinding.ThumbprintClaim, proof.Thumbprint);
+            }
+        }
+
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
-    /// <summary>Whether the client may still ask for every one of <paramref name="scopes"/>; <c>openid</c> and <c>offline_access</c> take no permission.</summary>
-    private static async Task<bool> MayStillAskForAsync(IServiceProvider services, string? clientId, ImmutableArray<string> scopes, CancellationToken cancellationToken)
-    {
-        var applications = services.GetRequiredService<IOpenIddictApplicationManager>();
-        if (clientId is null || await applications.FindByClientIdAsync(clientId, cancellationToken) is not { } application)
-        {
-            // OpenIddict has checked that the token is the client's; without a name there is nothing more to check here.
-            return true;
-        }
+    /// <summary>Binds the access token being issued to the key of the request's proof; see <see cref="DpopServerHandlers"/>.</summary>
+    private static void BindAccessToken(HttpContext context, DpopProof proof) =>
+        context.Features.Get<OpenIddictServerAspNetCoreFeature>()!.Transaction!.Properties[DpopBinding.ThumbprintProperty] = proof.Thumbprint;
 
+    private static IResult DpopRequired() => OidcResults.Forbid(DpopProof.InvalidProofError, "This client must send a DPoP proof (RFC 9449) with its token requests.");
+
+    /// <summary>Whether the client may still ask for every one of <paramref name="scopes"/>; <c>openid</c> and <c>offline_access</c> take no permission.</summary>
+    private static async Task<bool> MayStillAskForAsync(IOpenIddictApplicationManager applications, object application, ImmutableArray<string> scopes, CancellationToken cancellationToken)
+    {
         foreach (var scope in scopes)
         {
             if (scope is not (Scopes.OpenId or Scopes.OfflineAccess) && !await applications.HasPermissionAsync(application, Permissions.Prefixes.Scope + scope, cancellationToken))

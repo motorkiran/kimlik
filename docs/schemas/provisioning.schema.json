@@ -245,6 +245,9 @@
           "requirePkce": {
             "type": "boolean"
           },
+          "requireDpop": {
+            "type": "boolean"
+          },
           "allowTokenExchange": {
             "type": "boolean"
           },

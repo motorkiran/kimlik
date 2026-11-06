@@ -47,6 +47,30 @@ public sealed class PushedAuthorizationTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task PushedThumbprint_BindsTheCode_AndAMalformedOneIsRefused()
+    {
+        var client = await CreateSpaAsync(requirePushedAuthorization: false);
+        var user = await server.CreateUserAsync();
+        using var browser = new Browser(server);
+        using var signIn = await browser.SignInAsync(user.Email, user.Password);
+        using var key = new DpopKey();
+        using var other = new DpopKey();
+
+        var malformed = new AuthorizationRequest(client.ClientId) { Scope = "openid", Extra = new Dictionary<string, string> { ["dpop_jkt"] = "not-a-thumbprint" } };
+        using var refused = await browser.Client.PostFormAsync("/connect/par", [.. malformed.Parameters.Select(parameter => new KeyValuePair<string, string>(parameter.Key, parameter.Value!))]);
+        (await refused.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe("invalid_request");
+
+        var request = new AuthorizationRequest(client.ClientId) { Scope = "openid", Extra = new Dictionary<string, string> { ["dpop_jkt"] = key.Thumbprint } };
+        using var callback = await browser.GetAsync(await PushAsync(browser.Client, request));
+        var code = AuthorizationRequest.ReadCallback(callback)["code"];
+
+        using var byAnotherKey = await RedeemWithProofAsync(browser.Client, client, request, code, other);
+        (await byAnotherKey.ReadJsonAsync()).GetProperty("error").GetString().ShouldBe("invalid_dpop_proof");
+        using var byTheKey = await RedeemWithProofAsync(browser.Client, client, request, code, key);
+        (await byTheKey.ReadJsonAsync()).GetProperty("token_type").GetString().ShouldBe("DPoP");
+    }
+
+    [Fact]
     public async Task Discovery_AdvertisesTheEndpoint()
     {
         using var http = server.CreateClient();
@@ -70,6 +94,23 @@ public sealed class PushedAuthorizationTests(KimlikServerFixture server)
             ["client_id"] = request.Parameters["client_id"],
             ["request_uri"] = body.GetProperty("request_uri").GetString(),
         });
+    }
+
+    private static async Task<HttpResponseMessage> RedeemWithProofAsync(HttpClient http, TestWebClient client, AuthorizationRequest request, string code, DpopKey key)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/connect/token")
+        {
+            Content = new FormUrlEncodedContent(
+            [
+                new("grant_type", "authorization_code"),
+                new("client_id", client.ClientId),
+                new("code", code),
+                new("code_verifier", request.CodeVerifier),
+                new("redirect_uri", request.RedirectUri),
+            ]),
+        };
+        message.Headers.Add("DPoP", key.Proof("POST", "/connect/token"));
+        return await http.SendAsync(message, TestContext.Current.CancellationToken);
     }
 
     private async Task<TestWebClient> CreateSpaAsync(bool requirePushedAuthorization, bool firstParty = true)

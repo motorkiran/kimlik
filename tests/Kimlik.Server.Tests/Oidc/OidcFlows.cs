@@ -12,10 +12,18 @@ internal static class OidcFlows
         this KimlikServerFixture server, TestUser user, string? scope = null)
     {
         var client = await server.CreateWebClientAsync();
+        var request = scope is null ? new AuthorizationRequest(client.ClientId) : new AuthorizationRequest(client.ClientId) { Scope = scope };
+        var (browser, code) = await server.SignInForCodeAsync(user, request);
+        var tokens = await RedeemCodeAsync(browser.Client, client, request, code);
+
+        return (browser, client, tokens);
+    }
+
+    /// <summary>Signs the user in through the hosted pages and returns the authorization code of <paramref name="request"/>.</summary>
+    public static async Task<(Browser Browser, string Code)> SignInForCodeAsync(this KimlikServerFixture server, TestUser user, AuthorizationRequest request)
+    {
         var browser = new Browser(server);
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
-
-        var request = scope is null ? new AuthorizationRequest(client.ClientId) : new AuthorizationRequest(client.ClientId) { Scope = scope };
         var callback = await browser.GetAsync(request.Url);
 
         // Access to Kimlik's own API takes the user's consent, even for first-party apps.
@@ -27,9 +35,7 @@ internal static class OidcFlows
         }
 
         using var _ = callback;
-        var tokens = await RedeemCodeAsync(browser.Client, client, request, AuthorizationRequest.ReadCallback(callback)["code"]);
-
-        return (browser, client, tokens);
+        return (browser, AuthorizationRequest.ReadCallback(callback)["code"]);
     }
 
     public static async Task<JsonElement> RedeemCodeAsync(HttpClient httpClient, TestWebClient client, AuthorizationRequest request, string code)

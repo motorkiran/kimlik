@@ -40,6 +40,25 @@ public sealed class TokenExchangeTests(KimlikServerFixture server)
     }
 
     [Fact]
+    public async Task TokenBoundToTheCallersKey_IsExchanged()
+    {
+        // The API received it with a proof by the caller's key, and passes the caller along with a token of its own.
+        using var key = new DpopKey();
+        var (user, orders, billing, subjectToken) = await SetUpAsync(key);
+        var gateway = await CreateServiceAsync(orders.Audience, billing.Scope, allowTokenExchange: true);
+        using var http = server.CreateClient();
+
+        using var exchanged = await ExchangeAsync(http, gateway, subjectToken, billing.Scope);
+
+        var body = await exchanged.ReadJsonAsync();
+        exchanged.StatusCode.ShouldBe(HttpStatusCode.OK, body.ToString());
+        body.GetProperty("token_type").GetString().ShouldBe("Bearer");
+        var token = Payload(body.GetProperty("access_token").GetString()!);
+        token.GetProperty("sub").GetString().ShouldBe(user.Id.ToString());
+        token.TryGetProperty("cnf", out _).ShouldBeFalse("the caller's key is not the gateway's");
+    }
+
+    [Fact]
     public async Task TokenForAnotherApi_IsNotExchanged()
     {
         var (_, _, billing, subjectToken) = await SetUpAsync();
@@ -108,7 +127,8 @@ public sealed class TokenExchangeTests(KimlikServerFixture server)
     /// Two APIs, orders and billing, and a user signed in to an app that calls orders: the access token orders receives is
     /// the one to exchange.
     /// </summary>
-    private async Task<(TestUser User, (string Scope, string Audience) Orders, (string Scope, string Audience) Billing, string SubjectToken)> SetUpAsync()
+    /// <summary>A user signed in to a browser app for the orders API, and the access token it got, bound to <paramref name="key"/> if given.</summary>
+    private async Task<(TestUser User, (string Scope, string Audience) Orders, (string Scope, string Audience) Billing, string SubjectToken)> SetUpAsync(DpopKey? key = null)
     {
         var orders = await CreateApiAsync();
         var billing = await CreateApiAsync();
@@ -129,8 +149,29 @@ public sealed class TokenExchangeTests(KimlikServerFixture server)
         using var signIn = await browser.SignInAsync(user.Email, user.Password);
         var request = new AuthorizationRequest(appId) { Scope = $"openid {orders.Scope}" };
         using var callback = await browser.GetAsync(request.Url);
-        var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, new TestWebClient(appId), request, AuthorizationRequest.ReadCallback(callback)["code"]);
-        return (user, orders, billing, tokens.GetProperty("access_token").GetString()!);
+        var code = AuthorizationRequest.ReadCallback(callback)["code"];
+        if (key is null)
+        {
+            var tokens = await OidcFlows.RedeemCodeAsync(browser.Client, new TestWebClient(appId), request, code);
+            return (user, orders, billing, tokens.GetProperty("access_token").GetString()!);
+        }
+
+        using var redemption = new HttpRequestMessage(HttpMethod.Post, "/connect/token")
+        {
+            Content = new FormUrlEncodedContent(
+            [
+                new("grant_type", "authorization_code"),
+                new("client_id", appId),
+                new("code", code),
+                new("code_verifier", request.CodeVerifier),
+                new("redirect_uri", request.RedirectUri),
+            ]),
+        };
+        redemption.Headers.Add("DPoP", key.Proof("POST", "/connect/token"));
+        using var redeemed = await browser.Client.SendAsync(redemption, TestContext.Current.CancellationToken);
+        var bound = await redeemed.ReadJsonAsync();
+        bound.GetProperty("token_type").GetString().ShouldBe("DPoP");
+        return (user, orders, billing, bound.GetProperty("access_token").GetString()!);
     }
 
     /// <summary>A service client; an API registers as one whose client ID is its audience.</summary>
