@@ -3,8 +3,8 @@ name: kimlik
 description: Kimlik, an open-source, self-hosted identity and access management server, with your own PostgreSQL.
 type: application
 # The chart is versioned with Kimlik: releases set both.
-version: 0.6.0
-appVersion: "0.6.0"
+version: 0.7.0
+appVersion: "0.7.0"
 home: https://github.com/motorkiran/kimlik
 sources:
   - https://github.com/motorkiran/kimlik

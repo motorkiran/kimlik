@@ -4,6 +4,18 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
+A Helm chart for Kubernetes, and security updates. Upgrade installations that use SAML connections soon.
+
+### Security
+
+- System.Security.Cryptography.Xml and System.Security.Cryptography.Pkcs are pinned to 10.0.14, for the denial-of-service fixes of CVE-2026-96958 and CVE-2026-84008. SAML responses and certificates reach them, so a crafted response could tie up an instance running 0.6.0 or earlier.
+
+### Changed
+
+- .NET 10.0.14 servicing, OpenIddict 7.7.2, IdentityModel 8.23 and OpenTelemetry 1.20, with other patch updates.
+
 ### Added
 
 - A Helm chart in `charts/kimlik`, which installs Kimlik on Kubernetes against your own PostgreSQL: secrets from a Secret you name or one the chart keeps, settings as values, an optional ingress, a migration Job before each rollout, and pods that run without root, capabilities or a writable root file system. Releases carry it as a package.
