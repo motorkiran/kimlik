@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Kimlik checks proofs with the same code. -->
+    <Compile Include="..\..\src\Shared\DpopProof.cs" Link="Dpop\DpopProof.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Kimlik.Contracts\Kimlik.Contracts.csproj" />
     <ProjectReference Include="..\Kimlik.Client\Kimlik.Client.csproj" />
   </ItemGroup>

@@ -29,12 +29,16 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   // Without a query or fragment the authority may carry, which do not belong in the middle of a path.
   const authority = new URL(options.authority);
   const base = (authority.origin + authority.pathname).replace(/\/+$/, "");
-  const headers: Record<string, string> = { Authorization: `Bearer ${await options.accessToken()}` };
+  const url = `${base}/api/v1/me${path}`;
+  const accessToken = await options.accessToken();
+  const headers: Record<string, string> = options.dpopProof
+    ? { Authorization: `DPoP ${accessToken}`, DPoP: await options.dpopProof({ method, url: url.split("?")[0]!, accessToken }) }
+    : { Authorization: `Bearer ${accessToken}` };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await (options.fetch ?? globalThis.fetch)(`${base}/api/v1/me${path}`, {
+  const response = await (options.fetch ?? globalThis.fetch)(url, {
     method,
     headers,
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

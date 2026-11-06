@@ -170,4 +170,28 @@ describe("the components' state", () => {
     expect(api.requests[0]!.path).toBe("/organizations");
     expect(api.requests[0]!.query).toBe("");
   });
+
+  it("sends a token bound to the page's key with a proof for each request", async () => {
+    const asked: unknown[] = [];
+    api.configure({
+      dpopProof: (request) => {
+        asked.push(request);
+        return `proof-${asked.length}`;
+      },
+    });
+    // Only what the components send from now on: one from an earlier test may still have been on its way.
+    api.requests.length = 0;
+
+    await mount("kimlik-organization-members", { organization: acme.id }, "Invite");
+
+    const members = api.requests.find((request) => request.path.endsWith("/members"))!;
+    expect(members.authorization).toMatch(/^DPoP e30\./);
+    expect(members.dpop).toMatch(/^proof-\d+$/);
+    expect(asked).toContainEqual({
+      method: "GET",
+      url: `${authority}api/v1/me/organizations/${acme.id}/members`,
+      accessToken: members.authorization!.slice("DPoP ".length),
+    });
+    expect(new Set(api.requests.map((request) => request.dpop)).size, "a proof per request").toBe(api.requests.length);
+  });
 });

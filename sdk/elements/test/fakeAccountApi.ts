@@ -14,6 +14,7 @@ export interface SentRequest {
   query: string;
   body: unknown;
   authorization: string | null;
+  dpop: string | null;
 }
 
 /**
@@ -34,8 +35,8 @@ export class FakeAccountApi {
   /** Answers a request itself, or waits before the fake does, when a test needs to decide what arrives when. */
   intercept: ((method: string, path: string) => Promise<Response | undefined>) | undefined;
 
-  configure(): this {
-    configureKimlik({ authority, accessToken: () => token, fetch: this.fetch });
+  configure(options: Partial<Parameters<typeof configureKimlik>[0]> = {}): this {
+    configureKimlik({ authority, accessToken: () => token, fetch: this.fetch, ...options });
     return this;
   }
 
@@ -44,7 +45,7 @@ export class FakeAccountApi {
     const url = new URL(request.url);
     const path = url.pathname.replace(/^\/api\/v1\/me/, "");
     const body = request.method === "GET" || request.method === "DELETE" ? undefined : await request.json().catch(() => undefined);
-    this.requests.push({ method: request.method, path, query: url.search, body, authorization: request.headers.get("authorization") });
+    this.requests.push({ method: request.method, path, query: url.search, body, authorization: request.headers.get("authorization"), dpop: request.headers.get("dpop") });
     const intercepted = await this.intercept?.(request.method, path);
     if (intercepted) {
       return intercepted;

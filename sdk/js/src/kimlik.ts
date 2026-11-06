@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createRemoteJWKSet, customFetch, errors, jwtVerify, type JWTVerifyGetKey } from "jose";
 import createClient, { type Client } from "openapi-fetch";
+import { DpopReplayCache, verifyDpopProof, type DpopRequest } from "./dpop.js";
 import type { paths } from "./schema.js";
 import { createUser, userFromToken, type KimlikUser } from "./user.js";
 
@@ -37,13 +38,17 @@ export interface KimlikOptions {
 }
 
 export interface Kimlik {
-  /** The caller of a valid access token for the audience, or `null`. */
-  verifyAccessToken(token: string): Promise<KimlikUser | null>;
   /**
-   * The caller of an `Authorization` header, from a bearer access token or, with a service client, an API key
-   * (`Bearer kmk_…`); `null` without a valid one. API keys are verified through the Management API and cached a minute.
+   * The caller of a valid access token for the audience, or `null`. A token bound to a client's key (RFC 9449) is valid
+   * only with `dpop`, the request that brought it with a proof by that key, and an unbound one only without.
    */
-  authenticate(authorization: string | null | undefined): Promise<KimlikUser | null>;
+  verifyAccessToken(token: string, dpop?: DpopRequest): Promise<KimlikUser | null>;
+  /**
+   * The caller of an `Authorization` header, from a bearer access token, a DPoP access token with `dpop` (`DPoP …`) or,
+   * with a service client, an API key (`Bearer kmk_…`); `null` without a valid one. API keys are verified through the
+   * Management API and cached a minute.
+   */
+  authenticate(authorization: string | null | undefined, dpop?: DpopRequest): Promise<KimlikUser | null>;
   /**
    * The features and limits of the caller's subscriber: the organization in an organization context, otherwise the user.
    * Read through the Management API and cached a minute.
@@ -119,9 +124,10 @@ export function createKimlik(options: KimlikOptions): Kimlik {
   });
 
   const apiKeys = new Cache<KimlikUser | null>();
+  const proofs = new DpopReplayCache();
   const entitlements = new Cache<Entitlements>();
 
-  async function verifyAccessToken(token: string): Promise<KimlikUser | null> {
+  async function verifyAccessToken(token: string, dpop?: DpopRequest): Promise<KimlikUser | null> {
     if (!options.audience) {
       throw new Error("Set the audience to verify access tokens.");
     }
@@ -136,7 +142,17 @@ export function createKimlik(options: KimlikOptions): Kimlik {
         requiredClaims: ["exp"],
         clockTolerance: options.clockTolerance ?? 60,
       });
-      return typeof payload.sub === "string" ? userFromToken(payload) : null;
+      if (typeof payload.sub !== "string") {
+        return null;
+      }
+
+      // A token bound to a key comes with a proof by it; an unbound one is a bearer token.
+      const boundTo = (payload.cnf as { jkt?: unknown } | undefined)?.jkt;
+      if (boundTo === undefined) {
+        return dpop ? null : userFromToken(payload);
+      }
+
+      return dpop && typeof boundTo === "string" && (await verifyDpopProof(dpop, token, proofs)) === boundTo ? userFromToken(payload) : null;
     } catch (error) {
       if (error instanceof errors.JOSEError) {
         return null;
@@ -177,13 +193,17 @@ export function createKimlik(options: KimlikOptions): Kimlik {
 
   return {
     verifyAccessToken,
-    async authenticate(authorization) {
-      const match = /^Bearer\s+(\S+)\s*$/i.exec(authorization ?? "");
-      if (!match?.[1]) {
+    async authenticate(authorization, dpop) {
+      const match = /^(Bearer|DPoP)\s+(\S+)\s*$/i.exec(authorization ?? "");
+      if (!match?.[1] || !match[2]) {
         return null;
       }
 
-      const credential = match[1];
+      const credential = match[2];
+      if (match[1].toLowerCase() === "dpop") {
+        return dpop ? verifyAccessToken(credential, dpop) : null;
+      }
+
       return credential.startsWith(apiKeyPrefix) ? (options.clientId ? verifyApiKey(credential) : null) : verifyAccessToken(credential);
     },
     async entitlementsOf(user) {

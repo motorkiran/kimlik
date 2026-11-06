@@ -1,5 +1,6 @@
 using Kimlik.AspNetCore.ApiKeys;
 using Kimlik.AspNetCore.Authorization;
+using Kimlik.AspNetCore.Dpop;
 using Kimlik.AspNetCore.Entitlements;
 using Kimlik.Client;
 using Kimlik.Contracts;
@@ -32,7 +33,10 @@ public static class KimlikServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddAuthorization();
+        services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ApiKeyCache>();
+        services.TryAddSingleton<DpopProofReplay>();
+        services.TryAddSingleton<KimlikBearerEvents>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, PermissionAuthorizationHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, FeatureAuthorizationHandler>());
         services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureKimlikBearer>();
@@ -83,6 +87,9 @@ public static class KimlikServiceCollectionExtensions
 
             // Only access tokens (RFC 9068): an ID token issued to some client must not open the API.
             options.TokenValidationParameters.ValidTypes = ["at+jwt"];
+
+            // Tokens bound to a client's key come as DPoP tokens, with a proof (RFC 9449).
+            options.EventsType = typeof(KimlikBearerEvents);
 
             // API keys go to their own handler, which asks Kimlik about them.
             options.ForwardDefaultSelector = context =>

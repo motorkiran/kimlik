@@ -18,7 +18,7 @@ describe("middleware", () => {
     kimlikMiddleware(kimlik)({ headers: {} }, refused, () => expect.fail("next was called"));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(refused.statusCode).toBe(401);
-    expect(refused.headers["WWW-Authenticate"]).toBe("Bearer");
+    expect(refused.headers["WWW-Authenticate"]).toBe('Bearer, DPoP algs="ES256 ES384 PS256 RS256"');
   });
 
   it("lets callers with the permission through, and answers 403 to the others", () => {

@@ -45,6 +45,16 @@ The components tell the page what happened through events, which bubble out of t
 | `kimlik-organization-leave` | The user left the organization | `id` |
 | `kimlik-organization-delete` | The user deleted it | `id` |
 
+If the page binds its tokens to a key of its own with DPoP (RFC 9449), give the components a function that makes a proof for each request too, and they send the token as a DPoP token:
+
+```js
+configureKimlik({
+  authority: "https://id.example.com/",
+  accessToken: async () => tokens.accessToken,
+  dpopProof: ({ method, url, accessToken }) => makeProof(method, url, accessToken), // signed with the page's key
+});
+```
+
 Importing the package defines the elements in a browser and does nothing on a server, so a page rendered on the server can import it; the elements fill in once the page runs in the browser. Call `element.refresh()` to load a component again after something changed elsewhere.
 
 It is not on npm yet; until it is, install the tarball attached to each [release](https://github.com/motorkiran/kimlik/releases).

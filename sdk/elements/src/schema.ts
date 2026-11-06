@@ -2470,6 +2470,7 @@ export interface components {
             requireOrganization: boolean;
             requirePushedAuthorization: boolean;
             requirePkce: boolean;
+            requireDpop: boolean;
             jsonWebKeySet: null | components["schemas"]["JsonObject"];
             allowTokenExchange: boolean;
             backChannelLogoutUri: null | string;
@@ -2546,6 +2547,11 @@ export interface components {
              *     to sign in without it, such as an older app that cannot send it; one that sends it is held to it either way.
              */
             requirePkce?: boolean;
+            /**
+             * @description Whether every token request must carry a DPoP proof (RFC 9449), so that every access token the client gets is bound
+             *     to its key.
+             */
+            requireDpop?: boolean;
             jsonWebKeySet?: null | components["schemas"]["JsonObject"];
             /**
              * @description Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693), to call
@@ -3111,6 +3117,8 @@ export interface components {
             requirePushedAuthorization?: boolean;
             /** @description Whether sign-ins must use PKCE; only a web client can be set not to. */
             requirePkce?: boolean;
+            /** @description Whether every token request must carry a DPoP proof (RFC 9449). */
+            requireDpop?: boolean;
             /** @description Whether a web or service client may exchange users' access tokens for tokens to other APIs (RFC 8693). */
             allowTokenExchange?: boolean;
             /** @description Where a web client receives logout tokens when the user's session ends. */
@@ -3359,6 +3367,7 @@ export interface components {
             requireOrganization?: null | boolean;
             requirePushedAuthorization?: null | boolean;
             requirePkce?: null | boolean;
+            requireDpop?: null | boolean;
             allowTokenExchange?: null | boolean;
             redirectUris?: null | string[];
             postLogoutRedirectUris?: null | string[];

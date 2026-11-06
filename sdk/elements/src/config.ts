@@ -7,6 +7,12 @@ export interface KimlikElementsOptions {
    * own: one that also carries your API's scope could be used on the user's organizations by whoever receives it there.
    */
   accessToken: () => string | Promise<string>;
+  /**
+   * For an access token bound to the page's key with DPoP (RFC 9449): returns a proof for a request, signed with that key,
+   * for its method, its URL (given without the query, as the proof names it) and the token. The components then send the
+   * token as `Authorization: DPoP`, with the proof. Libraries such as oauth4webapi make proofs.
+   */
+  dpopProof?: (request: { method: string; url: string; accessToken: string }) => string | Promise<string>;
   /** The fetch to call Kimlik with; the global one by default. */
   fetch?: typeof fetch;
 }

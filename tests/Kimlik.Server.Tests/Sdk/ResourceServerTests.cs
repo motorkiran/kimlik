@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Kimlik.AspNetCore;
 using Kimlik.AspNetCore.Authorization;
@@ -70,6 +71,49 @@ public sealed class ResourceServerTests(KimlikServerFixture server)
         caller.GetProperty("isServiceClient").GetBoolean().ShouldBeTrue();
         caller.GetProperty("clientId").GetString().ShouldBe(serviceClient.ClientId);
         caller.GetProperty("userId").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task TokenBoundToAKey_IsAccepted_OnlyWithAFreshProofByIt()
+    {
+        var (role, permissions) = await server.CreateRoleAsync();
+        var serviceClient = await server.CreateServiceClientAsync();
+        await server.AssignToClientAsync(serviceClient.ClientId, role);
+        await using var api = await StartApiAsync(requiredPermission: permissions[0]);
+        using var key = new DpopKey();
+        using var kimlik = server.CreateClient();
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/connect/token") { Content = new FormUrlEncodedContent([new("grant_type", "client_credentials"), new("scope", TestClients.ApiScope)]) };
+        tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{serviceClient.ClientId}:{serviceClient.ClientSecret}")));
+        tokenRequest.Headers.Add("DPoP", key.Proof("POST", "/connect/token"));
+        using var issued = await kimlik.SendAsync(tokenRequest, CancellationToken);
+        var token = (await issued.ReadJsonAsync()).GetProperty("access_token").GetString()!;
+        using var http = api.GetTestClient();
+        var proof = key.Proof("GET", "/orders", token);
+
+        using var withProof = await SendAsync(http, "DPoP", token, proof);
+        withProof.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var replayed = await SendAsync(http, "DPoP", token, proof);
+        replayed.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        replayed.Headers.WwwAuthenticate.ToString().ShouldStartWith("DPoP algs=\"ES256 ES384 PS256 RS256\", error=\"invalid_dpop_proof\"");
+
+        using var forAnotherPath = await SendAsync(http, "DPoP", token, key.Proof("GET", "/me", token));
+        forAnotherPath.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        using var asBearer = await SendAsync(http, "Bearer", token, proof: null);
+        asBearer.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        static async Task<HttpResponseMessage> SendAsync(HttpClient http, string scheme, string token, string? proof)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/orders");
+            request.Headers.Authorization = new AuthenticationHeaderValue(scheme, token);
+            if (proof is not null)
+            {
+                request.Headers.Add("DPoP", proof);
+            }
+
+            return await http.SendAsync(request, CancellationToken);
+        }
     }
 
     [Fact]

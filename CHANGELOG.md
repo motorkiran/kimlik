@@ -7,6 +7,7 @@ All notable changes to Kimlik are recorded here. The format follows [Keep a Chan
 ### Added
 
 - DPoP (RFC 9449). A token request with a proof gets an access token bound to the client's key, and the refresh tokens of public clients are bound too. `dpop_jkt` binds the authorization code, and `requireDpop` makes a client send proofs with every token request. Kimlik's API and UserInfo take bound tokens as `Authorization: DPoP` with a proof, and refuse them as bearer tokens. Proofs are used once, across instances.
+- DPoP in the SDKs. `Kimlik.AspNetCore` and `@kimlik/node` take bound tokens with a proof for the request, and refuse them as bearer tokens; `kimlikMiddleware` takes the API's `publicUrl` for proofs behind a proxy. `@kimlik/elements` sends DPoP tokens with proofs from a `dpopProof` function the page gives it.
 
 ### Security
 
