@@ -102,6 +102,12 @@ public sealed class ResourceServerTests(KimlikServerFixture server)
 
         using var asBearer = await SendAsync(http, "Bearer", token, proof: null);
         asBearer.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        using var inTheQuery = await http.GetAsync($"/orders?access_token={token}", CancellationToken);
+        inTheQuery.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        // The application's own events still run: an unbound token passes in the query string.
+        using var unbound = await http.GetAsync($"/orders?access_token={await kimlik.RequestClientCredentialsTokenAsync(serviceClient)}", CancellationToken);
+        unbound.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         static async Task<HttpResponseMessage> SendAsync(HttpClient http, string scheme, string token, string? proof)
         {
@@ -164,8 +170,24 @@ public sealed class ResourceServerTests(KimlikServerFixture server)
             options.RequireHttpsMetadata = false;
         });
 
-        // Kimlik runs in memory, so its discovery document and keys are fetched through the test server.
-        builder.Services.Configure<JwtBearerOptions>(KimlikDefaults.AuthenticationScheme, options => options.BackchannelHttpHandler = server.Server.CreateHandler());
+        // Kimlik runs in memory, so its discovery document and keys are fetched through the test server. Events of the
+        // application's own, here for tokens in the query string as SignalR sends them, keep working next to Kimlik's.
+        builder.Services.Configure<JwtBearerOptions>(KimlikDefaults.AuthenticationScheme, options =>
+        {
+            options.BackchannelHttpHandler = server.Server.CreateHandler();
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    if (context.Request.Query["access_token"] is [{ } token])
+                    {
+                        context.Token = token;
+                    }
+
+                    return Task.CompletedTask;
+                },
+            };
+        });
 
         var app = builder.Build();
         app.MapGet("/orders", () => "orders").RequirePermission(requiredPermission ?? "orders:read");

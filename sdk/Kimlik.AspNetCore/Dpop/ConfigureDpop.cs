@@ -4,6 +4,7 @@ using Kimlik.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.Net.Http.Headers;
 
@@ -11,25 +12,54 @@ namespace Kimlik.AspNetCore.Dpop;
 
 /// <summary>
 /// Takes access tokens bound to a client's key as <c>Authorization: DPoP</c>, with a proof by that key (RFC 9449), and
-/// refuses them as bearer tokens; JwtBearer reads bearer tokens only.
+/// refuses them as bearer tokens; JwtBearer reads bearer tokens only. It goes in front of the events the application set
+/// for the scheme, such as reading tokens from the query string for SignalR, which keep working.
 /// </summary>
-internal sealed class KimlikBearerEvents(DpopProofReplay replay, TimeProvider timeProvider) : JwtBearerEvents
+internal sealed class ConfigureDpop(DpopProofReplay replay, TimeProvider timeProvider) : IPostConfigureOptions<JwtBearerOptions>
 {
     private const string SchemePrefix = DpopProof.Scheme + " ";
 
     private static readonly object FailureKey = new();
 
-    public override Task MessageReceived(MessageReceivedContext context)
+    public void PostConfigure(string? name, JwtBearerOptions options)
     {
-        if (TokenOf(context.Request) is { } token)
+        if (name != KimlikDefaults.AuthenticationScheme)
         {
-            context.Token = token;
+            return;
         }
 
-        return base.MessageReceived(context);
+        // Events from the container would replace these, and bound tokens would pass as bearer tokens.
+        if (options.EventsType is not null)
+        {
+            throw new InvalidOperationException(
+                $"Kimlik takes DPoP tokens through JwtBearerOptions.Events; set Events, not EventsType, for the {KimlikDefaults.AuthenticationScheme} scheme.");
+        }
+
+        var events = options.Events ??= new JwtBearerEvents();
+
+        var messageReceived = events.OnMessageReceived;
+        events.OnMessageReceived = context =>
+        {
+            if (TokenOf(context.Request) is { } token)
+            {
+                context.Token = token;
+            }
+
+            return messageReceived(context);
+        };
+
+        var tokenValidated = events.OnTokenValidated;
+        events.OnTokenValidated = context =>
+        {
+            CheckBinding(context);
+            return context.Result is null ? tokenValidated(context) : Task.CompletedTask;
+        };
+
+        var challenge = events.OnChallenge;
+        events.OnChallenge = context => Challenge(context) ? Task.CompletedTask : challenge(context);
     }
 
-    public override Task TokenValidated(TokenValidatedContext context)
+    private void CheckBinding(TokenValidatedContext context)
     {
         var request = context.Request;
         var boundTo = context.SecurityToken is JsonWebToken token && token.TryGetPayloadValue<JsonElement>("cnf", out var confirmation)
@@ -43,13 +73,13 @@ internal sealed class KimlikBearerEvents(DpopProofReplay replay, TimeProvider ti
                 Fail(context, "invalid_token", "The access token is bound to a key. Send it as a DPoP token, with a proof.");
             }
 
-            return Task.CompletedTask;
+            return;
         }
 
         if (boundTo is null)
         {
             Fail(context, "invalid_token", "The access token is not bound to a key. Send it as a bearer token.");
-            return Task.CompletedTask;
+            return;
         }
 
         var target = new Uri(UriHelper.BuildAbsolute(request.Scheme, request.Host, request.PathBase, request.Path));
@@ -66,17 +96,18 @@ internal sealed class KimlikBearerEvents(DpopProofReplay replay, TimeProvider ti
         {
             Fail(context, DpopProof.InvalidProofError, "The DPoP proof was used before.");
         }
-
-        return Task.CompletedTask;
     }
 
-    /// <summary>Answers requests with DPoP tokens, and refused proofs, with a DPoP challenge (RFC 9449, section 7.1).</summary>
-    public override Task Challenge(JwtBearerChallengeContext context)
+    /// <summary>
+    /// Answers requests with DPoP tokens, and refused proofs, with a DPoP challenge (RFC 9449, section 7.1); <see langword="false"/>
+    /// leaves the challenge to JwtBearer.
+    /// </summary>
+    private static bool Challenge(JwtBearerChallengeContext context)
     {
         var failure = context.HttpContext.Items[FailureKey] as (string Error, string Description)?;
         if (TokenOf(context.Request) is null && failure?.Error != DpopProof.InvalidProofError)
         {
-            return base.Challenge(context);
+            return false;
         }
 
         context.HandleResponse();
@@ -85,7 +116,7 @@ internal sealed class KimlikBearerEvents(DpopProofReplay replay, TimeProvider ti
         context.Response.Headers[HeaderNames.WWWAuthenticate] = failure is var (error, description)
             ? $"{challenge}, error=\"{error}\", error_description=\"{description}\""
             : challenge;
-        return Task.CompletedTask;
+        return true;
     }
 
     private static string? TokenOf(HttpRequest request) =>

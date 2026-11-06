@@ -1,6 +1,9 @@
+using Kimlik.Security;
 using Microsoft.AspNetCore;
+using OpenIddict.Abstractions;
 using OpenIddict.Validation;
 using OpenIddict.Validation.AspNetCore;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Validation.OpenIddictValidationEvents;
 
 namespace Kimlik.Server.Oidc.Dpop;
@@ -56,7 +59,10 @@ internal static class DpopValidationHandlers
             }
 
             // Checked above; OpenIddict would refuse the confirmation as unknown.
-            context.DisableProofOfPossessionValidation = true;
+            if (DpopProof.BoundKeyOf(principal.GetClaim(Claims.Confirmation)) is not null)
+            {
+                context.DisableProofOfPossessionValidation = true;
+            }
         }
     }
 
