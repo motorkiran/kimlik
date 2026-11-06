@@ -74,25 +74,46 @@ internal static class DpopServerHandlers
     }
 
     /// <summary>
-    /// Refuses a pushed authorization request whose <c>dpop_jkt</c> cannot be a key's thumbprint. The authorization page checks
-    /// the requests that come through the browser.
+    /// Binds the code of a pushed authorization request to the key of its proof, as if it named the key's thumbprint
+    /// (RFC 9449, section 10.1), and refuses a <c>dpop_jkt</c> that cannot be a thumbprint, or names another key. The
+    /// authorization page checks the requests that come through the browser.
     /// </summary>
-    private sealed class ValidateThumbprintParameter : IOpenIddictServerHandler<ValidatePushedAuthorizationRequestContext>
+    private sealed class ValidateThumbprintParameter(DpopProofValidator validator) : IOpenIddictServerHandler<ValidatePushedAuthorizationRequestContext>
     {
         public static OpenIddictServerHandlerDescriptor Descriptor { get; } = OpenIddictServerHandlerDescriptor.CreateBuilder<ValidatePushedAuthorizationRequestContext>()
-            .UseSingletonHandler<ValidateThumbprintParameter>()
+            .UseScopedHandler<ValidateThumbprintParameter>()
             .SetOrder(int.MaxValue - 100_000)
             .SetType(OpenIddictServerHandlerType.Custom)
             .Build();
 
-        public ValueTask HandleAsync(ValidatePushedAuthorizationRequestContext context)
+        public async ValueTask HandleAsync(ValidatePushedAuthorizationRequestContext context)
         {
-            if (context.Request.GetParameter(DpopBinding.ThumbprintParameter) is { } parameter && !DpopBinding.IsThumbprint((string?)parameter))
+            var thumbprint = (string?)context.Request.GetParameter(DpopBinding.ThumbprintParameter);
+            if (thumbprint is not null && !DpopBinding.IsThumbprint(thumbprint))
             {
                 context.Reject(Errors.InvalidRequest, DpopBinding.InvalidThumbprint);
+                return;
             }
 
-            return default;
+            if (context.Transaction.GetHttpRequest() is not { } request)
+            {
+                return;
+            }
+
+            var (proof, error) = await validator.ValidateAsync(request, accessToken: null, request.HttpContext.RequestAborted);
+            if (error is not null)
+            {
+                context.Reject(DpopProof.InvalidProofError, error);
+            }
+            else if (proof is not null && thumbprint is not null && !string.Equals(proof.Thumbprint, thumbprint, StringComparison.Ordinal))
+            {
+                context.Reject(DpopProof.InvalidProofError, $"The DPoP proof is not signed by the key {DpopBinding.ThumbprintParameter} names.");
+            }
+            else if (proof is not null)
+            {
+                // Stored with the pushed request, so the code is bound as for dpop_jkt.
+                context.Request.SetParameter(DpopBinding.ThumbprintParameter, proof.Thumbprint);
+            }
         }
     }
 
