@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/motorkiran/kimlik/security/advisories/new
+    about: Security problems are reported privately, not in issues.
+  - name: Documentation
+    url: https://github.com/motorkiran/kimlik#readme
+    about: Setup, configuration, deployment and the SDKs.

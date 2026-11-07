@@ -1144,8 +1144,8 @@ The EF Core in-memory provider is not used. Data access is always tested against
 
 ### 14.3 Workflow
 
-- Trunk-based development with short-lived branches and pull requests. CI runs the build, tests, format check and CodeQL.
-- Conventional Commits and Semantic Versioning (0.x until the API stabilizes), with a changelog and GitHub Releases.
+- Trunk-based development with short-lived branches and pull requests. CI runs the build, the format check, the .NET and JavaScript tests and the Helm chart's checks.
+- Commit messages say what the change does in the imperative, with the why in the body. Semantic Versioning (0.x until the API stabilizes), with a changelog and GitHub Releases.
 - ADRs in MADR format in `docs/adr/` for significant decisions.
 - Local prerequisites: the .NET 10 SDK, a container engine with a Docker-compatible API (Docker Desktop, OrbStack, or Podman 5+ with a rootful machine) and Docker Compose v2. They run PostgreSQL, the Compose environment and the integration tests.
 

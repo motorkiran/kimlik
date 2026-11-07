@@ -1,10 +1,34 @@
 # Kimlik
 
-Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server. It is being built as a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks.
+[![CI](https://github.com/motorkiran/kimlik/actions/workflows/ci.yml/badge.svg)](https://github.com/motorkiran/kimlik/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/motorkiran/kimlik)](https://github.com/motorkiran/kimlik/releases/latest)
+[![License](https://img.shields.io/github/license/motorkiran/kimlik)](LICENSE)
 
-> **Status:** early development. Kimlik is a working OpenID Connect provider with hosted sign-in pages, roles and permissions, organizations with invitations, plans and subscriptions, a Management and Account API, provisioning and a .NET SDK (milestones M1 to M4), plus two-factor authentication, sign-in with Google, Microsoft, Apple and GitHub, account pages (milestone M5), API keys and webhooks (M6), and an admin panel (M7). Version 0.1.0 (M8) was the first release, and 0.2.0 adds passkeys, email sign-in codes and links, accounts without a password, personal data export, the device authorization grant, breached-password checks, admin impersonation, `private_key_jwt` and pushed authorization requests (M9 to M16). 0.3.0 adds phone numbers and SMS codes, token exchange, back-channel logout, add-ons and overrides, CAPTCHA and `acr_values` step-up, usage metering, secret rotation, enterprise single sign-on over OpenID Connect and SAML, and organization pages (M17 to M26). 0.4.0 lets administrators change product settings and social providers at runtime, and developers bring sign-in pages of their own (M27 to M29). 0.5.0 adds a JavaScript SDK for Node.js backends (M30) and the fixes of a security review. 0.6.0 adds web components for organization management and prepares for OpenID certification (M31, M32), and 0.7.0 a Helm chart (M33) and security updates. Since 0.7.0, the main branch binds tokens to clients' keys with DPoP (M34). Not ready for production use yet.
+Kimlik ("identity" in Turkish) is an open-source, self-hosted identity and access management server for developers: a standards-compliant OpenID Connect provider with users, organizations, roles and permissions, plans and entitlements, multi-factor authentication, API keys and webhooks. It is one ASP.NET Core application and a PostgreSQL database, licensed under Apache 2.0.
 
-The [design document](docs/design.md) describes the vision, scope, architecture and roadmap.
+> **Status:** Kimlik covers the scope of its [design](docs/design.md) and is tested end to end in CI, but it is young: it has not run in production yet, and until 1.0, minor versions may change its APIs. The latest release is [0.7.0](https://github.com/motorkiran/kimlik/releases/latest); the [changelog](CHANGELOG.md) says what each release brought, and what the main branch has since.
+
+## What it does
+
+- **Standards.** OpenID Connect and OAuth 2.0 as the current best practice (RFC 9700) has them: authorization code with PKCE, refresh token rotation with reuse detection, client credentials, device authorization, token exchange, pushed authorization requests, `private_key_jwt`, DPoP-bound tokens, introspection and revocation, RP-initiated and back-channel logout, and step-up with `acr_values`. JWT access tokens (RFC 9068) with rotating signing keys. Prepared for the OpenID Foundation's Basic, Form Post, Config and logout certification profiles.
+- **Sign-in.** Hosted, brandable pages with passwords (checked against known breaches), passkeys, email codes and links, SMS codes, authenticator apps and recovery codes, CAPTCHA, Google, Microsoft, Apple and GitHub, and enterprise single sign-on over OpenID Connect or SAML per organization. Or sign-in pages of your own, through login challenges.
+- **Access.** Global and organization roles that become `permissions` in tokens, organizations with invitations and an active organization per token, and API keys for users and organizations.
+- **Plans.** Features, limits, add-ons, per-customer overrides and usage metering, fed by your billing system through the API, so that APIs gate features with the `plan` claim and the SDK.
+- **Operations.** A REST Management and Account API with an OpenAPI document, a provisioning file for configuration as code, webhooks (Standard Webhooks), an audit log, an admin panel with impersonation, personal data export, OpenTelemetry, a container image and a Helm chart.
+- **SDKs.** `Kimlik.AspNetCore` and `Kimlik.Client` for .NET, `@kimlik/node` for Node.js backends, and `@kimlik/elements`, web components for organization management in your own pages. Until the names are reserved on NuGet and npm, each release carries them as packages.
+
+## Documentation
+
+| | |
+| --- | --- |
+| [Local development](#local-development) | Running Kimlik from source, testing, the essential settings |
+| [docs/configuration.md](docs/configuration.md) | Every setting |
+| [docs/deployment.md](docs/deployment.md) | Production: the image, proxies, migrations, several instances, backups, hardening |
+| [charts/kimlik](charts/kimlik) | The Helm chart for Kubernetes |
+| [docs/design.md](docs/design.md) | Vision, scope, architecture, protocol design and roadmap |
+| [docs/certification.md](docs/certification.md) | Running the OpenID conformance suite |
+| [samples](samples) | A single-page app and API protected by Kimlik |
+| [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) | Contributing, and reporting vulnerabilities |
 
 ## Use Kimlik from .NET
 
@@ -225,6 +249,10 @@ Migrations run at startup by default, followed by the bootstrap administrator an
 ```bash
 dotnet run --project src/Kimlik.Server -- migrate
 ```
+
+## Contributing
+
+Issues and pull requests are welcome; [CONTRIBUTING.md](CONTRIBUTING.md) explains how to build, test and propose changes, and the [code of conduct](CODE_OF_CONDUCT.md) applies. Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## License
 

@@ -10,13 +10,17 @@ Kimlik is one ASP.NET Core application and a PostgreSQL database. This guide cov
 - An SMTP relay for verification, password reset and invitation emails.
 - A 256-bit master key: `openssl rand -base64 32`. Store it in your secret manager and back it up with the database.
 
-## Build the image
+## The image
+
+Each release publishes an image for amd64 and arm64: `ghcr.io/motorkiran/kimlik:<version>`, such as `ghcr.io/motorkiran/kimlik:0.7.0`. It is a chiseled Ubuntu image that runs as a non-root user and listens on port 8080. Pin a version, and read the [changelog](../CHANGELOG.md) before moving to another.
+
+To build one from source instead:
 
 ```bash
 dotnet publish src/Kimlik.Server -c Release -t:PublishContainer
 ```
 
-This builds `kimlik:latest` on a chiseled Ubuntu image that runs as a non-root user and listens on port 8080. Push it to your registry, or use `-p:ContainerRegistry=…` to publish straight to one.
+This builds `kimlik:latest`. Push it to your registry, or use `-p:ContainerRegistry=…` to publish straight to one.
 
 ## Run it
 
@@ -31,7 +35,7 @@ docker run -d --name kimlik -p 8080:8080 \
   -e Kimlik__Bootstrap__AdminEmail=you@example.com \
   -e Kimlik__Bootstrap__AdminPassword=… \
   -e ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
-  kimlik:latest
+  ghcr.io/motorkiran/kimlik:0.7.0
 ```
 
 On the first start Kimlik creates its tables, its signing and encryption keys and the bootstrap administrator. Sign in at `https://id.example.com/admin`: administrators set up two-factor authentication first. Then remove the bootstrap password from the configuration.

@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose something Kimlik should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Kimlik's scope and roadmap are in docs/design.md; please check whether it is planned, or deliberately out of scope, first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and why Kimlik gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: How it could work, and the standards or products it follows, if any.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways you considered, or how you work around it now.

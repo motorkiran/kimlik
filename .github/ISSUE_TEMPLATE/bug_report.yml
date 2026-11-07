@@ -1,0 +1,58 @@
+name: Bug report
+description: Something in Kimlik or its SDKs does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems go to a private report instead: see SECURITY.md. Leave secrets, tokens and personal data out of this issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead, with any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a SPA client with …
+        2. Sign in with …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release, image tag or commit you ran.
+      placeholder: 0.7.0
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Part of Kimlik
+      options:
+        - Server (protocol, APIs, hosted pages)
+        - Admin panel
+        - Kimlik.AspNetCore or Kimlik.Client
+        - "@kimlik/node"
+        - "@kimlik/elements"
+        - Container image or Helm chart
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: How you run Kimlik (container, Kubernetes, from source), the PostgreSQL version, and relevant settings, without secrets.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log lines, with tokens and personal data removed.
+      render: text
